@@ -22,6 +22,7 @@ import './views/view-servicios-tipo-servicio-listado.js';
 import './views/view-servicios-tipo-servicio-form.js';
 import './views/view-servicios-servicio-listado.js';
 import './views/view-servicios-servicio-form.js';
+import './views/view-catalogo-servicios.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -366,6 +367,17 @@ export class MainApp extends LitElement {
         return true;
       },
       render: (params) => html`<view-servicios-servicio-form .servicioId=${params.id}></view-servicios-servicio-form>`
+    },
+    {
+      path: '/servicios/catalogo',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: () => html`<view-catalogo-servicios></view-catalogo-servicios>`
     },
     // {
     //   path: '/products/create',

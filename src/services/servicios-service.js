@@ -129,6 +129,57 @@ export class ServiciosService {
             return false;
         }
     }
+
+    async getCatalogoServicios() {
+        let url = `${this.baseUrl}/api/catalogo-servicios`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al obtener catálogo de servicios:', error);
+            return false;
+        }
+    }
+
+    async createOrden(data) {
+        let url = `${this.baseUrl}/api/ordenes`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al crear orden:', error);
+            throw error;
+        }
+    }
 }
 
 export const serviciosService = new ServiciosService();
