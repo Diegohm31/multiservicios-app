@@ -1,6 +1,7 @@
 import { LitElement, css, html } from 'lit';
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
+import { navigator } from '../utils/navigator.js';
 
 export class ViewCatalogoServicios extends LitElement {
   static properties = {
@@ -33,12 +34,10 @@ export class ViewCatalogoServicios extends LitElement {
     this.categoryIcons = {
       'Herrería': '⚒️',
       'Plomería': '🚰',
-      'Electricidad': '⚡',
       'Cableado y Electricidad': '⚡',
       'Construcción': '🏗️',
       'Refrigeración': '❄️',
-      'Limpieza': '🧹',
-      'Mantenimiento': '🔧'
+      'Pintura y Acabados': '🎨'
     };
   }
 
@@ -114,6 +113,49 @@ export class ViewCatalogoServicios extends LitElement {
 
     this.submitting = true;
     try {
+      let totalMat = 0;
+      let totalEqu = 0;
+      let totalMO = 0;
+      let totalDesc = 0;
+
+      const arrayServicios = this.cart.map(item => {
+        const servicio = {
+          id_servicio: item.id_servicio,
+          descripcion: item.description || null,
+          cantidad: item.qty,
+          servicio_tabulado: item.servicio_tabulado
+        };
+
+        if (item.servicio_tabulado === 1) {
+          const qty = item.qty;
+          const matUnit = parseFloat(item.precio_materiales) || 0;
+          const equUnit = parseFloat(item.precio_tipos_equipos) || 0;
+          const moUnit = parseFloat(item.precio_mano_obra) || 0;
+          const desc = parseFloat(item.descuento) || 0;
+
+          servicio.precio_materiales = matUnit * qty;
+          servicio.precio_tipos_equipos = equUnit * qty;
+          servicio.precio_mano_obra = moUnit * qty;
+          servicio.precio_general = (matUnit + equUnit + moUnit) * qty;
+          servicio.descuento = desc;
+          servicio.precio_a_pagar = servicio.precio_general - desc;
+
+          totalMat += servicio.precio_materiales;
+          totalEqu += servicio.precio_tipos_equipos;
+          totalMO += servicio.precio_mano_obra;
+          totalDesc += desc;
+        } else {
+          servicio.precio_materiales = 0;
+          servicio.precio_tipos_equipos = 0;
+          servicio.precio_mano_obra = 0;
+          servicio.precio_general = 0;
+          servicio.descuento = 0;
+          servicio.precio_a_pagar = 0;
+        }
+
+        return servicio;
+      });
+
       const orderPayload = {
         id_cliente: this.user?.id_cliente || 'ANONYMOUS',
         direccion: this.orderData.direccion,
@@ -121,26 +163,13 @@ export class ViewCatalogoServicios extends LitElement {
         fecha_inicio: this.orderData.fecha_inicio,
         fecha_fin: this.orderData.fecha_fin,
         fecha_emision: new Date().toISOString().split('T')[0],
-        array_servicios: this.cart.map(item => {
-          const servicio = {
-            id_servicio: item.id_servicio,
-            descripcion: item.description || null,
-            cantidad: item.qty,
-            servicio_tabulado: item.servicio_tabulado
-          };
-
-          if (item.servicio_tabulado === 1) {
-            servicio.precio_materiales = item.precio_materiales;
-            servicio.precio_tipos_equipos = item.precio_tipos_equipos;
-            servicio.precio_mano_obra = item.precio_mano_obra;
-            servicio.precio_general = item.precio_general;
-            servicio.descuento = item.descuento || null;
-            //si no hay descuento restar 0
-            servicio.precio_a_pagar = (parseFloat(item.precio_general) * item.qty) - (parseFloat(item.descuento) || 0);
-          }
-
-          return servicio;
-        })
+        total_materiales: totalMat,
+        total_equipos: totalEqu,
+        total_mano_obra: totalMO,
+        total_descuento: totalDesc,
+        total_general: totalMat + totalEqu + totalMO,
+        total_a_pagar: (totalMat + totalEqu + totalMO) - totalDesc,
+        array_servicios: arrayServicios
       };
 
       const result = await serviciosService.createOrden(orderPayload);
@@ -184,8 +213,15 @@ export class ViewCatalogoServicios extends LitElement {
 
   getTotal() {
     return this.cart.reduce((sum, item) => {
-      const price = item.servicio_tabulado === 0 ? 0 : (parseFloat(item.precio_general) || 0);
-      return sum + (price * item.qty);
+      if (item.servicio_tabulado === 0) return sum;
+
+      const matUnit = parseFloat(item.precio_materiales) || 0;
+      const equUnit = parseFloat(item.precio_tipos_equipos) || 0;
+      const moUnit = parseFloat(item.precio_mano_obra) || 0;
+      const qty = item.qty || 1;
+
+      const precioGeneral = (matUnit + equUnit + moUnit) * qty;
+      return sum + precioGeneral;
     }, 0);
   }
 
@@ -208,6 +244,15 @@ export class ViewCatalogoServicios extends LitElement {
     );
 
     return html`
+
+      <!-- boton para volver -->
+      <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+        <button class="btn-back" @click=${() => navigator.goto('/categoria/00017')}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Volver
+        </button>
+      </div>
+
       <div class="container fade-in">
         <!-- 1. Categorías (Flex wrap) -->
         <nav class="categories-nav">
@@ -315,6 +360,7 @@ export class ViewCatalogoServicios extends LitElement {
                   type="date" 
                   name="fecha_fin" 
                   .value=${this.orderData.fecha_fin} 
+                  .min=${this.orderData.fecha_inicio}
                   @input=${this.handleOrderInputChange}
                 >
               </div>
@@ -394,6 +440,26 @@ export class ViewCatalogoServicios extends LitElement {
 
     .fade-in { animation: fadeIn 0.5s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--text);
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      background: #000;
+      transform: translateX(-4px);
+    }
 
     .container {
       max-width: 1100px;

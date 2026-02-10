@@ -180,6 +180,137 @@ export class ServiciosService {
             throw error;
         }
     }
+
+    async getOrdenes() {
+        let url = `${this.baseUrl}/api/ordenes`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al obtener ordenes:', error);
+            return false;
+        }
+    }
+
+    async getOneOrden(id, detalle = false) {
+        let url = `${this.baseUrl}/api/ordenes/${id}`;
+        if (detalle) {
+            url += '?detalle=true';
+        }
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al obtener la orden:', error);
+            return false;
+        }
+    }
+
+    async cancelarOrden(id, observaciones = null) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/cancelar`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ observaciones })
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al cancelar orden:', error);
+            return false;
+        }
+    }
+
+    async aceptarOrden(id, observaciones = null) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/aceptar`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ observaciones })
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al aceptar orden:', error);
+            return false;
+        }
+    }
+
+    async createPresupuesto(data) {
+        let url = `${this.baseUrl}/api/presupuestos`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al crear presupuesto:', error);
+            throw error;
+        }
+    }
 }
 
 export const serviciosService = new ServiciosService();

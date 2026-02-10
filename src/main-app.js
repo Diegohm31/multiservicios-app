@@ -23,6 +23,9 @@ import './views/view-servicios-tipo-servicio-form.js';
 import './views/view-servicios-servicio-listado.js';
 import './views/view-servicios-servicio-form.js';
 import './views/view-catalogo-servicios.js';
+import './views/view-servicios-orden-listado.js';
+import './views/view-servicios-orden-detalles.js';
+import './views/view-servicios-orden-presupuesto.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -378,6 +381,39 @@ export class MainApp extends LitElement {
         return true;
       },
       render: () => html`<view-catalogo-servicios></view-catalogo-servicios>`
+    },
+    {
+      path: '/servicios/listado/orden',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: () => html`<view-servicios-orden-listado></view-servicios-orden-listado>`
+    },
+    {
+      path: '/servicios/orden/detalles/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-servicios-orden-detalles .ordenId=${params.id}></view-servicios-orden-detalles>`
+    },
+    {
+      path: '/servicios/orden/presupuesto/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-servicios-orden-presupuesto .ordenId=${params.id}></view-servicios-orden-presupuesto>`
     },
     // {
     //   path: '/products/create',
