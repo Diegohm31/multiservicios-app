@@ -131,24 +131,24 @@ export class ViewCatalogoServicios extends LitElement {
           const matUnit = parseFloat(item.precio_materiales) || 0;
           const equUnit = parseFloat(item.precio_tipos_equipos) || 0;
           const moUnit = parseFloat(item.precio_mano_obra) || 0;
-          const desc = parseFloat(item.descuento) || 0;
+          const descUnit = parseFloat(item.descuento) || 0; // Descuento por unidad
 
-          servicio.precio_materiales = matUnit * qty;
-          servicio.precio_tipos_equipos = equUnit * qty;
-          servicio.precio_mano_obra = moUnit * qty;
-          servicio.precio_general = (matUnit + equUnit + moUnit) * qty;
-          servicio.descuento = desc;
-          servicio.precio_a_pagar = servicio.precio_general - desc;
+          servicio.precio_materiales_unitario = matUnit;
+          servicio.precio_tipos_equipos_unitario = equUnit;
+          servicio.precio_mano_obra_unitario = moUnit;
+          servicio.precio_general_unitario = matUnit + equUnit + moUnit;
+          servicio.descuento = descUnit;
+          servicio.precio_a_pagar = qty * (servicio.precio_general_unitario - descUnit);
 
-          totalMat += servicio.precio_materiales;
-          totalEqu += servicio.precio_tipos_equipos;
-          totalMO += servicio.precio_mano_obra;
-          totalDesc += desc;
+          totalMat += matUnit * qty;
+          totalEqu += equUnit * qty;
+          totalMO += moUnit * qty;
+          totalDesc += descUnit * qty;
         } else {
-          servicio.precio_materiales = 0;
-          servicio.precio_tipos_equipos = 0;
-          servicio.precio_mano_obra = 0;
-          servicio.precio_general = 0;
+          servicio.precio_materiales_unitario = 0;
+          servicio.precio_tipos_equipos_unitario = 0;
+          servicio.precio_mano_obra_unitario = 0;
+          servicio.precio_general_unitario = 0;
           servicio.descuento = 0;
           servicio.precio_a_pagar = 0;
         }
@@ -218,10 +218,11 @@ export class ViewCatalogoServicios extends LitElement {
       const matUnit = parseFloat(item.precio_materiales) || 0;
       const equUnit = parseFloat(item.precio_tipos_equipos) || 0;
       const moUnit = parseFloat(item.precio_mano_obra) || 0;
+      const descUnit = parseFloat(item.descuento) || 0;
       const qty = item.qty || 1;
 
-      const precioGeneral = (matUnit + equUnit + moUnit) * qty;
-      return sum + precioGeneral;
+      const precioAPagar = qty * ((matUnit + equUnit + moUnit) - descUnit);
+      return sum + precioAPagar;
     }, 0);
   }
 
@@ -374,7 +375,17 @@ export class ViewCatalogoServicios extends LitElement {
         : this.cart.map(item => html`
                 <div class="cart-row-container">
                   <div class="cart-row">
-                    <span class="cart-item-info">${item.nombre} (x${item.qty} ${item.unidad_medida})</span>
+                    <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
+                      <span class="cart-item-info">${item.nombre} (x${item.qty} ${item.unidad_medida})</span>
+                      ${item.servicio_tabulado === 1
+            ? html`
+                          <span style="font-weight: 800; color: var(--primary); font-size: 0.95rem;">
+                            $${(item.qty * ((parseFloat(item.precio_materiales) || 0) + (parseFloat(item.precio_tipos_equipos) || 0) + (parseFloat(item.precio_mano_obra) || 0) - (parseFloat(item.descuento) || 0))).toFixed(2)}
+                          </span>
+                        `
+            : html`<span style="color: var(--text-light); font-size: 0.85rem; font-weight: 600;">Por Cotizar</span>`
+          }
+                    </div>
                     <button class="cart-remove-btn" @click=${() => this.removeFromCart(item.timestamp)}>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
@@ -399,7 +410,10 @@ export class ViewCatalogoServicios extends LitElement {
 
           <div class="final-actions">
             <div class="total-display">
-               Total Estimado: <span>$${this.getTotal().toFixed(2)}</span>
+                ${this.cart.some(item => item.servicio_tabulado === 0)
+        ? html`<span>Por Cotizar</span>`
+        : html`Total Estimado: <span>$${this.getTotal().toFixed(2)}</span>`
+      }
             </div>
             <button 
               class="proceed-btn" 

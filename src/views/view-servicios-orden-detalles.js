@@ -55,7 +55,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     .header-title {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 3rem;
+      flex: 1;
     }
 
     h1 {
@@ -80,6 +81,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     .status-completada { background: #dcfce7; color: #15803d; }
     .status-cancelada { background: #fee2e2; color: #991b1b; }
     .status-en-proceso { background: #e0f2fe; color: #075985; }
+    .status-en-espera { background: #e0f2fe; color: #075985; }
+    .status-por-pagar { background: #ffedd5; color: #c2410c; }
+    .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
 
     .card {
       background: var(--card-bg);
@@ -105,6 +109,26 @@ export class ViewServiciosOrdenDetalles extends LitElement {
 
     .card-body {
       padding: 1.5rem;
+    }
+
+    .btn-outline-danger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      background: transparent;
+      color: var(--danger);
+      border: 2px solid var(--danger);
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-outline-danger:hover {
+      background: var(--danger);
+      color: white;
     }
 
     .details-grid {
@@ -373,6 +397,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     if (s.includes('comp')) return 'status-completada';
     if (s.includes('canc')) return 'status-cancelada';
     if (s.includes('proce') || s.includes('progr')) return 'status-en-proceso';
+    if (s.includes('espera')) return 'status-en-espera';
+    if (s.includes('pagar')) return 'status-por-pagar';
+    if (s.includes('verificando')) return 'status-verificando_pago';
     return '';
   }
 
@@ -389,6 +416,48 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     if (confirm('¿Está seguro de que desea aceptar la orden?')) {
       await serviciosService.aceptarOrden(id, observaciones);
       await this.loadOrden();
+    }
+  }
+
+  async aceptarPresupuesto(id) {
+    if (confirm('¿Está seguro de que desea aceptar el presupuesto?')) {
+      await serviciosService.aceptarPresupuesto(id);
+      await this.loadOrden();
+    }
+  }
+
+  async cancelarPresupuesto(id) {
+    if (confirm('¿Está seguro de que desea cancelar el presupuesto?')) {
+      await serviciosService.cancelarPresupuesto(id);
+      await this.loadOrden();
+    }
+  }
+
+  async triggerFileUpload() {
+    this.shadowRoot.getElementById('peritaje-input').click();
+  }
+
+  async handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      this.loading = true;
+      await serviciosService.subirPeritaje(this.orden.id_orden, file);
+      await this.loadOrden();
+      alert('Archivo de peritaje subido correctamente');
+    } catch (error) {
+      console.error('Error uploading peritaje:', error);
+      alert('Error al subir el archivo: ' + error.message);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  viewPeritaje() {
+    if (this.orden.pdf_peritaje) {
+      const url = `${serviciosService.baseUrl}/storage/${this.orden.pdf_peritaje}`;
+      window.open(url, '_blank');
     }
   }
 
@@ -420,11 +489,55 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       <div class="container">
         <header class="header">
           <div class="header-title">
-            <h1>Orden #${this.orden.id_orden}</h1>
-            <span class="status-badge ${this.getStatusClass(this.orden.estado)}">
-              ${this.orden.estado}
-            </span>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <h1>Orden #${this.orden.id_orden}</h1>
+              <span class="status-badge ${this.getStatusClass(this.orden.estado)}">
+                ${this.orden.estado}
+              </span>
+            </div>
+
+            <!-- Botones de Peritaje -->
+            <div style="display: flex; gap: 1rem; align-items: center;">
+              ${this.id_rol === '00003' ? html`
+                <!-- Admin -->
+                ${!this.orden.pdf_peritaje ? html`
+                  <button class="btn-outline-danger" @click=${this.triggerFileUpload}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Subir Peritaje
+                  </button>
+                ` : html`
+                  <button class="btn-outline-danger" @click=${this.viewPeritaje}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    Visualizar Peritaje
+                  </button>
+                  <button class="btn-outline-danger" @click=${this.triggerFileUpload}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    Actualizar Peritaje
+                  </button>
+                `}
+                <input 
+                  type="file" 
+                  id="peritaje-input" 
+                  accept=".pdf" 
+                  style="display: none;" 
+                  @change=${this.handleFileUpload}
+                >
+              ` : html`
+                <!-- Cliente -->
+                ${this.orden.pdf_peritaje ? html`
+                  <button class="btn-outline-danger" @click=${this.viewPeritaje}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    Visualizar Peritaje
+                  </button>
+                ` : html`
+                  <span style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; font-style: italic;">
+                    Aun no se ha subido el Archivo de Peritaje
+                  </span>
+                `}
+              `}
+            </div>
           </div>
+          
           <button class="btn-back" @click=${() => navigator.goto('/servicios/listado/orden')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             Volver
@@ -434,7 +547,17 @@ export class ViewServiciosOrdenDetalles extends LitElement {
         <section class="card">
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2 class="card-title">Información General</h2>
-            ${total > 0 ? html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: $${total.toFixed(2)}</div>` : ''}
+            <!-- Lógica de total inteligente para estados previos a ser presupuestada -->
+            ${(() => {
+        const s = this.orden.estado?.toLowerCase() || '';
+        const isPreBudget = s.includes('pend') || s.includes('acept');
+        if (isPreBudget) {
+          return servicios.some(item => Number(item.servicio_tabulado) === 0)
+            ? html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Por Cotizar</div>`
+            : html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: $${total.toFixed(2)}</div>`;
+        }
+        return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total: $${total.toFixed(2)}</div>`;
+      })()}
           </div>
           <div class="card-body">
             <div class="details-grid">
@@ -504,6 +627,27 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                 <button class="btn-danger" @click=${() => this.cancelarOrden(this.orden.id_orden)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   Cancelar Orden
+                </button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto -->
+        ${this.id_rol === '00001' && this.orden.estado === 'Presupuestada' ? html`
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Acciones</h2>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; gap: 1rem;">
+                <button class="btn-success" @click=${() => this.aceptarPresupuesto(this.orden.id_orden)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Aceptar Presupuesto
+                </button>
+                <button class="btn-danger" @click=${() => this.cancelarPresupuesto(this.orden.id_orden)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  Cancelar Presupuesto
                 </button>
               </div>
             </div>

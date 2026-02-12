@@ -311,6 +311,200 @@ export class ServiciosService {
             throw error;
         }
     }
+
+    async aceptarPresupuesto(id) {
+        let url = `${this.baseUrl}/api/presupuestos/${id}/aceptar`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al aceptar presupuesto:', error);
+            return false;
+        }
+    }
+
+    async cancelarPresupuesto(id) {
+        let url = `${this.baseUrl}/api/presupuestos/${id}/cancelar`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al cancelar presupuesto:', error);
+            return false;
+        }
+    }
+
+    async subirPeritaje(id, file) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/subir-peritaje`;
+        let token = localStorage.getItem('token');
+
+        const formData = new FormData();
+        formData.append('pdf_peritaje', file);
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al subir peritaje:', error);
+            throw error;
+        }
+    }
+
+    async createReportePago(formData) {
+        let url = `${this.baseUrl}/api/reportes-pagos`;
+        let token = localStorage.getItem('token');
+
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al crear reporte de pago:', error);
+            throw error;
+        }
+    }
+
+    async getReportesPagos() {
+        let url = `${this.baseUrl}/api/reportes-pagos`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            return response_json.data || [];
+        } catch (error) {
+            console.error('Error fetching reportes pagos:', error);
+            return [];
+        }
+    }
+
+    async getOneReportePago(id, detalle = false) {
+        let url = `${this.baseUrl}/api/reportes-pagos/${id}`;
+        if (detalle) {
+            url += '?detalle=true';
+        }
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error fetching reporte pago:', error);
+            return null;
+        }
+    }
+
+    async aceptarReportePago(data) {
+        let url = `${this.baseUrl}/api/reportes-pagos/aceptar`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
+            return response_json.data;
+        } catch (error) {
+            console.error('Error accepting reporte pago:', error);
+            throw error;
+        }
+    }
+
+    async cancelarReportePago(data) {
+        let url = `${this.baseUrl}/api/reportes-pagos/cancelar`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
+            return response_json.data;
+        } catch (error) {
+            console.error('Error canceling reporte pago:', error);
+            throw error;
+        }
+    }
 }
 
 export const serviciosService = new ServiciosService();

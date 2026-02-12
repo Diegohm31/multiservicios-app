@@ -26,6 +26,9 @@ import './views/view-catalogo-servicios.js';
 import './views/view-servicios-orden-listado.js';
 import './views/view-servicios-orden-detalles.js';
 import './views/view-servicios-orden-presupuesto.js';
+import './views/view-servicios-orden-pago.js';
+import './views/view-reportes-pagos-listado.js';
+import './views/view-reportes-pagos-detalles.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -414,6 +417,39 @@ export class MainApp extends LitElement {
         return true;
       },
       render: (params) => html`<view-servicios-orden-presupuesto .ordenId=${params.id}></view-servicios-orden-presupuesto>`
+    },
+    {
+      path: '/servicios/orden/pago/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-servicios-orden-pago .ordenId=${params.id}></view-servicios-orden-pago>`
+    },
+    {
+      path: '/reportesPagos/listado',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: () => html`<view-reportes-pagos-listado></view-reportes-pagos-listado>`
+    },
+    {
+      path: '/reportes-pagos/detalles/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-reportes-pagos-detalles .reporteId=${params.id}></view-reportes-pagos-detalles>`
     },
     // {
     //   path: '/products/create',

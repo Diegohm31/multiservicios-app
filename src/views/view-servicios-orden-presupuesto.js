@@ -340,6 +340,26 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
       transform: translateX(-4px);
     }
 
+    .btn-outline-danger {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      background: transparent;
+      color: var(--danger);
+      border: 2px solid var(--danger);
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-outline-danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+
     .loader-container {
       display: flex;
       flex-direction: column;
@@ -409,11 +429,11 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                     activeTab: 'materiales',
                     selectedMateriales: (s.array_materiales || []).map(item => ({
                         ...item,
-                        cantidad: (Number(item.cantidad_servicio || item.cantidad || 1)) * (Number(s.cantidad) || 1)
+                        cantidad: Number(item.cantidad_servicio || item.cantidad || 1)
                     })),
                     selectedEquipos: (s.array_tipos_equipos || []).map(item => ({
                         ...item,
-                        cantidad: (Number(item.cantidad_servicio || item.cantidad || 1)) * (Number(s.cantidad) || 1),
+                        cantidad: Number(item.cantidad_servicio || item.cantidad || 1),
                         horas_uso: Number(item.horas_uso || 1)
                     })),
                     selectedEspecialidades: (s.array_especialidades || []).map(item => {
@@ -421,7 +441,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         return {
                             ...item,
                             nivel: baseData.nivel || item.nivel || '',
-                            cantidad: (Number(item.cantidad_servicio || item.cantidad || 1)) * (Number(s.cantidad) || 1),
+                            cantidad: Number(item.cantidad_servicio || item.cantidad || 1),
                             horas_hombre: Number(item.horas_hombre || 1)
                         };
                     })
@@ -431,6 +451,13 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
             console.error('Error loading data:', error);
         } finally {
             this.loading = false;
+        }
+    }
+
+    viewPeritaje() {
+        if (this.orden?.pdf_peritaje) {
+            const url = `${serviciosService.baseUrl}/storage/${this.orden.pdf_peritaje}`;
+            window.open(url, '_blank');
         }
     }
 
@@ -459,17 +486,17 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         if (type === 'material') {
             const item = this.materiales.find(m => m.id_material === id);
             if (item && !servicio.selectedMateriales.find(m => m.id_material === id)) {
-                servicio.selectedMateriales = [...servicio.selectedMateriales, { ...item, cantidad: servicio.cantidad }];
+                servicio.selectedMateriales = [...servicio.selectedMateriales, { ...item, cantidad: 1 }];
             }
         } else if (type === 'equipo') {
             const item = this.tiposEquipos.find(te => te.id_tipo_equipo === id);
             if (item && !servicio.selectedEquipos.find(te => te.id_tipo_equipo === id)) {
-                servicio.selectedEquipos = [...servicio.selectedEquipos, { ...item, cantidad: servicio.cantidad, horas_uso: 1 }];
+                servicio.selectedEquipos = [...servicio.selectedEquipos, { ...item, cantidad: 1, horas_uso: 1 }];
             }
         } else if (type === 'especialidad') {
             const item = this.especialidades.find(esp => esp.id_especialidad === id);
             if (item && !servicio.selectedEspecialidades.find(esp => esp.id_especialidad === id)) {
-                servicio.selectedEspecialidades = [...servicio.selectedEspecialidades, { ...item, cantidad: servicio.cantidad, horas_hombre: 1 }];
+                servicio.selectedEspecialidades = [...servicio.selectedEspecialidades, { ...item, cantidad: 1, horas_hombre: 1 }];
             }
         }
 
@@ -505,12 +532,28 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         return s.selectedEspecialidades.reduce((acc, esp) => acc + (Number(esp.cantidad) * Number(esp.horas_hombre) * Number(esp.tarifa_hora || 0)), 0);
     }
 
-    calculatePrecioGeneral(s) {
-        return this.calculateTotalMat(s) + this.calculateTotalEqu(s) + this.calculateTotalMO(s);
+    // New Unit-based calculations
+    calculateUnitMat(s) {
+        return this.calculateTotalMat(s);
+    }
+
+    calculateUnitEqu(s) {
+        return this.calculateTotalEqu(s);
+    }
+
+    calculateUnitMO(s) {
+        return this.calculateTotalMO(s);
+    }
+
+    calculatePrecioGeneralUnitario(s) {
+        return this.calculateUnitMat(s) + this.calculateUnitEqu(s) + this.calculateUnitMO(s);
     }
 
     calculatePrecioAPagar(s) {
-        return this.calculatePrecioGeneral(s);
+        const qty = Number(s.cantidad) || 1;
+        const discountUnit = Number(s.descuento) || 0;
+        const unitGen = this.calculatePrecioGeneralUnitario(s);
+        return qty * (unitGen - discountUnit);
     }
 
     get totalGlobal() {
@@ -544,9 +587,9 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
 
         this.loading = true;
 
-        const totalMat = this.serviciosEditados.reduce((acc, s) => acc + this.calculateTotalMat(s), 0);
-        const totalEqu = this.serviciosEditados.reduce((acc, s) => acc + this.calculateTotalEqu(s), 0);
-        const totalMO = this.serviciosEditados.reduce((acc, s) => acc + this.calculateTotalMO(s), 0);
+        const totalMat = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitMat(s) * s.cantidad), 0);
+        const totalEqu = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitEqu(s) * s.cantidad), 0);
+        const totalMO = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitMO(s) * s.cantidad), 0);
         const totalGen = totalMat + totalEqu + totalMO;
 
         const payload = {
@@ -555,15 +598,15 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
             total_equipos: totalEqu,
             total_mano_obra: totalMO,
             total_general: totalGen,
-            total_descuento: 0,
+            total_descuento: this.serviciosEditados.reduce((acc, s) => acc + (Number(s.descuento || 0) * Number(s.cantidad || 1)), 0),
             total_a_pagar: this.totalGlobal,
             array_servicios: this.serviciosEditados.map(s => ({
                 id_orden_servicio: s.id_orden_servicio,
-                precio_materiales: this.calculateTotalMat(s),
-                precio_tipos_equipos: this.calculateTotalEqu(s),
-                precio_mano_obra: this.calculateTotalMO(s),
-                precio_general: this.calculatePrecioGeneral(s),
-                descuento: 0,
+                precio_materiales_unitario: this.calculateUnitMat(s),
+                precio_tipos_equipos_unitario: this.calculateUnitEqu(s),
+                precio_mano_obra_unitario: this.calculateUnitMO(s),
+                precio_general_unitario: this.calculatePrecioGeneralUnitario(s),
+                descuento: Number(s.descuento) || 0,
                 precio_a_pagar: this.calculatePrecioAPagar(s),
                 array_materiales: s.selectedMateriales.map(m => ({
                     id_material: m.id_material,
@@ -616,7 +659,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                             <h1>Generar Presupuesto</h1>
                             <p style="color: var(--text-light); margin-top: 0.5rem;">Orden #${this.ordenId} - ${this.orden?.direccion}</p>
                         </div>
-                        <div style="display: flex; gap: 1rem;">
+                        <div style="display: flex; gap: 1rem; align-items: center;">
                             <div class="info-badge">
                                 <label>Periodo Solicitado</label>
                                 <span>${this.orden?.fecha_inicio} al ${this.orden?.fecha_fin}</span>
@@ -625,6 +668,16 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                                 <label>Horas Hombre Est.</label>
                                 <span>${this.calculateManHours()} hrs</span>
                             </div>
+                            ${this.orden?.pdf_peritaje ? html`
+                                <button class="btn-outline-danger" @click=${this.viewPeritaje}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    Ver Peritaje
+                                </button>
+                            ` : html`
+                                <span style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; font-style: italic;">
+                                    Aun no se ha subido el Archivo de Peritaje
+                                </span>
+                            `}
                         </div>
                     </div>
                     <button class="btn-back" @click=${() => navigator.goto('/servicios/listado/orden')}>
@@ -671,14 +724,14 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         <div class="totals-bar">
                             <div style="display: flex; gap: 1.5rem; align-items: center;">
                                 <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--text-light);">
-                                    <span>Mat: $${this.calculateTotalMat(s).toFixed(2)}</span>
-                                    <span>Equ: $${this.calculateTotalEqu(s).toFixed(2)}</span>
-                                    <span>M.O: $${this.calculateTotalMO(s).toFixed(2)}</span>
+                                    <span>Mat Unit: $${this.calculateUnitMat(s).toFixed(2)}</span>
+                                    <span>Equ Unit: $${this.calculateUnitEqu(s).toFixed(2)}</span>
+                                    <span>M.O Unit: $${this.calculateUnitMO(s).toFixed(2)}</span>
                                 </div>
                             </div>
                             <div style="text-align: right;">
-                                <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase;">Precio General</div>
-                                <div style="font-weight: 700;">$${this.calculatePrecioGeneral(s).toFixed(2)}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase;">Precio Gral. Unitario</div>
+                                <div style="font-weight: 700;">$${this.calculatePrecioGeneralUnitario(s).toFixed(2)}</div>
                             </div>
                         </div>
                     </div>

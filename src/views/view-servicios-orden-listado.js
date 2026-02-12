@@ -171,6 +171,9 @@ export class ViewServiciosOrdenListado extends LitElement {
     .status-en-proceso, .status-en_proceso { background: #e0f2fe; color: #075985; }
     .status-completada { background: #dcfce7; color: #15803d; }
     .status-cancelada { background: #fee2e2; color: #991b1b; }
+    .status-en_espera { background: #e0f2fe; color: #075985; }
+    .status-por-pagar { background: #ffedd5; color: #c2410c; }
+    .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
 
     /* Buttons */
     .actions-cell {
@@ -287,6 +290,10 @@ export class ViewServiciosOrdenListado extends LitElement {
     navigator.goto(`/servicios/orden/presupuesto/${id}`);
   }
 
+  pagarOrden(id) {
+    navigator.goto(`/servicios/orden/pago/${id}`);
+  }
+
   handleFilterChange(e) {
     const { id, value } = e.target;
     const filterKey = id.replace('filtro-', '').replace('-', '_');
@@ -333,15 +340,18 @@ export class ViewServiciosOrdenListado extends LitElement {
     if (s.includes('acept')) return 'status-aceptada';
     if (s.includes('presu')) return 'status-presupuestada';
     if (s.includes('proce') || s.includes('progr')) return 'status-en-proceso';
+    if (s.includes('espera')) return 'status-en_espera';
     if (s.includes('comp')) return 'status-completada';
     if (s.includes('canc')) return 'status-cancelada';
+    if (s.includes('pagar')) return 'status-por-pagar';
+    if (s.includes('verificando')) return 'status-verificando_pago';
     return '';
   }
 
   canCancel(status) {
     const s = status?.toLowerCase() || '';
-    // No se puede cancelar si ya está completada, cancelada o en proceso
-    if (s.includes('comp') || s.includes('canc') || s.includes('proce') || s.includes('progr')) {
+    // No se puede cancelar si ya está completada, cancelada o en proceso, o verificando pago
+    if (s.includes('comp') || s.includes('canc') || s.includes('proce') || s.includes('progr') || s.includes('verificando')) {
       return false;
     }
     return true;
@@ -369,6 +379,8 @@ export class ViewServiciosOrdenListado extends LitElement {
             <option value="en_proceso">En Proceso</option>
             <option value="completada">Completada</option>
             <option value="cancelada">Cancelada</option>
+            <option value="en_espera">En espera</option>
+            <option value="verificando pago">Verificando Pago</option>
           </select>
         </div>
 
@@ -415,7 +427,7 @@ export class ViewServiciosOrdenListado extends LitElement {
               <th>Dirección</th>
               <th>Emisión</th>
               <th>Estado</th>
-              <th style="text-align: right;">Acciones</th>
+              <th style="text-align: center;">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -440,6 +452,9 @@ export class ViewServiciosOrdenListado extends LitElement {
                     <button class="btn btn-info" @click=${() => this.verDetallesOrden(orden.id_orden)}>Detalles</button>
                     ${orden.estado?.toLowerCase() === 'aceptada' && this.id_rol === '00003' ? html`
                       <button class="btn btn-purple" @click=${() => this.realizarPresupuesto(orden.id_orden)}>Presupuestar</button>
+                    ` : ''}
+                    ${this.id_rol === '00001' && orden.estado?.toLowerCase().includes('pagar') ? html`
+                      <button class="btn btn-success" @click=${() => this.pagarOrden(orden.id_orden)}>Pagar</button>
                     ` : ''}
                     ${this.canCancel(orden.estado) ? html`
                       <button class="btn btn-delete" @click=${() => this.cancelarOrden(orden.id_orden)}>Cancelar</button>
