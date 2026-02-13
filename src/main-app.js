@@ -794,6 +794,7 @@ export class MainApp extends LitElement {
       <header class="app-header">
         <div style="display:flex; align-items:center">
            <button class="menu-toggle" @click=${this.toggleMenu}>☰</button>
+           <img src="/logo_msv.png" alt="Logo" style="width: 50px; height: 50px; margin-right: 10px">
            <a href="/" class="brand" @click=${(e) => this.scrollTo(e, null)}>MultiServicios Villarroel</a>
         </div>
         
