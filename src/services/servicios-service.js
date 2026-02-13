@@ -56,14 +56,21 @@ export class ServiciosService {
     async updateServicio(id, data) {
         let url = `${this.baseUrl}/api/servicios/${id}`;
         let token = localStorage.getItem('token');
+        const isFormData = data instanceof FormData;
+
+        // Si es FormData, agregar _method para simular PUT
+        if (isFormData) {
+            data.append('_method', 'PUT');
+        }
+
         const requestOptions = {
-            method: 'PUT',
+            method: isFormData ? 'POST' : 'PUT',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' })
             },
-            body: JSON.stringify(data)
+            body: isFormData ? data : JSON.stringify(data)
         };
         try {
             const response = await fetch(url, requestOptions);
@@ -82,14 +89,15 @@ export class ServiciosService {
     async createServicio(data) {
         let url = `${this.baseUrl}/api/servicios`;
         let token = localStorage.getItem('token');
+        const isFormData = data instanceof FormData;
         const requestOptions = {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' })
             },
-            body: JSON.stringify(data)
+            body: isFormData ? data : JSON.stringify(data)
         };
         try {
             const response = await fetch(url, requestOptions);

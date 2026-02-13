@@ -21,7 +21,9 @@ export class ViewServiciosServicioForm extends LitElement {
         duracionValor: { type: Number },
         selectedMateriales: { type: Array },
         selectedEquipos: { type: Array },
-        selectedEspecialidades: { type: Array }
+        selectedEspecialidades: { type: Array },
+        previewUrl: { type: String },
+        hasNewImage: { type: Boolean }
     };
 
     static styles = css`
@@ -271,6 +273,27 @@ export class ViewServiciosServicioForm extends LitElement {
         .hidden {
             display: none !important;
         }
+
+        .image-preview-container {
+            margin-top: 12px;
+            border: 2px dashed #e2e8f0;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .image-preview-text {
+            color: #718096;
+            font-size: 0.875rem;
+            margin-top: 8px;
+        }
     `;
 
     constructor() {
@@ -302,6 +325,8 @@ export class ViewServiciosServicioForm extends LitElement {
         this.costoTipo = 'fijo';
         this.duracionUnidad = 'horas';
         this.duracionValor = 1;
+        this.previewUrl = null;
+        this.hasNewImage = false;
     }
 
     async connectedCallback() {
@@ -349,6 +374,12 @@ export class ViewServiciosServicioForm extends LitElement {
                 const full = this.especialidades.find(esp => esp.id_especialidad === item.id_especialidad);
                 return { ...full, cantidad: item.cantidad_servicio || item.cantidad, horas_hombre: item.horas_hombre };
             });
+
+            // Cargar la URL de la imagen si existe
+            if (data.imagePath) {
+                this.previewUrl = `${serviciosService.baseUrl}/storage/${data.imagePath}`;
+                this.hasNewImage = false; // Es una imagen existente
+            }
         }
         this.loading = false;
     }
@@ -371,6 +402,15 @@ export class ViewServiciosServicioForm extends LitElement {
     handleDurationUnit(e) {
         this.duracionUnidad = e.target.value;
         this.validateItemsDuration();
+    }
+
+    handleImage(e) {
+        const file = e.target.files[0];
+        if (file) {
+            this.servicio = { ...this.servicio, image: file };
+            this.previewUrl = URL.createObjectURL(file);
+            this.hasNewImage = true; // Marca que hay una nueva imagen
+        }
     }
 
     validateItemsDuration() {
@@ -481,37 +521,53 @@ export class ViewServiciosServicioForm extends LitElement {
     async handleSubmit(e) {
         e.preventDefault();
 
-        // Base payload con datos comunes
-        let payload = {
-            id_tipo_servicio: this.servicio.id_tipo_servicio,
-            nombre: this.servicio.nombre,
-            descripcion: this.servicio.descripcion,
-            unidad_medida: this.servicio.unidad_medida,
-            servicio_tabulado: this.costoTipo === 'fijo'
-        };
+        // Construir FormData
+        const formData = new FormData();
+        formData.append('id_tipo_servicio', this.servicio.id_tipo_servicio);
+        formData.append('nombre', this.servicio.nombre);
+        formData.append('descripcion', this.servicio.descripcion || '');
+        formData.append('unidad_medida', this.servicio.unidad_medida);
+        formData.append('servicio_tabulado', this.costoTipo === 'fijo' ? '1' : '0');
 
-        // Si es costo fijo, agregamos todos los detalles de precios y desgloses
+        // Agregar imagen si se seleccionó una nueva
+        if (this.servicio.image) {
+            formData.append('image', this.servicio.image);
+        }
+
+        // Si es costo fijo, agregamos todos los detalles
         if (this.costoTipo === 'fijo') {
-            payload = {
-                ...payload,
-                precio_materiales: this.montoMateriales,
-                precio_tipos_equipos: this.montoEquipos,
-                precio_mano_obra: this.montoEspecialidades,
-                precio_general: this.precioGeneral,
-                duracion_horas: this.actualDuracionHoras,
-                array_materiales: this.selectedMateriales.map(m => ({ id_material: m.id_material, cantidad: Number(m.cantidad) })),
-                array_tipos_equipos: this.selectedEquipos.map(e => ({ id_tipo_equipo: e.id_tipo_equipo, cantidad: Number(e.cantidad), horas_uso: Number(e.horas_uso) })),
-                array_especialidades: this.selectedEspecialidades.map(esp => ({ id_especialidad: esp.id_especialidad, cantidad: Number(esp.cantidad), horas_hombre: Number(esp.horas_hombre) }))
-            };
+            formData.append('precio_materiales', this.montoMateriales);
+            formData.append('precio_tipos_equipos', this.montoEquipos);
+            formData.append('precio_mano_obra', this.montoEspecialidades);
+            formData.append('precio_general', this.precioGeneral);
+            formData.append('duracion_horas', this.actualDuracionHoras);
+
+            // Arrays para FormData
+            this.selectedMateriales.forEach((m, index) => {
+                formData.append(`array_materiales[${index}][id_material]`, m.id_material);
+                formData.append(`array_materiales[${index}][cantidad]`, m.cantidad);
+            });
+
+            this.selectedEquipos.forEach((e, index) => {
+                formData.append(`array_tipos_equipos[${index}][id_tipo_equipo]`, e.id_tipo_equipo);
+                formData.append(`array_tipos_equipos[${index}][cantidad]`, e.cantidad);
+                formData.append(`array_tipos_equipos[${index}][horas_uso]`, e.horas_uso);
+            });
+
+            this.selectedEspecialidades.forEach((esp, index) => {
+                formData.append(`array_especialidades[${index}][id_especialidad]`, esp.id_especialidad);
+                formData.append(`array_especialidades[${index}][cantidad]`, esp.cantidad);
+                formData.append(`array_especialidades[${index}][horas_hombre]`, esp.horas_hombre);
+            });
         }
 
         try {
             this.loading = true;
             if (this.servicioId) {
-                await serviciosService.updateServicio(this.servicioId, payload);
+                await serviciosService.updateServicio(this.servicioId, formData);
                 alert('Servicio actualizado correctamente');
             } else {
-                await serviciosService.createServicio(payload);
+                await serviciosService.createServicio(formData);
                 alert('Servicio creado correctamente');
             }
             navigator.goto('/servicios/listado/servicio');
@@ -551,6 +607,20 @@ export class ViewServiciosServicioForm extends LitElement {
                             <div class="form-group">
                                 <label>Descripción</label>
                                 <textarea class="textarea-field" name="descripcion" .value=${this.servicio.descripcion} @input=${this.handleMainInput} placeholder="Ingrese una descripción del servicio"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Imagen del Servicio</label>
+                                <input type="file" class="input-field" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage}>
+                                <small style="display: block; margin-top: 4px; color: #718096; font-size: 0.75rem;">
+                                    Formatos: jpeg, png, jpg, gif, svg. Máx: 2048KB
+                                </small>
+                                ${this.previewUrl ? html`
+                                    <div class="image-preview-container">
+                                        <img src="${this.previewUrl}" alt="Preview" class="image-preview">
+                                        <p class="image-preview-text">${this.hasNewImage ? 'Nueva imagen seleccionada' : 'Imagen actual'}</p>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
 

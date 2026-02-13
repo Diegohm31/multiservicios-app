@@ -301,6 +301,12 @@ export class ViewCatalogoServicios extends LitElement {
                   <div class="card-left">
                     <h3 class="service-name">${service.nombre}</h3>
                     <p class="service-desc">${service.descripcion}</p>
+                    ${service.imagePath ? html`
+                            <div class="service-image">
+                                <span class="label" style="display: block; margin-bottom: 0.5rem;">Imagen del servicio</span>
+                                <img src="${serviciosService.baseUrl}/storage/${service.imagePath}" alt="Imagen del servicio">
+                            </div>
+                        ` : ''}
                     <div class="details-input">
                        <textarea 
                           id="desc-${service.id_servicio}" 
@@ -488,7 +494,7 @@ export class ViewCatalogoServicios extends LitElement {
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
-      justify-content: center;
+      /* justify-content: center; */
     }
 
     .category-tag {
@@ -576,6 +582,7 @@ export class ViewCatalogoServicios extends LitElement {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 2rem;
+      align-items: start;
     }
 
     @media (max-width: 800px) {
@@ -918,6 +925,32 @@ export class ViewCatalogoServicios extends LitElement {
     .loading-container { display: flex; flex-direction: column; align-items: center; padding: 10rem 0; gap: 1.5rem; }
     .loader { width: 48px; height: 48px; border: 5px solid #e5e7eb; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .service-image {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        max-width: 280px;
+    }
+    
+    .service-image .label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+    }
+    
+    .service-image img {
+        width: 100%;
+        max-height: 140px;
+        border-radius: 10px;
+        object-fit: cover;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
   `;
 
 }
