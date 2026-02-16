@@ -582,7 +582,7 @@ export class ViewCatalogoServicios extends LitElement {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 2rem;
-      align-items: start;
+      /*align-items: start;*/
     }
 
     @media (max-width: 800px) {

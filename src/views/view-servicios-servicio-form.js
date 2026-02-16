@@ -521,6 +521,13 @@ export class ViewServiciosServicioForm extends LitElement {
     async handleSubmit(e) {
         e.preventDefault();
 
+        // Validar que se haya subido una imagen al crear un nuevo servicio
+        // O al editar un servicio que no tiene imagen previa
+        if (!this.servicio.image && !this.previewUrl) {
+            alert('Debe subir una imagen del servicio');
+            return;
+        }
+
         // Construir FormData
         const formData = new FormData();
         formData.append('id_tipo_servicio', this.servicio.id_tipo_servicio);
@@ -611,7 +618,7 @@ export class ViewServiciosServicioForm extends LitElement {
 
                             <div class="form-group">
                                 <label>Imagen del Servicio</label>
-                                <input type="file" class="input-field" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage}>
+                                <input type="file" class="input-field" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage} ?required=${!this.previewUrl}>
                                 <small style="display: block; margin-top: 4px; color: #718096; font-size: 0.75rem;">
                                     Formatos: jpeg, png, jpg, gif, svg. Máx: 2048KB
                                 </small>

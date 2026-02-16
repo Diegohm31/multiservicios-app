@@ -174,6 +174,7 @@ export class ViewServiciosOrdenListado extends LitElement {
     .status-en_espera { background: #e0f2fe; color: #075985; }
     .status-por-pagar { background: #ffedd5; color: #c2410c; }
     .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
+    .status-asignando_personal { background: #dcfce7; color: #166534; }
 
     /* Buttons */
     .actions-cell {
@@ -282,6 +283,11 @@ export class ViewServiciosOrdenListado extends LitElement {
     }
   }
 
+  async asignarPersonal(id) {
+    //navigator.goto(`/servicios/orden/asignar-personal/${id}`);
+    alert('Funcionalidad pendiente');
+  }
+
   verDetallesOrden(id) {
     navigator.goto(`/servicios/orden/detalles/${id}`);
   }
@@ -345,6 +351,7 @@ export class ViewServiciosOrdenListado extends LitElement {
     if (s.includes('canc')) return 'status-cancelada';
     if (s.includes('pagar')) return 'status-por-pagar';
     if (s.includes('verificando')) return 'status-verificando_pago';
+    if (s.includes('asignando personal')) return 'status-asignando_personal';
     return '';
   }
 
@@ -381,6 +388,7 @@ export class ViewServiciosOrdenListado extends LitElement {
             <option value="cancelada">Cancelada</option>
             <option value="en_espera">En espera</option>
             <option value="verificando pago">Verificando Pago</option>
+            <option value="asignando personal">Asignando Personal</option>
           </select>
         </div>
 
@@ -455,6 +463,9 @@ export class ViewServiciosOrdenListado extends LitElement {
                     ` : ''}
                     ${this.id_rol === '00001' && orden.estado?.toLowerCase().includes('pagar') ? html`
                       <button class="btn btn-success" @click=${() => this.pagarOrden(orden.id_orden)}>Pagar</button>
+                    ` : ''}
+                    ${orden.estado?.toLowerCase() === 'asignando personal' && this.id_rol === '00003' ? html`
+                      <button class="btn btn-success" @click=${() => this.asignarPersonal(orden.id_orden)}>Asignar personal</button>
                     ` : ''}
                     ${this.canCancel(orden.estado) ? html`
                       <button class="btn btn-delete" @click=${() => this.cancelarOrden(orden.id_orden)}>Cancelar</button>

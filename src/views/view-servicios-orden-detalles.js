@@ -84,6 +84,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     .status-en-espera { background: #e0f2fe; color: #075985; }
     .status-por-pagar { background: #ffedd5; color: #c2410c; }
     .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
+    .status-asignando_personal { background: #dcfce7; color: #166534; }
 
     .card {
       background: var(--card-bg);
@@ -400,6 +401,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     if (s.includes('espera')) return 'status-en-espera';
     if (s.includes('pagar')) return 'status-por-pagar';
     if (s.includes('verificando')) return 'status-verificando_pago';
+    if (s.includes('asignando personal')) return 'status-asignando_personal';
     return '';
   }
 
