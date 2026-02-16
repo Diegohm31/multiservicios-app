@@ -569,7 +569,11 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               </div>
               <div class="detail-item">
                 <span class="detail-label">Rango de Fechas</span>
-                <span class="detail-value">${this.orden.fecha_inicio} al ${this.orden.fecha_fin}</span>
+                ${this.orden.fecha_inicio && this.orden.fecha_fin ? html`
+                  <span class="detail-value">${this.orden.fecha_inicio} al ${this.orden.fecha_fin}</span>
+                ` : html`
+                  <span class="detail-value">Fecha aún no definida</span>
+                `}
               </div>
               <div class="detail-item">
                 <span class="detail-label">Ubicación / Dirección</span>
@@ -634,6 +638,23 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             </div>
           </div>
         ` : ''}
+
+        <!-- si es admin y el estado es Asignando personal -->
+        ${this.id_rol === '00003' && this.orden.estado === 'Asignando personal' ? html`
+
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Acciones</h2>
+            </div>
+            <div class="card-body">
+              <button class="btn-success" @click=${() => navigator.goto(`/servicios/orden/asignar-personal/${this.orden.id_orden}`)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
+                Asignar Personal y Fechas
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
 
         <!-- si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto -->
         ${this.id_rol === '00001' && this.orden.estado === 'Presupuestada' ? html`

@@ -26,9 +26,7 @@ export class ViewCatalogoServicios extends LitElement {
     this.submitting = false;
     this.user = null;
     this.orderData = {
-      direccion: '',
-      fecha_inicio: '',
-      fecha_fin: ''
+      direccion: ''
     };
 
     this.categoryIcons = {
@@ -160,8 +158,6 @@ export class ViewCatalogoServicios extends LitElement {
         id_cliente: this.user?.id_cliente || 'ANONYMOUS',
         direccion: this.orderData.direccion,
         estado: 'Pendiente',
-        fecha_inicio: this.orderData.fecha_inicio,
-        fecha_fin: this.orderData.fecha_fin,
         fecha_emision: new Date().toISOString().split('T')[0],
         total_materiales: totalMat,
         total_equipos: totalEqu,
@@ -178,8 +174,6 @@ export class ViewCatalogoServicios extends LitElement {
         this.cart = [];
         this.orderData = {
           direccion: this.user?.direccion || '',
-          fecha_inicio: '',
-          fecha_fin: ''
         };
       }
     } catch (error) {
@@ -197,18 +191,9 @@ export class ViewCatalogoServicios extends LitElement {
   }
 
   isOrderValid() {
-    const { direccion, fecha_inicio, fecha_fin } = this.orderData;
-    if (!direccion || !fecha_inicio || !fecha_fin) return false;
-
-    const start = new Date(fecha_inicio);
-    const end = new Date(fecha_fin);
-    return end >= start;
-  }
-
-  isDateRangeInvalid() {
-    const { fecha_inicio, fecha_fin } = this.orderData;
-    if (!fecha_inicio || !fecha_fin) return false;
-    return new Date(fecha_fin) < new Date(fecha_inicio);
+    const { direccion } = this.orderData;
+    if (!direccion) return false;
+    return true;
   }
 
   getTotal() {
@@ -351,28 +336,6 @@ export class ViewCatalogoServicios extends LitElement {
         <section class="order-summary-footer">
           <div class="summary-header-row">
             <h3>Resumen de la orden</h3>
-            <div class="inputs-row">
-              <div class="order-field ${this.isDateRangeInvalid() ? 'error' : ''}">
-                <label>inicio</label>
-                <input 
-                  type="date" 
-                  name="fecha_inicio" 
-                  .value=${this.orderData.fecha_inicio} 
-                  @input=${this.handleOrderInputChange}
-                >
-              </div>
-              <div class="order-field ${this.isDateRangeInvalid() ? 'error' : ''}">
-                <label>fin</label>
-                <input 
-                  type="date" 
-                  name="fecha_fin" 
-                  .value=${this.orderData.fecha_fin} 
-                  .min=${this.orderData.fecha_inicio}
-                  @input=${this.handleOrderInputChange}
-                >
-              </div>
-            </div>
-            ${this.isDateRangeInvalid() ? html`<p class="date-error-msg">La fecha de fin no puede ser menor a la de inicio</p>` : ''}
           </div>
 
           <div class="cart-list">

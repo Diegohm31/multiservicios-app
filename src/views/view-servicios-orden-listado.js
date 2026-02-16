@@ -284,8 +284,7 @@ export class ViewServiciosOrdenListado extends LitElement {
   }
 
   async asignarPersonal(id) {
-    //navigator.goto(`/servicios/orden/asignar-personal/${id}`);
-    alert('Funcionalidad pendiente');
+    navigator.goto(`/servicios/orden/asignar-personal/${id}`);
   }
 
   verDetallesOrden(id) {
@@ -383,10 +382,10 @@ export class ViewServiciosOrdenListado extends LitElement {
             <option value="pendiente">Pendiente</option>
             <option value="aceptada">Aceptada</option>
             <option value="presupuestada">Presupuestada</option>
-            <option value="en_proceso">En Proceso</option>
+            <option value="en proceso">En Proceso</option>
             <option value="completada">Completada</option>
             <option value="cancelada">Cancelada</option>
-            <option value="en_espera">En espera</option>
+            <option value="en espera">En espera</option>
             <option value="verificando pago">Verificando Pago</option>
             <option value="asignando personal">Asignando Personal</option>
           </select>

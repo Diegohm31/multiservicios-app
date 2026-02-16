@@ -51,9 +51,10 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
 
     .header {
       display: flex;
-      justify-content: space-between;
+      justify-content: space-around;
       align-items: center;
       margin-bottom: 2rem;
+      gap: 1rem;
     }
 
     h1 {
@@ -560,29 +561,8 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         return this.serviciosEditados.reduce((acc, s) => acc + this.calculatePrecioAPagar(s), 0);
     }
 
-    calculateManHours() {
-        if (!this.orden?.fecha_inicio || !this.orden?.fecha_fin) return 0;
-        const start = new Date(this.orden.fecha_inicio);
-        const end = new Date(this.orden.fecha_fin);
-        const diffTime = Math.abs(end - start);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive
-        return diffDays * 8;
-    }
 
     async handleSave() {
-        const limit = this.calculateManHours();
-
-        // Validation: check if any item exceeds the duration limit
-        const hasInvalidHours = this.serviciosEditados.some(s =>
-            s.selectedEquipos.some(e => Number(e.horas_uso) > limit) ||
-            s.selectedEspecialidades.some(esp => Number(esp.horas_hombre) > limit)
-        );
-
-        if (hasInvalidHours) {
-            alert('Error: Hay ítems cuyas horas superan la duración estimada del servicio (' + limit + ' hrs). Por favor corrígelos.');
-            return;
-        }
-
         if (!confirm('¿Desea guardar este presupuesto?')) return;
 
         this.loading = true;
@@ -654,32 +634,22 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         return html`
             <div class="container">
                 <header class="header">
-                    <div style="display: flex; align-items: center; gap: 2rem;">
                         <div>
                             <h1>Generar Presupuesto</h1>
                             <p style="color: var(--text-light); margin-top: 0.5rem;">Orden #${this.ordenId} - ${this.orden?.direccion}</p>
                         </div>
                         <div style="display: flex; gap: 1rem; align-items: center;">
-                            <div class="info-badge">
-                                <label>Periodo Solicitado</label>
-                                <span>${this.orden?.fecha_inicio} al ${this.orden?.fecha_fin}</span>
-                            </div>
-                            <div class="info-badge">
-                                <label>Horas Hombre Est.</label>
-                                <span>${this.calculateManHours()} hrs</span>
-                            </div>
                             ${this.orden?.pdf_peritaje ? html`
                                 <button class="btn-outline-danger" @click=${this.viewPeritaje}>
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                     Ver Peritaje
                                 </button>
                             ` : html`
-                                <span style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; font-style: italic;">
+                                <span style="font-size: 0.85rem; color: var(--text-light); font-weight: 600; font-style: italic; text-align: center;">
                                     Aun no se ha subido el Archivo de Peritaje
                                 </span>
                             `}
                         </div>
-                    </div>
                     <button class="btn-back" @click=${() => navigator.goto('/servicios/listado/orden')}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
                         Cancelar
@@ -825,7 +795,6 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                                         <input 
                                             type="number" 
                                             step="0.1" 
-                                            class="${Number(e.horas_uso) > this.calculateManHours() ? 'error' : ''}"
                                             .value=${e.horas_uso} 
                                             @input=${(ev) => this.updateServiceItem(idx, 'selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo, 'horas_uso', ev.target.value)} 
                                             style="width: 60px;"
@@ -878,7 +847,6 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                                         <input 
                                             type="number" 
                                             step="0.1" 
-                                            class="${Number(esp.horas_hombre) > this.calculateManHours() ? 'error' : ''}"
                                             .value=${esp.horas_hombre} 
                                             @input=${(ev) => this.updateServiceItem(idx, 'selectedEspecialidades', 'id_especialidad', esp.id_especialidad, 'horas_hombre', ev.target.value)} 
                                             style="width: 60px;"

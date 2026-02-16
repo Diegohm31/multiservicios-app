@@ -513,6 +513,50 @@ export class ServiciosService {
             throw error;
         }
     }
+    async asignarPersonal(id, data) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/asignar-personal`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al asignar personal:', error);
+            throw error;
+        }
+    }
+    async getOneOrdenAsignarPersonal(id) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/asignar-personal`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error fetching orden:', error);
+            return null;
+        }
+    }
 }
+
 
 export const serviciosService = new ServiciosService();
