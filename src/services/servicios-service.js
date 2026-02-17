@@ -576,6 +576,30 @@ export class ServiciosService {
             return { operativos: [], equipos: [] };
         }
     }
+
+    async ponerEnEjecucion(id) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/poner-en-ejecucion`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al poner orden en ejecución:', error);
+            throw error;
+        }
+    }
 }
 
 

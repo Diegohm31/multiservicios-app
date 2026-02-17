@@ -249,23 +249,25 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
             transform: translateY(-2px);
         }
 
-        .btn-back {
-            background: #f1f5f9;
-            color: var(--text);
-            border: 1px solid var(--border);
-            padding: 0.5rem 1.25rem;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-        }
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--text);
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
 
-        .btn-back:hover {
-            background: #e2e8f0;
-        }
+    .btn-back:hover {
+      background: #000;
+      transform: translateX(-4px);
+    }
 
         .read-only-badge {
             font-size: 0.7rem;
@@ -694,7 +696,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                         </div>
                     </div>
                     <button class="btn-back" @click=${() => navigator.goto('/servicios/listado/orden')}>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
                         Volver
                     </button>
                 </header>

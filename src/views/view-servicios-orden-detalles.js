@@ -80,7 +80,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     .status-presupuestada { background: #f3e8ff; color: #6b21a8; }
     .status-completada { background: #dcfce7; color: #15803d; }
     .status-cancelada { background: #fee2e2; color: #991b1b; }
-    .status-en-proceso { background: #e0f2fe; color: #075985; }
+    .status-en-ejecucion { background: #e0f2fe; color: #075985; }
     .status-en-espera { background: #e0f2fe; color: #075985; }
     .status-por-pagar { background: #ffedd5; color: #c2410c; }
     .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
@@ -397,7 +397,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     if (s.includes('presu')) return 'status-presupuestada';
     if (s.includes('comp')) return 'status-completada';
     if (s.includes('canc')) return 'status-cancelada';
-    if (s.includes('proce') || s.includes('progr')) return 'status-en-proceso';
+    if (s.includes('ejecucion') || s.includes('ejecucion')) return 'status-en-ejecucion';
     if (s.includes('espera')) return 'status-en-espera';
     if (s.includes('pagar')) return 'status-por-pagar';
     if (s.includes('verificando')) return 'status-verificando_pago';
