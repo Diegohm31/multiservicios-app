@@ -556,6 +556,26 @@ export class ServiciosService {
             return null;
         }
     }
+
+    async getAllAsignaciones() {
+        let url = `${this.baseUrl}/api/get-all-asignaciones`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error fetching all assignments:', error);
+            return { operativos: [], equipos: [] };
+        }
+    }
 }
 
 

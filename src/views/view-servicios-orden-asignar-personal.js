@@ -368,6 +368,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         this.loading = true;
         this.assignments = {};
         this.activeTabs = {};
+        this.allAssignments = { operativos: [], equipos: [] };
     }
 
     async connectedCallback() {
@@ -379,11 +380,18 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         this.loading = true;
         try {
             // Cargar datos reales desde la API utilizando los servicios correspondientes
-            const [orderData, ops, eqs] = await Promise.all([
+            const [orderData, ops, eqs, allAsignaciones] = await Promise.all([
                 serviciosService.getOneOrdenAsignarPersonal(this.ordenId),
                 operativosService.getAllOperativos(),
-                equiposService.getEquipos()
+                equiposService.getEquipos(),
+                serviciosService.getAllAsignaciones()
             ]);
+
+            // Mapear los nombres de las claves del backend (español) a las que usa el frontend (inglés)
+            this.allAssignments = {
+                operatives: allAsignaciones?.operativos || [],
+                equipos: allAsignaciones?.equipos || []
+            };
 
             if (!orderData) throw new Error('No se pudo obtener la orden');
 
@@ -418,20 +426,29 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     const count = parseInt(esp.cantidad_orden_servicio_especialidad || esp.cantidad_especialidad || esp.cantidad || 1);
                     const nombre = esp.nombre || ('Especialidad ' + esp.id_especialidad);
 
+                    // Buscar operativos ya asignados para esta especialidad en este servicio
+                    const existingOps = (s.operadores_asignados || []).filter(oa => oa.id_especialidad == esp.id_especialidad);
+
                     for (let i = 0; i < count; i++) {
-                        // Calcular fecha fin sumando horas al inicio (08:00)
-                        const start = new Date(`${suggestedDate}T08:00`);
-                        const end = new Date(start.getTime() + horas * 60 * 60 * 1000);
+                        const existing = existingOps[i];
+
+                        // Si ya existe asignación en DB, usar sus datos; si no, calcular sugeridos
+                        const start = existing
+                            ? new Date(existing.fecha_inicio.replace(' ', 'T'))
+                            : new Date(`${suggestedDate}T08:00`);
+                        const end = existing
+                            ? new Date(existing.fecha_fin.replace(' ', 'T'))
+                            : new Date(start.getTime() + horas * 60 * 60 * 1000);
 
                         sAssign.operatives.push({
                             id_especialidad: esp.id_especialidad,
                             nombre_especialidad: nombre,
                             nivel: esp.nivel || 'N/A',
                             horas_req: horas,
-                            id_operativo: '',
+                            id_operativo: existing ? existing.id_operativo : '',
                             fecha_inicio: this.formatDateForInput(start),
                             fecha_fin: this.formatDateForInput(end),
-                            es_jefe: 0
+                            es_jefe: existing ? parseInt(existing.es_jefe) : 0
                         });
                     }
                 });
@@ -442,15 +459,26 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     const count = parseInt(te.cantidad_orden_servicio_tipo_equipo || te.cantidad_tipo_equipo || te.cantidad || 1);
                     const nombre = te.nombre || ('Equipo ' + te.id_tipo_equipo);
 
+                    // Buscar equipos ya asignados para este tipo en este servicio
+                    const existingEqs = (s.equipos_asignados || []).filter(ea => {
+                        const fullEq = this.equiposFull.find(ef => ef.id_equipo == ea.id_equipo);
+                        return fullEq && fullEq.id_tipo_equipo == te.id_tipo_equipo;
+                    });
+
                     for (let i = 0; i < count; i++) {
-                        const start = new Date(`${suggestedDate}T08:00`);
-                        const end = new Date(start.getTime() + horas * 60 * 60 * 1000);
+                        const existing = existingEqs[i];
+                        const start = existing
+                            ? new Date(existing.fecha_inicio.replace(' ', 'T'))
+                            : new Date(`${suggestedDate}T08:00`);
+                        const end = existing
+                            ? new Date(existing.fecha_fin.replace(' ', 'T'))
+                            : new Date(start.getTime() + horas * 60 * 60 * 1000);
 
                         sAssign.equipos.push({
                             id_tipo_equipo: te.id_tipo_equipo,
                             nombre_equipo: nombre,
                             horas_req: horas,
-                            id_unidad_equipo: '',
+                            id_unidad_equipo: existing ? existing.id_equipo : '',
                             fecha_inicio: this.formatDateForInput(start),
                             fecha_fin: this.formatDateForInput(end)
                         });
@@ -477,31 +505,71 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
 
     checkOverlap(resourceId, startStr, endStr, serviceId, type, currentIndex) {
         if (!resourceId || !startStr || !endStr) return null;
+
         const newStart = new Date(startStr);
         const newEnd = new Date(endStr);
+
+        if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) return null;
+
         const idField = type === 'operatives' ? 'id_operativo' : 'id_unidad_equipo';
 
-        for (const sId in this.assignments) {
-            const assign = this.assignments[sId];
-            const list = assign[type] || [];
+        // Normalize IDs to handle potential padding differences (e.g., '00005' vs '5')
+        const normalizeId = (id) => String(id || '').trim().replace(/^0+/, '') || '0';
+        const resIdNormalized = normalizeId(resourceId);
 
+        //console.log(`[Validation] Checking ${type} ID: ${resourceId} (${resIdNormalized}). Range: ${startStr} to ${endStr}`);
+
+        // 1. Check internal overlap (local unsaved state)
+        for (const sId in this.assignments) {
+            const list = this.assignments[sId][type] || [];
             for (let i = 0; i < list.length; i++) {
                 const item = list[i];
-                if (sId === serviceId && i === currentIndex) continue;
+                if (sId == serviceId && i === currentIndex) continue;
 
-                if (item[idField] === resourceId && item.fecha_inicio && item.fecha_fin) {
+                if (normalizeId(item[idField]) === resIdNormalized && item.fecha_inicio && item.fecha_fin) {
                     const exStart = new Date(item.fecha_inicio);
                     const exEnd = new Date(item.fecha_fin);
 
                     if (newStart < exEnd && newEnd > exStart) {
+                        // console.warn('[Conflict] Found in local/unsaved state!', item);
                         return {
-                            service: this.orden.servicios.find(s => s.id_orden_servicio === sId)?.nombre,
+                            type: 'internal',
+                            name: this.orden.servicios.find(s => s.id_orden_servicio == sId)?.nombre || `Servicio ${sId}`,
                             role: type === 'operatives' ? item.nombre_especialidad : item.nombre_equipo
                         };
                     }
                 }
             }
         }
+
+        // 2. Check external overlap (Database state)
+        // Note: In DB structure for equipos, the ID field is 'id_equipo'
+        const dbIdField = type === 'operatives' ? 'id_operativo' : 'id_equipo';
+        const externalList = this.allAssignments[type] || [];
+
+        // console.log(`[Validation] Scanning ${externalList.length} external assignments for potential overlap...`);
+
+        for (const item of externalList) {
+            // Check if it's the SAME resource
+            if (normalizeId(item[dbIdField]) === resIdNormalized && item.fecha_inicio && item.fecha_fin) {
+
+                // Normalize date string from "YYYY-MM-DD HH:mm:ss" to "YYYY-MM-DDTHH:mm:ss"
+                const exStart = new Date(item.fecha_inicio.toString().replace(' ', 'T'));
+                const exEnd = new Date(item.fecha_fin.toString().replace(' ', 'T'));
+
+                if (!isNaN(exStart.getTime()) && !isNaN(exEnd.getTime())) {
+                    if (newStart < exEnd && newEnd > exStart) {
+                        // console.warn('[Conflict] Found in Database (External)!', item);
+                        return {
+                            type: 'external',
+                            orderId: item.id_orden,
+                            role: type === 'operatives' ? 'Personal' : 'Equipo'
+                        };
+                    }
+                }
+            }
+        }
+
         return null;
     }
 
@@ -533,12 +601,12 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 if (start && end) {
                     const overlap = this.checkOverlap(resId, start, end, serviceId, type, index);
                     if (overlap) {
-                        const name = type === 'operatives' ? this.operativos.find(o => o.id_operativo === resId)?.nombre : resId;
-                        const msg = `AVISO DE CONFLICTO: ${name} ya tiene uso programado en "${overlap.service}" (${overlap.role}) durante este rango. ¿Desea proceder?`;
-                        if (!confirm(msg)) {
-                            this.requestUpdate();
-                            return;
-                        }
+                        const msg = overlap.type === 'internal'
+                            ? `¡Conflicto de horario! El recurso ya está asignado al servicio "${overlap.name}" (${overlap.role}) en esta misma orden.`
+                            : `¡Conflicto global! El recurso ya tiene una asignación en la Orden #${overlap.orderId} para ese mismo horario.`;
+                        alert(msg);
+                        // Optionally, we could clear the value, but let's just warn for now as requested
+                        // if (field === 'id_operativo' || field === 'id_unidad_equipo') list[index][field] = '';
                     }
                 }
             }
@@ -745,7 +813,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
 
     renderEquipos(s) {
         const list = this.assignments[s.id_orden_servicio]?.equipos || [];
-        if (list.length === 0) return html`<div class="empty-state">No se requiere equipo pesado adicional para este servicio.</div>`;
+        if (list.length === 0) return html`<div class="empty-state">No se requiere equipo para este servicio.</div>`;
 
         return html`
             <table class="assignment-table">

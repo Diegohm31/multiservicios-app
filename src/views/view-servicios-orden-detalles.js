@@ -572,7 +572,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                 ${this.orden.fecha_inicio && this.orden.fecha_fin ? html`
                   <span class="detail-value">${this.orden.fecha_inicio} al ${this.orden.fecha_fin}</span>
                 ` : html`
-                  <span class="detail-value">Fecha aún no definida</span>
+                  <span class="detail-value">Aún no definido</span>
                 `}
               </div>
               <div class="detail-item">
