@@ -79,6 +79,50 @@ export class ViewServiciosOrdenListado extends LitElement {
       font-family: inherit;
     }
 
+    .filters-panel .filter-group input,
+    .filters-panel .filter-group select {
+      flex: 1;
+      padding: 0.625rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: var(--text);
+      background: white;
+      min-width: 140px;
+    }
+    
+    input[type="datetime-local"] {
+      min-width: 200px !important;
+      position: relative;
+    }
+
+    /* Forzar visibilidad del icono de calendario/reloj en navegadores WebKit */
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      display: block;
+      background: transparent;
+      bottom: 0;
+      color: transparent;
+      cursor: pointer;
+      height: auto;
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: auto;
+    }
+
+    /* Estilo para el contenedor del input para añadir un icono visual */
+    .filter-group {
+      position: relative;
+    }
+
+    .filter-group input[type="datetime-local"] {
+      padding-right: 2.5rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+    }
+
     input:focus, select:focus {
       outline: none;
       border-color: var(--primary);
@@ -236,6 +280,15 @@ export class ViewServiciosOrdenListado extends LitElement {
       background-color: #2563eb;
     }
 
+    .btn-amber {
+      background-color: #fff1bbff;
+      color: #b45309;
+    }
+    .btn-amber:hover {
+      background-color: #f59e0bff;
+      color: white;
+    }
+
     .btn-back {
       display: inline-flex;
       align-items: center;
@@ -295,6 +348,18 @@ export class ViewServiciosOrdenListado extends LitElement {
     navigator.goto(`/servicios/orden/asignar-personal/${id}`);
   }
 
+  async completarOrden(id) {
+    if (confirm('¿Desea marcar esta orden como completada?')) {
+      try {
+        await serviciosService.completarOrden(id);
+        alert('Orden completada correctamente.');
+        this.loadOrdenes();
+      } catch (error) {
+        alert('Error: ' + error.message);
+      }
+    }
+  }
+
   verDetallesOrden(id) {
     navigator.goto(`/servicios/orden/detalles/${id}`);
   }
@@ -310,6 +375,10 @@ export class ViewServiciosOrdenListado extends LitElement {
   // Normalizar strings para comparaciones (quitar acentos y pasar a minúsculas)
   normalize(str) {
     return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  verAvances(id) {
+    navigator.goto(`/servicios/orden/avances/${id}`);
   }
 
   async ponerEnEjecucion(id) {
@@ -404,34 +473,40 @@ export class ViewServiciosOrdenListado extends LitElement {
           <label for="filtro-estado">Estado</label>
           <select id="filtro-estado" @change=${this.handleFilterChange}>
             <option value="">Todos los estados</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="aceptada">Aceptada</option>
-            <option value="presupuestada">Presupuestada</option>
-            <option value="en ejecucion">En Ejecucion</option>
-            <option value="completada">Completada</option>
-            <option value="cancelada">Cancelada</option>
-            <option value="en espera">En espera</option>
-            <option value="verificando pago">Verificando Pago</option>
-            <option value="asignando personal">Asignando Personal</option>
+            ${this.id_rol === '00002' ? html`
+              <option value="en espera">En espera</option>
+              <option value="en ejecucion">En ejecucion</option>
+              <option value="completada">Completada</option>
+            ` : html`
+              <option value="pendiente">Pendiente</option>
+              <option value="aceptada">Aceptada</option>
+              <option value="presupuestada">Presupuestada</option>
+              <option value="en ejecucion">En ejecucion</option>
+              <option value="completada">Completada</option>
+              <option value="cancelada">Cancelada</option>
+              <option value="en espera">En espera</option>
+              <option value="verificando pago">Verificando pago</option>
+              <option value="asignando personal">Asignando personal</option>
+            `}
           </select>
         </div>
 
         <div class="filter-group">
           <label for="filtro-fecha-inicio">Desde</label>
-          <input type="date" id="filtro-fecha-inicio" @change=${this.handleFilterChange}>
+          <input type="datetime-local" id="filtro-fecha-inicio" @change=${this.handleFilterChange}>
         </div>
 
         <div class="filter-group">
           <label for="filtro-fecha-fin">Hasta</label>
           <input 
-            type="date" 
+            type="datetime-local" 
             id="filtro-fecha-fin" 
             class="${this.isDateRangeInvalid() ? 'input-error' : ''}" 
             .min=${this.filters.fecha_inicio} 
             @change=${this.handleFilterChange}
           >
         </div>
-        ${this.isDateRangeInvalid() ? html`<div class="error-msg">La fecha de fin no puede ser menor a la de inicio</div>` : ''}
+        ${this.isDateRangeInvalid() ? html`<div class="error-msg" style="grid-column: 1 / -1; margin-top: -0.5rem;">La fecha de fin no puede ser menor a la de inicio</div>` : ''}
 
         <!-- si es admin mostrar filtro por nombre y cedula de cliente-->
         ${this.id_rol === '00003' ? html`
@@ -451,8 +526,8 @@ export class ViewServiciosOrdenListado extends LitElement {
           <thead>
             <tr>
               <th>Id</th>
-              <!-- si es admin mostrar nombre y cedula de cliente-->
-              ${this.id_rol === '00003' ? html`
+              <!-- si es admin u operativo mostrar nombre y cedula de cliente-->
+              ${['00003', '00002'].includes(this.id_rol) ? html`
                 <th>Nombre</th>
                 <th>Cedula</th>
               ` : ''}
@@ -467,8 +542,8 @@ export class ViewServiciosOrdenListado extends LitElement {
             ${this.filteredOrdenes.map(orden => html`
               <tr>
                 <td style="font-weight: 700;">#${orden.id_orden}</td>
-                <!-- si es admin mostrar nombre y cedula de cliente-->
-                ${this.id_rol === '00003' ? html`
+                <!-- si es admin u operativo mostrar nombre y cedula de cliente-->
+                ${['00003', '00002'].includes(this.id_rol) ? html`
                   <td>${orden.nombre}</td>
                   <td>${orden.cedula}</td>
                 ` : ''}
@@ -494,8 +569,14 @@ export class ViewServiciosOrdenListado extends LitElement {
                     ${orden.estado?.toLowerCase().includes('espera') && this.id_rol === '00003' ? html`
                       <button class="btn btn-primary" @click=${() => this.ponerEnEjecucion(orden.id_orden)}>Poner en ejecución</button>
                     ` : ''}
-                    ${this.canCancel(orden.estado) ? html`
+                    ${(this.normalize(orden.estado).includes('ejecucion') || this.normalize(orden.estado).includes('comp')) ? html`
+                      <button class="btn btn-amber" @click=${() => this.verAvances(orden.id_orden)}>Ver avances</button>
+                    ` : ''}
+                    ${this.canCancel(orden.estado) && this.id_rol !== '00002' ? html`
                       <button class="btn btn-delete" @click=${() => this.cancelarOrden(orden.id_orden)}>Cancelar</button>
+                    ` : ''}
+                    ${this.id_rol === '00003' && this.normalize(orden.estado).includes('ejecucion') && Number(orden.porcentaje_avance) === 100 ? html`
+                      <button class="btn btn-success" @click=${() => this.completarOrden(orden.id_orden)}>Completar</button>
                     ` : ''}
                   </div>
                 </td>

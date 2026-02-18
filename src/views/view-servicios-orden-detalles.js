@@ -1,13 +1,15 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { authService } from '../services/auth-service.js';
 
 export class ViewServiciosOrdenDetalles extends LitElement {
   static properties = {
     ordenId: { type: String },
     id_rol: { type: String },
     orden: { type: Object },
-    loading: { type: Boolean }
+    loading: { type: Boolean },
+    currentUser: { type: Object }
   };
 
   static styles = css`
@@ -358,6 +360,18 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
+
+    .jefe-badge {
+      background: #e0e7ff;
+      color: #4338ca;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      margin-left: 0.35rem;
+      text-transform: uppercase;
+      border: 1px solid #c7d2fe;
+    }
   `;
 
   constructor() {
@@ -366,6 +380,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     this.id_rol = '';
     this.orden = null;
     this.loading = true;
+    this.currentUser = null;
   }
 
   async connectedCallback() {
@@ -382,6 +397,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       if (data) {
         this.orden = data.orden;
         this.id_rol = data.id_rol;
+      }
+      if (!this.currentUser) {
+        this.currentUser = await authService.getUser();
       }
     } catch (error) {
       console.error('Error loading order details:', error);
@@ -403,6 +421,24 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     if (s.includes('verificando')) return 'status-verificando_pago';
     if (s.includes('asignando personal')) return 'status-asignando_personal';
     return '';
+  }
+
+  getUserRolesInfo(servicio) {
+    if (!this.currentUser || !servicio.operativos_asignados) return null;
+
+    const myId = String(this.currentUser.id);
+    const myAssignments = servicio.operativos_asignados.filter(op => String(op.id_user) === myId);
+
+    if (myAssignments.length === 0) return null;
+
+    // De-duplicar nombres de especialidades (Set)
+    const uniqueRoles = [...new Set(myAssignments.map(op => op.nombre_especialidad))];
+    const esJefe = myAssignments.some(op => Number(op.es_jefe) === 1);
+
+    return {
+      roles: uniqueRoles.join(', '),
+      esJefe: esJefe
+    };
   }
 
   async cancelarOrden(id) {
@@ -524,7 +560,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                   style="display: none;" 
                   @change=${this.handleFileUpload}
                 >
-              ` : html`
+              ` : this.id_rol === '00001' ? html`
                 <!-- Cliente -->
                 ${this.orden.pdf_peritaje ? html`
                   <button class="btn-outline-danger" @click=${this.viewPeritaje}>
@@ -536,7 +572,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                     Aun no se ha subido el Archivo de Peritaje
                   </span>
                 `}
-              `}
+              ` : ''}
             </div>
           </div>
           
@@ -550,7 +586,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2 class="card-title">Información General</h2>
             <!-- Lógica de total inteligente para estados previos a ser presupuestada -->
-            ${(() => {
+            ${this.id_rol !== '00002' ? (() => {
         const s = this.orden.estado?.toLowerCase() || '';
         const isPreBudget = s.includes('pend') || s.includes('acept');
         if (isPreBudget) {
@@ -559,7 +595,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             : html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: $${total.toFixed(2)}</div>`;
         }
         return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total: $${total.toFixed(2)}</div>`;
-      })()}
+      })() : ''}
           </div>
           <div class="card-body">
             <div class="details-grid">
@@ -604,9 +640,25 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                   </div>
                   <div class="service-meta">
                     <div class="service-qty">Cantidad: ${servicio.pivot?.cantidad || servicio.cantidad || 0}</div>
-                    ${(servicio.pivot?.precio_a_pagar || servicio.precio_a_pagar) ? html`
-                      <div class="service-price">$${parseFloat(servicio.pivot?.precio_a_pagar || servicio.precio_a_pagar).toFixed(2)}</div>
-                    ` : html`<div class="service-price">Por Cotizar</div>`}
+                    ${this.id_rol !== '00002' ? html`
+                      ${(servicio.pivot?.precio_a_pagar || servicio.precio_a_pagar) ? html`
+                        <div class="service-price">$${parseFloat(servicio.pivot?.precio_a_pagar || servicio.precio_a_pagar).toFixed(2)}</div>
+                      ` : html`<div class="service-price">Por Cotizar</div>`}
+                    ` : html`
+                      <div class="service-roles" style="margin-top: 0.5rem; text-align: right;">
+                        <div class="detail-label" style="font-size: 0.65rem;">Mi Rol:</div>
+                        <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; display: flex; align-items: center; justify-content: flex-end;">
+                          ${(() => {
+            const info = this.getUserRolesInfo(servicio);
+            if (!info) return 'N/A';
+            return html`
+                              ${info.roles}
+                              ${info.esJefe ? html`<span class="jefe-badge">Jefe de Obra</span>` : ''}
+                            `;
+          })()}
+                        </div>
+                      </div>
+                    `}
                   </div>
                 </div>
               `)}

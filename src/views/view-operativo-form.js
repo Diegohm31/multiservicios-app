@@ -161,13 +161,13 @@ export class ViewOperativoForm extends LitElement {
 
   async handleEspecialidadToggle(e, id) {
     const checked = e.target.checked;
-    console.log(`Antes ${this.selectedEspecialidades}`);
+    //console.log(`Antes ${this.selectedEspecialidades}`);
     if (checked) {
       this.selectedEspecialidades = [...this.selectedEspecialidades, id];
     } else {
       this.selectedEspecialidades = this.selectedEspecialidades.filter(item => item !== id);
     }
-    console.log(`Despues ${this.selectedEspecialidades}`);
+    //console.log(`Despues ${this.selectedEspecialidades}`);
   }
 
   async handleSubmit(e) {

@@ -294,6 +294,33 @@ export class ServiciosService {
         }
     }
 
+    async completarOrden(id) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/completar`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                fecha_fin_real: new Date().toLocaleString('sv-SE', { timeZone: 'America/Caracas' })
+            })
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error al completar orden:', error);
+            throw error;
+        }
+    }
+
     async createPresupuesto(data) {
         let url = `${this.baseUrl}/api/presupuestos`;
         let token = localStorage.getItem('token');
@@ -598,6 +625,114 @@ export class ServiciosService {
         } catch (error) {
             console.error('Error al poner orden en ejecución:', error);
             throw error;
+        }
+    }
+
+    async getAvancesOrden(id_orden) {
+        let url = `${this.baseUrl}/api/ordenes/${id_orden}/avances`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al obtener avances de la orden:', error);
+            return [];
+        }
+    }
+
+    async updateAvance(id, data) {
+        let url = `${this.baseUrl}/api/avances-ordenes/${id}`;
+        let token = localStorage.getItem('token');
+        const isFormData = data instanceof FormData;
+
+        // Si es FormData, agregar _method para simular PUT
+        if (isFormData) {
+            data.append('_method', 'PUT');
+        }
+
+        const requestOptions = {
+            method: isFormData ? 'POST' : 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' })
+            },
+            body: isFormData ? data : JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al actualizar avance:', error);
+            return false;
+        }
+    }
+
+    async createAvance(data) {
+        let url = `${this.baseUrl}/api/avances-ordenes`;
+        let token = localStorage.getItem('token');
+        const isFormData = data instanceof FormData;
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' })
+            },
+            body: isFormData ? data : JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al crear avance:', error);
+            return false;
+        }
+    }
+
+    async eliminarAvance(id) {
+        let url = `${this.baseUrl}/api/avances-ordenes/${id}`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al eliminar avance:', error);
+            return false;
         }
     }
 }

@@ -604,8 +604,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     const overlap = this.checkOverlap(resId, start, end, serviceId, type, index);
                     if (overlap) {
                         const msg = overlap.type === 'internal'
-                            ? `¡Conflicto de horario! El recurso ya está asignado al servicio "${overlap.name}" (${overlap.role}) en esta misma orden.`
-                            : `¡Conflicto global! El recurso ya tiene una asignación en la Orden #${overlap.orderId} para ese mismo horario.`;
+                            ? `¡Precaución! El recurso ya está asignado al servicio "${overlap.name}" (${overlap.role}) en esta misma orden.`
+                            : `¡Precaución! El recurso ya tiene una asignación en la Orden #${overlap.orderId} para ese mismo horario.`;
                         alert(msg);
                         // Optionally, we could clear the value, but let's just warn for now as requested
                         // if (field === 'id_operativo' || field === 'id_unidad_equipo') list[index][field] = '';

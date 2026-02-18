@@ -30,7 +30,7 @@ import './views/view-servicios-orden-pago.js';
 import './views/view-reportes-pagos-listado.js';
 import './views/view-reportes-pagos-detalles.js';
 import './views/view-servicios-orden-asignar-personal.js';
-
+import './views/view-servicios-orden-avances.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -464,6 +464,17 @@ export class MainApp extends LitElement {
         return true;
       },
       render: (params) => html`<view-reportes-pagos-detalles .reporteId=${params.id}></view-reportes-pagos-detalles>`
+    },
+    {
+      path: '/servicios/orden/avances/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-servicios-orden-avances .ordenId=${params.id}></view-servicios-orden-avances>`
     },
     // {
     //   path: '/products/create',
