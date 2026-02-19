@@ -7,7 +7,11 @@ export class ViewServiciosOrdenListado extends LitElement {
     id_rol: { type: String },
     ordenes: { type: Array },
     filteredOrdenes: { type: Array },
-    filters: { type: Object }
+    filters: { type: Object },
+    showRatingModal: { type: Boolean },
+    ratingOrderId: { type: String },
+    selectedRating: { type: Number },
+    ratingObservations: { type: String }
   };
 
   static styles = css`
@@ -308,6 +312,95 @@ export class ViewServiciosOrdenListado extends LitElement {
       background: #000;
       transform: translateX(-4px);
     }
+
+    /* Rating Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 2.5rem;
+      border-radius: 24px;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      text-align: center;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    .modal-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      margin-bottom: 2rem;
+    }
+
+    .stars-container {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .star {
+      font-size: 2.5rem;
+      cursor: pointer;
+      color: #e2e8f0;
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .star.selected {
+      color: #fbbf24;
+      transform: scale(1.1);
+    }
+
+    .star:hover {
+      transform: scale(1.2);
+    }
+
+    .rating-textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: none;
+      box-sizing: border-box;
+      background: white;
+      color: black;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .modal-actions .btn {
+      flex: 1;
+      padding: 0.75rem;
+      font-size: 0.9rem;
+    }
   `;
 
   constructor() {
@@ -321,6 +414,10 @@ export class ViewServiciosOrdenListado extends LitElement {
       fecha_inicio: '',
       fecha_fin: ''
     };
+    this.showRatingModal = false;
+    this.ratingOrderId = '';
+    this.selectedRating = 0;
+    this.ratingObservations = '';
   }
 
   connectedCallback() {
@@ -357,6 +454,42 @@ export class ViewServiciosOrdenListado extends LitElement {
       } catch (error) {
         alert('Error: ' + error.message);
       }
+    }
+  }
+
+  openRatingModal(id) {
+    this.ratingOrderId = id;
+    this.selectedRating = 0;
+    this.ratingObservations = '';
+    this.showRatingModal = true;
+  }
+
+  closeRatingModal() {
+    this.showRatingModal = false;
+  }
+
+  setRating(rating) {
+    this.selectedRating = rating;
+  }
+
+  async submitRating() {
+    if (this.selectedRating === 0) {
+      alert('Por favor selecciona una calificación de 1 a 5 estrellas.');
+      return;
+    }
+
+    try {
+      await serviciosService.calificarOrden(
+        this.ratingOrderId,
+        this.selectedRating,
+        this.ratingObservations
+      );
+      this.closeRatingModal();
+      await this.loadOrdenes();
+      alert('¡Gracias por tu calificación!');
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      alert('Ocurrió un error al enviar la calificación.');
     }
   }
 
@@ -578,6 +711,9 @@ export class ViewServiciosOrdenListado extends LitElement {
                     ${this.id_rol === '00003' && this.normalize(orden.estado).includes('ejecucion') && Number(orden.porcentaje_avance) === 100 ? html`
                       <button class="btn btn-success" @click=${() => this.completarOrden(orden.id_orden)}>Completar</button>
                     ` : ''}
+                    ${this.id_rol === '00001' && this.normalize(orden.estado).includes('comp') && !orden.calificacion ? html`
+                      <button class="btn btn-primary" @click=${() => this.openRatingModal(orden.id_orden)}>Calificar</button>
+                    ` : ''}
                   </div>
                 </td>
               </tr>
@@ -592,6 +728,36 @@ export class ViewServiciosOrdenListado extends LitElement {
           Volver
         </button>
       </div>
+
+      ${this.showRatingModal ? html`
+        <div class="modal-overlay">
+          <div class="modal-content">
+            <h2 class="modal-title">¿Cómo fue tu experiencia?</h2>
+            <p class="modal-subtitle">Tu opinión nos ayuda a mejorar la calidad de nuestros servicios.</p>
+            
+            <div class="stars-container">
+              ${[1, 2, 3, 4, 5].map(num => html`
+                <span class="star ${this.selectedRating >= num ? 'selected' : ''}" 
+                      @click=${() => this.setRating(num)}>
+                  ★
+                </span>
+              `)}
+            </div>
+
+            <textarea 
+              class="rating-textarea" 
+              placeholder="Cuéntanos más sobre el servicio (opcional)..."
+              .value=${this.ratingObservations}
+              @input=${(e) => this.ratingObservations = e.target.value}
+            ></textarea>
+
+            <div class="modal-actions">
+              <button class="btn btn-delete" @click=${this.closeRatingModal}>Cancelar</button>
+              <button class="btn btn-primary" @click=${this.submitRating}>Enviar Calificación</button>
+            </div>
+          </div>
+        </div>
+      ` : ''}
     `;
   }
 

@@ -402,12 +402,15 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 servicios: orderData.array_servicios || []
             };
 
-            // Mapear operativos para que tengan el formato esperado con array de especialidades
-            this.operativos = (ops || []).map(o => ({
-                id_operativo: o.id_operativo,
-                nombre: o.nombre,
-                especialidades: (o.array_especialidades || []).map(ae => ae.id_especialidad)
-            }));
+            // Mapear operativos para que tengan el formato esperado con array de especialidades y reputación
+            this.operativos = (ops || [])
+                .map(o => ({
+                    id_operativo: o.id_operativo,
+                    nombre: o.nombre,
+                    reputacion: parseFloat(o.reputacion || 0),
+                    especialidades: (o.array_especialidades || []).map(ae => ae.id_especialidad)
+                }))
+                .sort((a, b) => b.reputacion - a.reputacion);
 
             this.equiposFull = eqs || [];
 
@@ -791,7 +794,9 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 op.especialidades.includes(assign.id_especialidad) &&
                 !forbiddenIds.includes(op.id_operativo)
             ).map(op => html`
-                                        <option value=${op.id_operativo} ?selected=${assign.id_operativo === op.id_operativo}>${op.nombre}</option>
+                                        <option value=${op.id_operativo} ?selected=${assign.id_operativo === op.id_operativo}>
+                                            ${op.nombre}
+                                        </option>
                                     `)}
                                 </select>
                             </td>

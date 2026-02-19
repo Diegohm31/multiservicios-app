@@ -189,6 +189,39 @@ export class ServiciosService {
         }
     }
 
+    async updateOrden(id, data) {
+        let url = `${this.baseUrl}/api/ordenes/${id}`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(data)
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al actualizar orden:', error);
+            throw error;
+        }
+    }
+
+    async calificarOrden(id, rating, observations) {
+        return this.updateOrden(id, {
+            calificacion: rating,
+            observaciones: observations
+        });
+    }
+
     async getOrdenes() {
         let url = `${this.baseUrl}/api/ordenes`;
         let token = localStorage.getItem('token');
