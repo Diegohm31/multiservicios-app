@@ -129,25 +129,39 @@ export class ViewCatalogoServicios extends LitElement {
           const matUnit = parseFloat(item.precio_materiales) || 0;
           const equUnit = parseFloat(item.precio_tipos_equipos) || 0;
           const moUnit = parseFloat(item.precio_mano_obra) || 0;
-          const descUnit = parseFloat(item.descuento) || 0; // Descuento por unidad
+          const precioGeneralUnitario = matUnit + equUnit + moUnit;
+
+          // Descuento fijo del servicio
+          const fixedDescUnitAmount = parseFloat(item.descuento) || 0;
+          // Descuento de membresía (porcentaje)
+          const membershipDiscountPercent = this.getDiscountForCategory(item.category) || 0;
+          const membershipDescUnitAmount = (membershipDiscountPercent * precioGeneralUnitario) / 100;
+
+          const descuentoUnitario = membershipDescUnitAmount;
+          const porcentajeDescuentoTotal = membershipDiscountPercent;
+          const precioNetoUnitario = precioGeneralUnitario - descuentoUnitario;
 
           servicio.precio_materiales_unitario = matUnit;
           servicio.precio_tipos_equipos_unitario = equUnit;
           servicio.precio_mano_obra_unitario = moUnit;
-          servicio.precio_general_unitario = matUnit + equUnit + moUnit;
-          servicio.descuento = descUnit;
-          servicio.precio_a_pagar = qty * (servicio.precio_general_unitario - descUnit);
+          servicio.precio_general_unitario = precioGeneralUnitario;
+          servicio.porcentaje_descuento = porcentajeDescuentoTotal;
+          servicio.descuento_unitario = descuentoUnitario;
+          servicio.precio_neto_unitario = precioNetoUnitario;
+          servicio.precio_a_pagar = qty * precioNetoUnitario;
 
           totalMat += matUnit * qty;
           totalEqu += equUnit * qty;
           totalMO += moUnit * qty;
-          totalDesc += descUnit * qty;
+          totalDesc += descuentoUnitario * qty;
         } else {
           servicio.precio_materiales_unitario = 0;
           servicio.precio_tipos_equipos_unitario = 0;
           servicio.precio_mano_obra_unitario = 0;
           servicio.precio_general_unitario = 0;
-          servicio.descuento = 0;
+          servicio.porcentaje_descuento = 0;
+          servicio.descuento_unitario = 0;
+          servicio.precio_neto_unitario = 0;
           servicio.precio_a_pagar = 0;
         }
 
@@ -158,7 +172,7 @@ export class ViewCatalogoServicios extends LitElement {
         id_cliente: this.user?.id_cliente || 'ANONYMOUS',
         direccion: this.orderData.direccion,
         estado: 'Pendiente',
-        fecha_emision: new Date().toISOString().split('T')[0],
+        fecha_emision: new Date().toLocaleString('sv-SE', { timeZone: 'America/Caracas' }).replace('T', ' '),
         total_materiales: totalMat,
         total_equipos: totalEqu,
         total_mano_obra: totalMO,
@@ -198,17 +212,36 @@ export class ViewCatalogoServicios extends LitElement {
 
   getTotal() {
     return this.cart.reduce((sum, item) => {
-      if (item.servicio_tabulado === 0) return sum;
-
-      const matUnit = parseFloat(item.precio_materiales) || 0;
-      const equUnit = parseFloat(item.precio_tipos_equipos) || 0;
-      const moUnit = parseFloat(item.precio_mano_obra) || 0;
-      const descUnit = parseFloat(item.descuento) || 0;
-      const qty = item.qty || 1;
-
-      const precioAPagar = qty * ((matUnit + equUnit + moUnit) - descUnit);
-      return sum + precioAPagar;
+      return sum + (item.qty * this.getItemPrice(item));
     }, 0);
+  }
+
+  getItemPrice(item, categoryOverride = null) {
+    if (item.servicio_tabulado === 0) return 0;
+
+    const matUnit = parseFloat(item.precio_materiales) || 0;
+    const equUnit = parseFloat(item.precio_tipos_equipos) || 0;
+    const moUnit = parseFloat(item.precio_mano_obra) || 0;
+    const precioGeneralUnitario = matUnit + equUnit + moUnit;
+
+    const category = categoryOverride || item.category;
+    const membershipDiscountPercent = this.getDiscountForCategory(category) || 0;
+    const membershipDescUnitAmount = (membershipDiscountPercent * precioGeneralUnitario) / 100;
+
+    const descuentoUnitario = membershipDescUnitAmount;
+    const precioNetoUnitario = precioGeneralUnitario - descuentoUnitario;
+
+    return precioNetoUnitario;
+  }
+
+  getDiscountForCategory(categoryName) {
+    if (!this.user?.membresia_activa?.plan?.array_tipos_servicios) return null;
+
+    const ts = this.user.membresia_activa.plan.array_tipos_servicios.find(
+      item => item.nombre_tipo_servicio === categoryName
+    );
+
+    return ts ? ts.porcentaje_descuento : null;
   }
 
   render() {
@@ -249,6 +282,9 @@ export class ViewCatalogoServicios extends LitElement {
             >
               <span class="tag-icon">${this.categoryIcons[cat.tipo_servicio] || '📋'}</span>
               <span class="tag-name">${cat.tipo_servicio}</span>
+              ${this.getDiscountForCategory(cat.tipo_servicio) ? html`
+                <span class="discount-badge-mini">${this.getDiscountForCategory(cat.tipo_servicio)}% DESC</span>
+              ` : ''}
             </button>
           `)}
         </nav>
@@ -284,8 +320,15 @@ export class ViewCatalogoServicios extends LitElement {
               <div class="service-card ${inCart ? 'selected' : ''}">
                 <div class="card-main">
                   <div class="card-left">
-                    <h3 class="service-name">${service.nombre}</h3>
-                    <p class="service-desc">${service.descripcion}</p>
+                    <h3 class="service-name">
+                        ${service.nombre}
+                        ${this.getDiscountForCategory(activeCatData?.tipo_servicio) ? html`
+                            <span class="discount-badge-mini" style="vertical-align: middle; margin-left: 0.25rem;">
+                                ${this.getDiscountForCategory(activeCatData?.tipo_servicio)}% OFF
+                            </span>
+                        ` : ''}
+                    </h3>
+                    <p class="service-desc">${service.description || service.descripcion}</p>
                     ${service.imagePath ? html`
                             <div class="service-image">
                                 <span class="label" style="display: block; margin-bottom: 0.5rem;">Imagen del servicio</span>
@@ -303,7 +346,17 @@ export class ViewCatalogoServicios extends LitElement {
                   <div class="card-right">
                     <div class="price-display ${service.servicio_tabulado === 0 ? 'quote' : ''}">
                       ${service.servicio_tabulado === 1
-          ? html`$${parseFloat(service.precio_general || 0).toFixed(2)} <span>/ ${service.unidad_medida}</span>`
+          ? html`
+              <div>$${this.getItemPrice(service, activeCatData?.tipo_servicio).toFixed(2)}</div>
+              <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem;">
+                ${this.getDiscountForCategory(activeCatData?.tipo_servicio) ? html`
+                  <span style="font-size: 0.75rem; color: var(--text-light); text-decoration: line-through; font-weight: 500;">
+                    $${parseFloat(service.precio_general || 0).toFixed(2)}
+                  </span>
+                ` : ''}
+                <span>/ ${service.unidad_medida}</span>
+              </div>
+            `
           : html`Por Cotizar`
         }
                     </div>
@@ -349,7 +402,7 @@ export class ViewCatalogoServicios extends LitElement {
                       ${item.servicio_tabulado === 1
             ? html`
                           <span style="font-weight: 800; color: var(--primary); font-size: 0.95rem;">
-                            $${(item.qty * ((parseFloat(item.precio_materiales) || 0) + (parseFloat(item.precio_tipos_equipos) || 0) + (parseFloat(item.precio_mano_obra) || 0) - (parseFloat(item.descuento) || 0))).toFixed(2)}
+                            $${(item.qty * this.getItemPrice(item)).toFixed(2)}
                           </span>
                         `
             : html`<span style="color: var(--text-light); font-size: 0.85rem; font-weight: 600;">Por Cotizar</span>`
@@ -636,6 +689,22 @@ export class ViewCatalogoServicios extends LitElement {
       background: #f5f3ff;
       padding: 0.25rem 0.75rem;
       border-radius: 8px;
+    }
+
+    .discount-badge-mini {
+      display: inline-flex;
+      align-items: center;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      font-size: 0.65rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      margin-left: 0.5rem;
     }
 
     .qty-field { 

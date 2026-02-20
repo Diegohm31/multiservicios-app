@@ -269,7 +269,7 @@ export class ViewReportesPagosDetalles extends LitElement {
         const payload = {
             id_reporte_pago: this.reporte.id_reporte_pago,
             id_orden: this.reporte.id_orden || null,
-            id_plan_membresia: this.reporte.id_plan_membresia || null,
+            id_membresia: this.reporte.id_membresia || null,
             observaciones: this.observaciones
         };
 
@@ -341,7 +341,7 @@ export class ViewReportesPagosDetalles extends LitElement {
                         <div class="detail-group">
                             <span class="label">Orden / Plan</span>
                             <span class="value">
-                                ${this.reporte.id_orden ? `Orden #${this.reporte.id_orden}` : `Plan deMembresía: ${this.reporte.plan_membresia_nombre || 'Plan de Membresía'}`}
+                                ${this.reporte.id_orden ? `Orden #${this.reporte.id_orden}` : `Plan de Membresía: ${this.reporte.plan_membresia_nombre || 'Plan de Membresía'}`}
                             </span>
                         </div>
                         <div class="detail-group">

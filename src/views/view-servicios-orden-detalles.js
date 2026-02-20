@@ -594,6 +594,10 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             ? html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Por Cotizar</div>`
             : html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: $${total.toFixed(2)}</div>`;
         }
+
+        if (s.includes('cancelada')) {
+          return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Orden Cancelada</div>`;
+        }
         return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total: $${total.toFixed(2)}</div>`;
       })() : ''}
           </div>

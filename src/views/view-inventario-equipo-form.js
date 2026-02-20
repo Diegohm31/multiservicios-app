@@ -180,7 +180,8 @@ export class ViewInventarioEquipoForm extends LitElement {
     e.preventDefault();
     try {
       // validar que la fecha de adquisicion no sea mayor a la fecha actual
-      if (this.equipo.fecha_adquisicion > new Date().toISOString().split('T')[0]) {
+      const today = new Date().toLocaleString('sv-SE', { timeZone: 'America/Caracas' }).split(' ')[0];
+      if (this.equipo.fecha_adquisicion > today) {
         alert('La fecha de adquisición no puede ser mayor a la fecha actual');
         return;
       }

@@ -424,9 +424,9 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                     id_orden_servicio: s.id_orden_servicio,
                     id_servicio: s.id_servicio,
                     nombre: s.nombre,
+                    categoria_nombre: s.categoria_nombre,
                     cantidad: Number(s.cantidad) || 1,
                     descripcion: s.descripcion || '',
-                    descuento: Number(s.descuento) || 0,
                     activeTab: 'materiales',
                     selectedMateriales: (s.array_materiales || []).map(item => ({
                         ...item,
@@ -550,11 +550,37 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         return this.calculateUnitMat(s) + this.calculateUnitEqu(s) + this.calculateUnitMO(s);
     }
 
+    getDiscountForCategory(categoryName) {
+        if (!this.orden?.cliente?.user?.membresia_activa?.plan?.array_tipos_servicios) return null;
+
+        const ts = this.orden.cliente.user.membresia_activa.plan.array_tipos_servicios.find(
+            item => item.nombre_tipo_servicio === categoryName
+        );
+
+        return ts ? ts.porcentaje_descuento : null;
+    }
+
+    calculateDescuentoUnitario(s) {
+        const precioGeneralUnitario = this.calculatePrecioGeneralUnitario(s);
+        const membershipDiscountPercent = this.getDiscountForCategory(s.categoria_nombre) || 0;
+        const membershipDescUnitAmount = (membershipDiscountPercent * precioGeneralUnitario) / 100;
+
+        return membershipDescUnitAmount;
+    }
+
+    calculatePorcentajeDescuentoTotal(s) {
+        const precioGeneralUnitario = this.calculatePrecioGeneralUnitario(s);
+        const descuentoUnitario = this.calculateDescuentoUnitario(s);
+        return precioGeneralUnitario > 0 ? (descuentoUnitario / precioGeneralUnitario) * 100 : 0;
+    }
+
+    calculatePrecioNetoUnitario(s) {
+        return this.calculatePrecioGeneralUnitario(s) - this.calculateDescuentoUnitario(s);
+    }
+
     calculatePrecioAPagar(s) {
         const qty = Number(s.cantidad) || 1;
-        const discountUnit = Number(s.descuento) || 0;
-        const unitGen = this.calculatePrecioGeneralUnitario(s);
-        return qty * (unitGen - discountUnit);
+        return qty * this.calculatePrecioNetoUnitario(s);
     }
 
     get totalGlobal() {
@@ -578,7 +604,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
             total_equipos: totalEqu,
             total_mano_obra: totalMO,
             total_general: totalGen,
-            total_descuento: this.serviciosEditados.reduce((acc, s) => acc + (Number(s.descuento || 0) * Number(s.cantidad || 1)), 0),
+            total_descuento: this.serviciosEditados.reduce((acc, s) => acc + (this.calculateDescuentoUnitario(s) * (Number(s.cantidad) || 1)), 0),
             total_a_pagar: this.totalGlobal,
             array_servicios: this.serviciosEditados.map(s => ({
                 id_orden_servicio: s.id_orden_servicio,
@@ -586,7 +612,9 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                 precio_tipos_equipos_unitario: this.calculateUnitEqu(s),
                 precio_mano_obra_unitario: this.calculateUnitMO(s),
                 precio_general_unitario: this.calculatePrecioGeneralUnitario(s),
-                descuento: Number(s.descuento) || 0,
+                porcentaje_descuento: this.calculatePorcentajeDescuentoTotal(s),
+                descuento_unitario: this.calculateDescuentoUnitario(s),
+                precio_neto_unitario: this.calculatePrecioNetoUnitario(s),
                 precio_a_pagar: this.calculatePrecioAPagar(s),
                 array_materiales: s.selectedMateriales.map(m => ({
                     id_material: m.id_material,
@@ -662,6 +690,11 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                             <div class="service-title">
                                 <span class="service-qty-badge">${s.cantidad}x</span>
                                 ${s.nombre}
+                                ${this.getDiscountForCategory(s.categoria_nombre) ? html`
+                                    <span class="service-qty-badge" style="background: #ecfdf5; color: #059669; margin-left: 0.5rem;">
+                                        ${this.getDiscountForCategory(s.categoria_nombre)}% DESC. MEMBRESÍA
+                                    </span>
+                                ` : ''}
                             </div>
                             <div class="service-total">
                                 <span>A Pagar</span>
@@ -699,9 +732,19 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                                     <span>M.O Unit: $${this.calculateUnitMO(s).toFixed(2)}</span>
                                 </div>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase;">Precio Gral. Unitario</div>
-                                <div style="font-weight: 700;">$${this.calculatePrecioGeneralUnitario(s).toFixed(2)}</div>
+                            <div style="display: flex; gap: 2rem; align-items: center; text-align: right;">
+                                <div>
+                                    <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase;">Precio Gral. Unit.</div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;">$${this.calculatePrecioGeneralUnitario(s).toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.7rem; color: var(--danger); text-transform: uppercase;">Desc. Unit.</div>
+                                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--danger);">-$${this.calculateDescuentoUnitario(s).toFixed(2)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.7rem; color: var(--success); text-transform: uppercase;">Precio Neto Unit.</div>
+                                    <div style="font-weight: 800; font-size: 1.1rem; color: var(--success);">$${this.calculatePrecioNetoUnitario(s).toFixed(2)}</div>
+                                </div>
                             </div>
                         </div>
                     </div>

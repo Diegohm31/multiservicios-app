@@ -417,8 +417,9 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
             const initAssignments = {};
             const initTabs = {};
 
-            // Sugerir fecha de inicio basada en hoy
-            const suggestedDate = (new Date().toISOString().split('T')[0]);
+            // Sugerir fecha de inicio basada en hoy (Caracas time)
+            const suggestedDate = new Date().toLocaleString('sv-SE', { timeZone: 'America/Caracas' }).split(' ')[0];
+
 
             this.orden.servicios.forEach(s => {
                 const key = s.id_orden_servicio;
@@ -671,7 +672,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
 
     formatDate(date) {
         if (!date) return 'Pendiente';
-        return date.toLocaleString('en-US', {
+        return date.toLocaleString('es-VE', {
+            timeZone: 'America/Caracas',
             year: 'numeric', month: 'numeric', day: 'numeric',
             hour: 'numeric', minute: 'numeric',
             hour12: true

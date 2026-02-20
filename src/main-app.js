@@ -31,6 +31,9 @@ import './views/view-reportes-pagos-listado.js';
 import './views/view-reportes-pagos-detalles.js';
 import './views/view-servicios-orden-asignar-personal.js';
 import './views/view-servicios-orden-avances.js';
+import './views/view-membresias-planes-form.js';
+import './views/view-membresias-planes-listado.js';
+import './views/view-membresias-pago.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -475,6 +478,50 @@ export class MainApp extends LitElement {
         return true;
       },
       render: (params) => html`<view-servicios-orden-avances .ordenId=${params.id}></view-servicios-orden-avances>`
+    },
+    {
+      path: '/membresias/planes/register',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: () => html`<view-membresias-planes-form></view-membresias-planes-form>`
+    },
+    {
+      path: '/membresias/planes/edit/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-membresias-planes-form .planId=${params.id}></view-membresias-planes-form>`
+    },
+    {
+      path: '/membresias/planes/listado',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: () => html`<view-membresias-planes-listado></view-membresias-planes-listado>`
+    },
+    {
+      path: '/membresias/planes/pago/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-membresias-pago .planId=${params.id}></view-membresias-pago>`
     },
     // {
     //   path: '/products/create',

@@ -1,0 +1,436 @@
+import { LitElement, html, css } from 'lit';
+import { navigator } from '../utils/navigator.js';
+import { planesMembresiasService } from '../services/planes-membresias-service.js';
+import { serviciosService } from '../services/servicios-service.js';
+import { authService } from '../services/auth-service.js';
+
+export class ViewMembresiasPago extends LitElement {
+  static properties = {
+    planId: { type: String },
+    plan: { type: Object },
+    user: { type: Object },
+    loading: { type: Boolean },
+    processing: { type: Boolean },
+    formData: { type: Object },
+    previewUrl: { type: String },
+  };
+
+  static styles = css`
+    :host {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --bg: #fff;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-light: #64748b;
+      --border: #e2e8f0;
+      --radius: 16px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      
+      display: block;
+      padding: 2rem 1rem;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: var(--text);
+      background-color: var(--bg);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    h1 {
+      font-size: 1.875rem;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.025em;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+
+    input, select {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: all 0.2s;
+      background-color: #ffffff;
+      color: #000000;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .summary-box {
+      background: #eff6ff;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #dbeafe;
+    }
+
+    .amount-display {
+      text-align: right;
+    }
+
+    .amount-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-light);
+    }
+
+    .amount-value {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .btn-submit {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 0.875rem 2rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 1rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      background: var(--text);
+      color: white;
+      border-radius: 10px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      background: #000;
+      transform: translateX(-4px);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-wrapper input[type=file] {
+        font-size: 100px;
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .file-input-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: 2px dashed var(--border);
+        border-radius: 10px;
+        font-weight: 600;
+        color: var(--text-light);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .file-input-button:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(59, 130, 246, 0.05);
+    }
+
+    .file-input-button.has-file {
+        border-color: var(--success);
+        color: var(--success);
+        background: rgba(16, 185, 129, 0.05);
+    }
+
+    .loader {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `;
+
+  constructor() {
+    super();
+    this.loading = true;
+    this.processing = false;
+    this.user = null;
+    this.formData = {
+      id_plan_membresia: '',
+      monto: '',
+      metodo_pago: '',
+      num_referencia: '',
+      image: null
+    };
+  }
+
+  async connectedCallback() {
+    super.connectedCallback();
+    await this.loadData();
+  }
+
+  async loadData() {
+    this.loading = true;
+    try {
+      const [planData, userData] = await Promise.all([
+        planesMembresiasService.getOnePlan(this.planId),
+        authService.getUser()
+      ]);
+
+      if (planData) {
+        this.plan = planData;
+        this.user = userData;
+        this.formData = {
+          ...this.formData,
+          monto: parseFloat(this.plan.precio).toFixed(2),
+          id_plan_membresia: this.planId
+        };
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      alert('Error al cargar la información');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  handleInput(e) {
+    const { name, value } = e.target;
+    this.formData = { ...this.formData, [name]: value };
+  }
+
+  handleFileChange(e) {
+    const file = e.target.files[0];
+    if (file) {
+      this.formData = { ...this.formData, image: file };
+      this.previewUrl = URL.createObjectURL(file);
+    }
+  }
+
+  async handleSubmit(e) {
+    e.preventDefault();
+
+    if (!this.formData.metodo_pago || !this.formData.num_referencia || !this.formData.image) {
+      alert('Por favor complete todos los campos obligatorios y adjunte el comprobante.');
+      return;
+    }
+
+    if (!this.user.id_cliente) {
+      alert('No se pudo encontrar la información de cliente del usuario actual.');
+      return;
+    }
+
+    this.processing = true;
+    try {
+      // Paso 1: Crear la membresía
+      const membresiaData = {
+        id_cliente: this.user.id_cliente,
+        id_plan_membresia: this.planId,
+        precio: this.formData.monto
+      };
+
+      const membresia = await planesMembresiasService.createMembresia(membresiaData);
+
+      // Paso 2: Crear el reporte de pago asociado a la membresía creada
+      const paymentFormData = new FormData();
+      paymentFormData.append('id_membresia', membresia.id_membresia);
+      paymentFormData.append('monto', this.formData.monto);
+      paymentFormData.append('metodo_pago', this.formData.metodo_pago);
+      paymentFormData.append('num_referencia', this.formData.num_referencia);
+      paymentFormData.append('image', this.formData.image);
+
+      await serviciosService.createReportePago(paymentFormData);
+
+      alert('¡Excelente! El reporte de pago ha sido enviado y tu membresía está en proceso de activación.');
+      navigator.goto('/membresias/planes/listado');
+    } catch (error) {
+      console.error('Error in payment process:', error);
+      alert('Ocurrió un error: ' + error.message);
+    } finally {
+      this.processing = false;
+    }
+  }
+
+  render() {
+    if (this.loading) {
+      return html`
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh;">
+          <div class="loader" style="border-top-color: var(--primary); width: 40px; height: 40px;"></div>
+          <p style="margin-top: 1rem; color: var(--text-light);">Cargando información del plan...</p>
+        </div>
+      `;
+    }
+
+    if (!this.plan) {
+      return html`<div class="container"><h2>Plan no encontrado</h2></div>`;
+    }
+
+    return html`
+      <div class="container">
+        <header class="header">
+          <div>
+            <h1>Adquirir Membresía</h1>
+            <p style="color: var(--text-light); margin-top: 0.5rem;">Reporta tu pago para activar el plan <strong>${this.plan.nombre}</strong></p>
+          </div>
+          <button class="btn-back" @click=${() => navigator.goto('/membresias/planes/listado')}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
+            Volver
+          </button>
+        </header>
+
+        <section class="summary-box">
+          <div>
+            <div style="font-weight: 700; color: var(--text);">Información del Plan</div>
+            <div style="font-size: 0.9rem; color: var(--text-light);">${this.plan.duracion_meses} meses de beneficios exclusivos</div>
+          </div>
+          <div class="amount-display">
+            <div class="amount-label">Monto a Pagar</div>
+            <div class="amount-value">$${parseFloat(this.formData.monto).toFixed(2)}</div>
+          </div>
+        </section>
+
+        <div class="card">
+          <form @submit=${this.handleSubmit}>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Método de Pago</label>
+                <select name="metodo_pago" .value=${this.formData.metodo_pago} @change=${this.handleInput} required>
+                  <option value="">Seleccione un método</option>
+                  <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                  <option value="Pago Móvil">Pago Móvil</option>
+                  <option value="Zelle">Zelle</option>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Binance">Binance (USDT)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Número de Referencia</label>
+                <input type="text" name="num_referencia" .value=${this.formData.num_referencia} @input=${this.handleInput} required>
+              </div>
+
+              <div class="form-group">
+                <label>Monto a Reportar ($)</label>
+                <input type="number" step="0.01" name="monto" .value=${this.formData.monto} readonly style="background-color: #f8fafc; cursor: not-allowed; color: var(--text-light);">
+              </div>
+
+              <div class="form-group full-width">
+                <label>Comprobante de Pago (Imagen)</label>
+                <div class="file-input-wrapper">
+                  <div class="file-input-button ${this.formData.image ? 'has-file' : ''}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    ${this.formData.image ? this.formData.image.name : 'Subir Comprobante / Capture'}
+                  </div>
+                  <input type="file" name="image" @change=${this.handleFileChange} accept="image/*" required>
+                </div>
+                ${this.previewUrl ? html`
+                  <div style="margin-top: 1rem; text-align: center;">
+                    <img src="${this.previewUrl}" alt="Vista previa del comprobante" style="max-width: 100%; max-height: 300px; border-radius: 10px; border: 1px solid var(--border);">
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <button type="submit" class="btn-submit" ?disabled=${this.processing}>
+              ${this.processing ? html`<div class="loader"></div> Enviando...` : 'Enviar Reporte de Pago'}
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
+  }
+}
+
+customElements.define('view-membresias-pago', ViewMembresiasPago);

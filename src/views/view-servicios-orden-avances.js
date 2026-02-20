@@ -519,6 +519,45 @@ export class ViewServiciosOrdenAvances extends LitElement {
       color: var(--text-light);
       margin: 0;
     }
+
+    /* Jefes styles */
+    .jefes-section {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .jefes-label {
+      font-weight: 800;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      color: var(--text-light);
+      letter-spacing: 0.05em;
+    }
+
+    .jefe-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: white;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .jefe-badge svg {
+      color: var(--primary);
+    }
   `;
 
   constructor() {
@@ -546,7 +585,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
     this.loading = true;
     try {
       const [orderData, avancesData, userData] = await Promise.all([
-        serviciosService.getOneOrden(this.ordenId),
+        serviciosService.getOneOrden(this.ordenId, true),
         serviciosService.getAvancesOrden(this.ordenId).catch(() => []),
         authService.getUser()
       ]);
@@ -599,6 +638,23 @@ export class ViewServiciosOrdenAvances extends LitElement {
       if (op) return op.id_operativo;
     }
     return null;
+  }
+
+  get assignedJefes() {
+    if (!this.orden) return [];
+    const jefes = new Map();
+    const servicios = this.orden.servicios || this.orden.array_servicios || [];
+    servicios.forEach(s => {
+      (s.operativos_asignados || []).forEach(o => {
+        if (Number(o.es_jefe) === 1) {
+          jefes.set(o.id_operativo, {
+            nombre: o.nombre_operativo || o.nombre,
+            id: o.id_operativo
+          });
+        }
+      });
+    });
+    return Array.from(jefes.values());
   }
 
   get isJefeDeObra() {
@@ -695,7 +751,8 @@ export class ViewServiciosOrdenAvances extends LitElement {
 
     try {
       this.loading = true;
-      if (this.isEditing && this.selectedAvance) {
+      const today = new Date().toLocaleString('sv-SE', { timeZone: 'America/Caracas' }).split(' ')[0];
+      if (this.isEditing && this.selectedAvance) { // Original condition
         await serviciosService.updateAvance(this.selectedAvance.id_avance_orden, formData);
       } else {
         await serviciosService.createAvance(formData);
@@ -792,6 +849,18 @@ export class ViewServiciosOrdenAvances extends LitElement {
           </button>
         </header>
 
+        ${this.assignedJefes.length > 0 ? html`
+          <div class="jefes-section">
+            <span class="jefes-label">Jefe(s) de Obra:</span>
+            ${this.assignedJefes.map(jefe => html`
+              <div class="jefe-badge">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                ${jefe.nombre}
+              </div>
+            `)}
+          </div>
+        ` : ''}
+
         <section class="progress-container">
           <div class="progress-track">
             <div class="progress-fill" style="width: ${totalProgress}%"></div>
@@ -836,7 +905,25 @@ export class ViewServiciosOrdenAvances extends LitElement {
 
         ${this.selectedAvance ? repeat([this.selectedAvance], (a) => a.id_avance_orden, (avance) => html`
           <article class="details-card">
-            <h2 class="details-title">${avance.created_at ? new Date(avance.created_at).toLocaleDateString() : 'Detalle del Avance'}</h2>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                <h2 class="details-title" style="margin-bottom: 0;">
+                    Fecha del avance: ${avance.created_at || avance.fecha_avance
+        ? new Date(avance.created_at || avance.fecha_avance).toLocaleString('es-VE', {
+          timeZone: 'America/Caracas',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        })
+        : 'Detalle del Avance'}
+                </h2>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">Registrado por:</div>
+                    <div style="font-weight: 700; color: var(--primary); font-size: 0.95rem;">${avance.nombre_operativo || 'N/A'}</div>
+                </div>
+            </div>
             <div class="details-content">
               <div class="form-group">
                 <label>Descripción del avance</label>
