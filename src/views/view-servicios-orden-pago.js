@@ -3,16 +3,16 @@ import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 
 export class ViewServiciosOrdenPago extends LitElement {
-    static properties = {
-        ordenId: { type: String },
-        orden: { type: Object },
-        loading: { type: Boolean },
-        processing: { type: Boolean },
-        formData: { type: Object },
-        previewUrl: { type: String },
-    };
+  static properties = {
+    ordenId: { type: String },
+    orden: { type: Object },
+    loading: { type: Boolean },
+    processing: { type: Boolean },
+    formData: { type: Object },
+    previewUrl: { type: String },
+  };
 
-    static styles = css`
+  static styles = css`
     :host {
       --primary: #2563eb;
       --primary-hover: #1d4ed8;
@@ -180,46 +180,43 @@ export class ViewServiciosOrdenPago extends LitElement {
       transform: translateX(-4px);
     }
 
-    .file-input-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        width: 100%;
+    .upload-zone {
+      border: 2.5px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      color: var(--text-light);
+      margin-top: 0.5rem;
     }
 
-    .file-input-wrapper input[type=file] {
-        font-size: 100px;
-        position: absolute;
-        left: 0;
-        top: 0;
-        opacity: 0;
-        cursor: pointer;
+    .upload-zone:hover {
+      border-color: var(--primary);
+      background: #f0f7ff;
+      color: var(--primary);
+      transform: translateY(-2px);
     }
 
-    .file-input-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1rem;
-        border: 2px dashed var(--border);
-        border-radius: 10px;
-        font-weight: 600;
-        color: var(--text-light);
-        cursor: pointer;
-        transition: all 0.2s;
+    .upload-zone span {
+      font-weight: 700;
+      font-size: 1rem;
     }
 
-    .file-input-button:hover {
-        border-color: var(--primary);
-        color: var(--primary);
-        background: rgba(37, 99, 235, 0.05);
+    .upload-zone.has-file {
+      border-color: var(--success);
+      background: #f0fdf4;
+      color: var(--success);
     }
 
-    .file-input-button.has-file {
-        border-color: var(--success);
-        color: var(--success);
-        background: rgba(16, 185, 129, 0.05);
+    input[type="file"] {
+      display: none;
     }
 
     .loader {
@@ -236,105 +233,105 @@ export class ViewServiciosOrdenPago extends LitElement {
     }
   `;
 
-    constructor() {
-        super();
-        this.loading = true;
-        this.processing = false;
+  constructor() {
+    super();
+    this.loading = true;
+    this.processing = false;
+    this.formData = {
+      id_orden: '',
+      monto: '',
+      metodo_pago: '',
+      num_referencia: '',
+      image: null
+    };
+  }
+
+  async connectedCallback() {
+    super.connectedCallback();
+    await this.loadData();
+  }
+
+  async loadData() {
+    this.loading = true;
+    try {
+      const orderData = await serviciosService.getOneOrden(this.ordenId, false);
+
+      if (orderData && orderData.orden) {
+        this.orden = orderData.orden;
+
+        // El monto se obtiene directamente del presupuesto asociado a la orden
+        const total = this.orden.presupuesto?.total_a_pagar || 0;
+
         this.formData = {
-            id_orden: '',
-            monto: '',
-            metodo_pago: '',
-            num_referencia: '',
-            image: null
+          ...this.formData,
+          monto: parseFloat(total).toFixed(2),
+          id_orden: this.ordenId
         };
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      alert('Error al cargar la información de la orden');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  handleInput(e) {
+    const { name, value } = e.target;
+    this.formData = { ...this.formData, [name]: value };
+  }
+
+  handleFileChange(e) {
+    const file = e.target.files[0];
+    if (file) {
+      this.formData = { ...this.formData, image: file };
+      this.previewUrl = URL.createObjectURL(file);
+    }
+  }
+
+  async handleSubmit(e) {
+    e.preventDefault();
+
+    if (!this.formData.metodo_pago || !this.formData.num_referencia || !this.formData.image) {
+      alert('Por favor complete todos los campos obligatorios y adjunte el comprobante.');
+      return;
     }
 
-    async connectedCallback() {
-        super.connectedCallback();
-        await this.loadData();
+    this.processing = true;
+    try {
+      const formData = new FormData();
+      formData.append('id_orden', this.ordenId);
+      formData.append('monto', this.formData.monto);
+      formData.append('metodo_pago', this.formData.metodo_pago);
+      formData.append('num_referencia', this.formData.num_referencia);
+      formData.append('image', this.formData.image);
+
+      await serviciosService.createReportePago(formData);
+      alert('Reporte de pago enviado correctamente. Será validado por un administrador.');
+      navigator.goto('/servicios/listado/orden');
+    } catch (error) {
+      console.error('Error submitting payment:', error);
+      alert('Error al enviar el reporte: ' + error.message);
+    } finally {
+      this.processing = false;
     }
+  }
 
-    async loadData() {
-        this.loading = true;
-        try {
-            const orderData = await serviciosService.getOneOrden(this.ordenId, false);
-
-            if (orderData && orderData.orden) {
-                this.orden = orderData.orden;
-
-                // El monto se obtiene directamente del presupuesto asociado a la orden
-                const total = this.orden.presupuesto?.total_a_pagar || 0;
-
-                this.formData = {
-                    ...this.formData,
-                    monto: parseFloat(total).toFixed(2),
-                    id_orden: this.ordenId
-                };
-            }
-        } catch (error) {
-            console.error('Error loading data:', error);
-            alert('Error al cargar la información de la orden');
-        } finally {
-            this.loading = false;
-        }
-    }
-
-    handleInput(e) {
-        const { name, value } = e.target;
-        this.formData = { ...this.formData, [name]: value };
-    }
-
-    handleFileChange(e) {
-        const file = e.target.files[0];
-        if (file) {
-            this.formData = { ...this.formData, image: file };
-            this.previewUrl = URL.createObjectURL(file);
-        }
-    }
-
-    async handleSubmit(e) {
-        e.preventDefault();
-
-        if (!this.formData.metodo_pago || !this.formData.num_referencia || !this.formData.image) {
-            alert('Por favor complete todos los campos obligatorios y adjunte el comprobante.');
-            return;
-        }
-
-        this.processing = true;
-        try {
-            const formData = new FormData();
-            formData.append('id_orden', this.ordenId);
-            formData.append('monto', this.formData.monto);
-            formData.append('metodo_pago', this.formData.metodo_pago);
-            formData.append('num_referencia', this.formData.num_referencia);
-            formData.append('image', this.formData.image);
-
-            await serviciosService.createReportePago(formData);
-            alert('Reporte de pago enviado correctamente. Será validado por un administrador.');
-            navigator.goto('/servicios/listado/orden');
-        } catch (error) {
-            console.error('Error submitting payment:', error);
-            alert('Error al enviar el reporte: ' + error.message);
-        } finally {
-            this.processing = false;
-        }
-    }
-
-    render() {
-        if (this.loading) {
-            return html`
+  render() {
+    if (this.loading) {
+      return html`
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh;">
           <div class="loader" style="border-top-color: var(--primary); width: 40px; height: 40px;"></div>
           <p style="margin-top: 1rem; color: var(--text-light);">Cargando información...</p>
         </div>
       `;
-        }
+    }
 
-        if (!this.orden) {
-            return html`<div class="container"><h2>Orden no encontrada</h2></div>`;
-        }
+    if (!this.orden) {
+      return html`<div class="container"><h2>Orden no encontrada</h2></div>`;
+    }
 
-        return html`
+    return html`
       <div class="container">
         <header class="header">
           <div>
@@ -385,13 +382,13 @@ export class ViewServiciosOrdenPago extends LitElement {
 
               <div class="form-group full-width">
                 <label>Comprobante de Pago (Imagen)</label>
-                <div class="file-input-wrapper">
-                  <div class="file-input-button ${this.formData.image ? 'has-file' : ''}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    ${this.formData.image ? this.formData.image.name : 'Subir Comprobante / Capture'}
-                  </div>
-                  <input type="file" name="image" @change=${this.handleFileChange} accept="image/*" required>
-                </div>
+                <label class="upload-zone ${this.formData.image ? 'has-file' : ''}" for="image">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span>${this.formData.image ? this.formData.image.name : 'Subir Comprobante / Capture'}</span>
+                </label>
+                <input type="file" id="image" name="image" @change=${this.handleFileChange} accept="image/*" required>
                 ${this.previewUrl ? html`
                   <div style="margin-top: 1rem; text-align: center;">
                     <img src="${this.previewUrl}" alt="Vista previa del comprobante" style="max-width: 100%; max-height: 300px; border-radius: 10px; border: 1px solid var(--border);">
@@ -407,7 +404,7 @@ export class ViewServiciosOrdenPago extends LitElement {
         </div>
       </div>
     `;
-    }
+  }
 }
 
 customElements.define('view-servicios-orden-pago', ViewServiciosOrdenPago);

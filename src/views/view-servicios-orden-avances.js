@@ -428,11 +428,11 @@ export class ViewServiciosOrdenAvances extends LitElement {
       width: 100%;
     }
 
-    .file-upload-label {
+    .upload-zone {
       display: block;
       width: 100%;
-      padding: 1.5rem;
-      border: 2px dashed var(--border);
+      padding: 2rem;
+      border: 2.5px dashed var(--border);
       border-radius: 12px;
       cursor: pointer;
       transition: all 0.2s;
@@ -441,31 +441,35 @@ export class ViewServiciosOrdenAvances extends LitElement {
       text-align: center;
     }
 
-    .file-upload-label:hover {
+    .upload-zone:hover {
       border-color: var(--primary);
       background: #eff6ff;
+      color: var(--primary);
+      transform: translateY(-2px);
     }
 
-    .file-upload-inner {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .file-upload-inner svg {
+    .upload-zone svg {
       color: var(--primary);
       width: 28px;
       height: 28px;
-      flex-shrink: 0;
     }
 
-    .file-upload-inner span {
+    .upload-zone span {
+      display: block;
+      margin-top: 0.75rem;
       font-weight: 700;
       font-size: 0.9rem;
       color: var(--text-light);
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      line-height: 28px;
+    }
+
+    .upload-zone:hover span {
+      color: var(--primary);
+    }
+
+    input[type="file"] {
+      display: none;
     }
 
     .preview-container {
@@ -996,13 +1000,13 @@ export class ViewServiciosOrdenAvances extends LitElement {
               <div class="form-group">
                 <label>Imagen de Evidencia (Opcional)</label>
                 <div class="file-upload-wrapper">
-                    <input type="file" name="image" id="imageInput" accept="image/*" @change=${this.handleFileChange} style="display: none;">
-                    <label for="imageInput" class="file-upload-label">
-                        <div class="file-upload-inner">
-                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-                            <span>${this.imagePreview ? 'Cambiar imagen' : 'Seleccionar imagen o foto'}</span>
-                        </div>
+                    <label for="imageInput" class="upload-zone ${this.imagePreview ? 'has-file' : ''}">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <span>${this.imagePreview ? 'Cambiar imagen de evidencia' : 'Subir imagen o foto'}</span>
                     </label>
+                    <input type="file" name="image" id="imageInput" accept="image/*" @change=${this.handleFileChange}>
                 </div>
                 
                 ${this.imagePreview ? html`

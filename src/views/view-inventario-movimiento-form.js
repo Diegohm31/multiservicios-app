@@ -13,10 +13,20 @@ export class ViewInventarioMovimientoForm extends LitElement {
 
     static styles = css`
         :host {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --radius: 16px;
+            --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
             display: block;
             padding: 24px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: #1a1a1a;
+            color: var(--text);
             max-width: 1200px;
             margin: 0 auto;
         }
@@ -363,6 +373,26 @@ export class ViewInventarioMovimientoForm extends LitElement {
             text-transform: uppercase;
         }
 
+        .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: var(--text);
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+        }
+
+        .btn-back:hover {
+        background: #000;
+        transform: translateX(-4px);
+        }
+
         .badge-info { background: #e0f2fe; color: #0369a1; }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -478,11 +508,10 @@ export class ViewInventarioMovimientoForm extends LitElement {
         return html`
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <h1 style="margin:0; font-size: 1.8rem; color: #0f172a;">Registro de Movimientos</h1>
-                <button 
-                  style="color: #1a1a1a; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 600;"
-                  @click=${() => navigator.goto('/categoria/00008')}>
-                  Volver
-                </button>
+            <button class="btn-back" @click=${() => navigator.goto('/categoria/00008')}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Volver
+          </button>
             </div>
 
             <div class="layout">

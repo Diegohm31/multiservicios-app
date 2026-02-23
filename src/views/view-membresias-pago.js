@@ -186,46 +186,43 @@ export class ViewMembresiasPago extends LitElement {
       transform: translateX(-4px);
     }
 
-    .file-input-wrapper {
-        position: relative;
-        overflow: hidden;
-        display: inline-block;
-        width: 100%;
+    .upload-zone {
+      border: 2.5px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      color: var(--text-light);
+      margin-top: 0.5rem;
     }
 
-    .file-input-wrapper input[type=file] {
-        font-size: 100px;
-        position: absolute;
-        left: 0;
-        top: 0;
-        opacity: 0;
-        cursor: pointer;
+    .upload-zone:hover {
+      border-color: var(--primary);
+      background: #f0f7ff;
+      color: var(--primary);
+      transform: translateY(-2px);
     }
 
-    .file-input-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1rem;
-        border: 2px dashed var(--border);
-        border-radius: 10px;
-        font-weight: 600;
-        color: var(--text-light);
-        cursor: pointer;
-        transition: all 0.2s;
+    .upload-zone span {
+      font-weight: 700;
+      font-size: 1rem;
     }
 
-    .file-input-button:hover {
-        border-color: var(--primary);
-        color: var(--primary);
-        background: rgba(59, 130, 246, 0.05);
+    .upload-zone.has-file {
+      border-color: var(--success);
+      background: #f0fdf4;
+      color: var(--success);
     }
 
-    .file-input-button.has-file {
-        border-color: var(--success);
-        color: var(--success);
-        background: rgba(16, 185, 129, 0.05);
+    input[type="file"] {
+      display: none;
     }
 
     .loader {
@@ -408,13 +405,13 @@ export class ViewMembresiasPago extends LitElement {
 
               <div class="form-group full-width">
                 <label>Comprobante de Pago (Imagen)</label>
-                <div class="file-input-wrapper">
-                  <div class="file-input-button ${this.formData.image ? 'has-file' : ''}">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    ${this.formData.image ? this.formData.image.name : 'Subir Comprobante / Capture'}
-                  </div>
-                  <input type="file" name="image" @change=${this.handleFileChange} accept="image/*" required>
-                </div>
+                <label class="upload-zone ${this.formData.image ? 'has-file' : ''}" for="image">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <span>${this.formData.image ? this.formData.image.name : 'Subir Comprobante / Capture'}</span>
+                </label>
+                <input type="file" id="image" name="image" @change=${this.handleFileChange} accept="image/*" required>
                 ${this.previewUrl ? html`
                   <div style="margin-top: 1rem; text-align: center;">
                     <img src="${this.previewUrl}" alt="Vista previa del comprobante" style="max-width: 100%; max-height: 300px; border-radius: 10px; border: 1px solid var(--border);">

@@ -11,7 +11,10 @@ export class ViewServiciosOrdenListado extends LitElement {
     showRatingModal: { type: Boolean },
     ratingOrderId: { type: String },
     selectedRating: { type: Number },
-    ratingObservations: { type: String }
+    ratingObservations: { type: String },
+    currentPage: { type: Number },
+    itemsPerPage: { type: Number },
+    loading: { type: Boolean }
   };
 
   static styles = css`
@@ -21,39 +24,59 @@ export class ViewServiciosOrdenListado extends LitElement {
       --text: #1e293b;
       --text-light: #64748b;
       --border: #e2e8f0;
-      --bg: #ffffff;
+      --bg: #fff;
+      --card-bg: #ffffff;
+      --radius: 16px;
+      --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
       
       display: block;
-      padding: 2rem;
+      padding: 2.5rem 2rem;
+      min-height: 100vh;
+      background-color: var(--bg);
       font-family: 'Inter', -apple-system, sans-serif;
       color: var(--text);
     }
 
-    .header {
+    .header-section {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 2rem;
+      margin-bottom: 3rem;
+      animation: fadeInDown 0.6s ease-out;
     }
 
-    h1 {
-      margin: 0;
-      font-size: 1.875rem;
+    .title-group h1 {
+      font-size: 2.25rem;
       font-weight: 800;
+      margin: 0;
       letter-spacing: -0.025em;
+      color: var(--text);
+    }
+
+    .title-group p {
+      color: var(--text-light);
+      margin: 0.5rem 0 0;
+      font-weight: 500;
     }
 
     /* Filters Panel */
     .filters-panel {
-      background: #f8fafc;
-      padding: 1.5rem;
-      border-radius: 12px;
+      background: var(--card-bg);
+      padding: 1.5rem 2rem;
+      border-radius: var(--radius);
       border: 1px solid var(--border);
-      margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 2.5rem;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.25rem;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.25rem 1.5rem;
       align-items: end;
+      animation: fadeInUp 0.7s ease-out;
+    }
+
+    /* Ajustar tamaño máximo si hay pocos filtros (rol cliente) */
+    .filters-panel.filters-client {
+      max-width: 1100px;
     }
 
     .filter-group {
@@ -63,99 +86,56 @@ export class ViewServiciosOrdenListado extends LitElement {
     }
 
     .filter-group label {
-      font-size: 0.75rem;
-      font-weight: 700;
+      font-size: 0.7rem;
+      font-weight: 750;
       text-transform: uppercase;
       color: var(--text-light);
-      letter-spacing: 0.05em;
+      letter-spacing: 0.075em;
+      margin-left: 0.25rem;
     }
 
     input, select {
       width: 100%;
-      padding: 0.625rem 0.875rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      box-sizing: border-box;
-      font-size: 0.9rem;
-      background-color: #ffffff;
-      color: var(--text);
-      transition: all 0.2s;
-      font-family: inherit;
-    }
-
-    .filters-panel .filter-group input,
-    .filters-panel .filter-group select {
-      flex: 1;
-      padding: 0.625rem;
+      padding: 0.8rem 1rem;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.875rem;
-      color: var(--text);
+      border-radius: 12px;
+      font-size: 0.95rem;
       background: white;
-      min-width: 140px;
-    }
-    
-    input[type="datetime-local"] {
-      min-width: 200px !important;
-      position: relative;
-    }
-
-    /* Forzar visibilidad del icono de calendario/reloj en navegadores WebKit */
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-      display: block;
-      background: transparent;
-      bottom: 0;
-      color: transparent;
-      cursor: pointer;
-      height: auto;
-      left: 0;
-      position: absolute;
-      right: 0;
-      top: 0;
-      width: auto;
-    }
-
-    /* Estilo para el contenedor del input para añadir un icono visual */
-    .filter-group {
-      position: relative;
-    }
-
-    .filter-group input[type="datetime-local"] {
-      padding-right: 2.5rem;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.75rem center;
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      box-sizing: border-box;
     }
 
     input:focus, select:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+      transform: translateY(-1px);
     }
 
     .input-error {
       border-color: #ef4444 !important;
+      background-color: #fef2f2;
     }
-    .input-error:focus {
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
-    }
+    
     .error-msg {
       color: #ef4444;
       font-size: 0.75rem;
       font-weight: 600;
-      grid-column: 1 / -1;
-      margin-top: -0.75rem;
+      margin-top: 0.25rem;
     }
 
-    /* Fix calendar icon visibility */
-    input[type="date"] {
+    /* Estilo para asegurar visibilidad del icono de calendario/reloj */
+    input[type="datetime-local"], input[type="date"] {
       position: relative;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: calc(100% - 12px) center;
-      background-size: 18px;
+      padding-right: 2.5rem;
     }
 
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator,
     input[type="date"]::-webkit-calendar-picker-indicator {
       position: absolute;
       top: 0;
@@ -169,48 +149,68 @@ export class ViewServiciosOrdenListado extends LitElement {
 
     /* Table Styles */
     .table-container {
-      overflow-x: auto;
+      background: var(--card-bg);
+      border-radius: var(--radius);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.8s ease-out;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      background: white;
-    }
-
-    th, td {
-      padding: 1rem;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
+      text-align: center;
     }
 
     th {
-      background-color: #f1f5f9;
-      font-weight: 700;
-      font-size: 0.875rem;
-      color: var(--text-light);
+      background: #f8fafc;
+      padding: 1.25rem 1.5rem;
+      font-size: 0.75rem;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.025em;
+      letter-spacing: 0.05em;
+      color: var(--text-light);
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    td {
+      padding: 1.25rem 1.5rem;
+      font-size: 0.95rem;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+      text-align: center;
     }
 
     tr:last-child td {
       border-bottom: none;
     }
 
-    tr:hover {
-      background-color: #f8fafc;
+    tr:hover td {
+      background: #f8fbff;
     }
 
-    /* Status Badge */
+    .row-animate {
+      animation: fadeInRow 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Status Badge - Respecting user colors but refining style */
     .status-badge {
-      padding: 0.25rem 0.625rem;
-      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
       font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: capitalize;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
     }
 
     .status-pendiente { background: #fef3c7; color: #92400e; }
@@ -224,88 +224,64 @@ export class ViewServiciosOrdenListado extends LitElement {
     .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
     .status-asignando_personal { background: #dcfce7; color: #166534; }
 
-    /* Buttons */
+    /* Action Buttons - Respecting user colors but refining style */
     .actions-cell {
       display: flex;
-      gap: 0.5rem;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: nowrap;
     }
 
     .btn {
-      padding: 0.5rem 0.875rem;
-      border-radius: 6px;
-      font-size: 0.8125rem;
-      font-weight: 600;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
       cursor: pointer;
       border: none;
-      transition: all 0.2s;
-    }
-
-    .btn-delete {
-      background-color: #fee2e2;
-      color: #dc2626;
-    }
-    .btn-delete:hover {
-      background-color: #ef4444;
-      color: white;
-    }
-
-    .btn-info {
-      background-color: #e0f2fe;
-      color: #0284c7;
-    }
-    .btn-info:hover {
-      background-color: #0ea5e9;
-      color: white;
-    }
-
-    .btn-success {
-      background-color: #dcfce7;
-      color: #166534;
-    }
-    .btn-success:hover {
-      background-color: #22c55e;
-      color: white;
-    }
-
-    .btn-purple {
-      background-color: #f3e8ff;
-      color: #6b21a8;
-    }
-    .btn-purple:hover {
-      background-color: #9333ea;
-      color: white;
-    }
-
-    .btn-primary {
-      background-color: #3b82f6;
-      color: white;
-    }
-    .btn-primary:hover {
-      background-color: #2563eb;
-    }
-
-    .btn-amber {
-      background-color: #fff1bbff;
-      color: #b45309;
-    }
-    .btn-amber:hover {
-      background-color: #f59e0bff;
-      color: white;
-    }
-
-    .btn-back {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
+      gap: 0.4rem;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(0.95);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-delete { background-color: #fee2e2; color: #dc2626; }
+    .btn-delete:hover { background-color: #dc2626; color: white; }
+    
+    .btn-info { background-color: #e0f2fe; color: #0284c7; }
+    .btn-info:hover { background-color: #0284c7; color: white; }
+    
+    .btn-success { background-color: #dcfce7; color: #166534; }
+    .btn-success:hover { background-color: #166534; color: white; }
+    
+    .btn-purple { background-color: #f3e8ff; color: #6b21a8; }
+    .btn-purple:hover { background-color: #6b21a8; color: white; }
+    
+    .btn-primary { background-color: var(--primary); color: white; }
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    
+    .btn-amber { background-color: #fff1bbff; color: #b45309; }
+    .btn-amber:hover { background-color: #b45309; color: white; }
+
+    .btn-back {
       background: var(--text);
-      color: white;
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 600;
-      transition: all 0.2s;
+      color: #ffffff;
       border: none;
+      padding: 0.8rem 1.75rem;
+      border-radius: 12px;
+      font-weight: 700;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      animation: fadeInUp 1s ease-out;
     }
 
     .btn-back:hover {
@@ -313,14 +289,62 @@ export class ViewServiciosOrdenListado extends LitElement {
       transform: translateX(-4px);
     }
 
+    /* Pagination Styles */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.9s ease-out;
+    }
+
+    .page-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f0f7ff;
+    }
+
+    .page-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f8fafc;
+    }
+
+    .nav-btn {
+      padding: 0 1.25rem;
+      width: auto;
+    }
+
     /* Rating Modal Styles */
     .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.4);
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.6);
       backdrop-filter: blur(8px);
       display: flex;
       align-items: center;
@@ -331,23 +355,23 @@ export class ViewServiciosOrdenListado extends LitElement {
 
     .modal-content {
       background: white;
-      padding: 2.5rem;
+      padding: 3rem;
       border-radius: 24px;
       width: 90%;
-      max-width: 450px;
-      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+      max-width: 480px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       text-align: center;
     }
 
     .modal-title {
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       font-weight: 800;
       margin-bottom: 0.5rem;
       color: var(--text);
     }
 
     .modal-subtitle {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       color: var(--text-light);
       margin-bottom: 2rem;
     }
@@ -355,40 +379,32 @@ export class ViewServiciosOrdenListado extends LitElement {
     .stars-container {
       display: flex;
       justify-content: center;
-      gap: 0.75rem;
-      margin-bottom: 2rem;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
     }
 
     .star {
-      font-size: 2.5rem;
+      font-size: 3rem;
       cursor: pointer;
       color: #e2e8f0;
       transition: all 0.2s;
       user-select: none;
     }
 
-    .star.selected {
-      color: #fbbf24;
-      transform: scale(1.1);
-    }
-
-    .star:hover {
-      transform: scale(1.2);
-    }
+    .star.selected { color: #fbbf24; transform: scale(1.1); }
+    .star:hover { transform: scale(1.2); }
 
     .rating-textarea {
       width: 100%;
-      min-height: 120px;
-      padding: 1rem;
+      min-height: 140px;
+      padding: 1.25rem;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      margin-bottom: 1.5rem;
+      border-radius: 16px;
+      margin-bottom: 2.5rem;
       font-family: inherit;
-      font-size: 0.9rem;
       resize: none;
       box-sizing: border-box;
-      background: white;
-      color: black;
+      background: #f8fafc;
     }
 
     .modal-actions {
@@ -398,9 +414,38 @@ export class ViewServiciosOrdenListado extends LitElement {
 
     .modal-actions .btn {
       flex: 1;
-      padding: 0.75rem;
-      font-size: 0.9rem;
+      padding: 0.8rem;
     }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 5rem;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1.5rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
   `;
 
   constructor() {
@@ -418,6 +463,9 @@ export class ViewServiciosOrdenListado extends LitElement {
     this.ratingOrderId = '';
     this.selectedRating = 0;
     this.ratingObservations = '';
+    this.currentPage = 1;
+    this.itemsPerPage = 7;
+    this.loading = true;
   }
 
   connectedCallback() {
@@ -426,12 +474,24 @@ export class ViewServiciosOrdenListado extends LitElement {
   }
 
   async loadOrdenes() {
-    const data = await serviciosService.getOrdenes();
-    if (data) {
-      this.ordenes = data.ordenes;
-      this.id_rol = data.id_rol;
-      this.applyFilters();
+    this.loading = true;
+    try {
+      const data = await serviciosService.getOrdenes();
+      if (data) {
+        this.ordenes = data.ordenes || [];
+        this.id_rol = data.id_rol;
+        this.applyFilters();
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    } finally {
+      this.loading = false;
     }
+  }
+
+  changePage(page) {
+    this.currentPage = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async cancelarOrden(id) {
@@ -530,6 +590,7 @@ export class ViewServiciosOrdenListado extends LitElement {
     const { id, value } = e.target;
     const filterKey = id.replace('filtro-', '').replace('-', '_');
     this.filters = { ...this.filters, [filterKey]: value };
+    this.currentPage = 1;
     this.applyFilters();
   }
 
@@ -543,7 +604,7 @@ export class ViewServiciosOrdenListado extends LitElement {
       this.filteredOrdenes = [];
       return;
     }
-    this.filteredOrdenes = this.ordenes.filter(orden => {
+    this.filteredOrdenes = (this.ordenes || []).filter(orden => {
       const matchDireccion = !this.filters.direccion ||
         this.normalize(orden.direccion).includes(this.normalize(this.filters.direccion));
 
@@ -557,10 +618,10 @@ export class ViewServiciosOrdenListado extends LitElement {
         orden.fecha_emision <= this.filters.fecha_fin;
 
       const matchNombre = !this.filters.nombre ||
-        orden.nombre.toLowerCase().includes(this.filters.nombre.toLowerCase());
+        orden.nombre?.toLowerCase().includes(this.filters.nombre.toLowerCase());
 
       const matchCedula = !this.filters.cedula ||
-        orden.cedula.toLowerCase().includes(this.filters.cedula.toLowerCase());
+        orden.cedula?.toLowerCase().includes(this.filters.cedula.toLowerCase());
 
       return matchDireccion && matchEstado && matchInicio && matchFin && matchNombre && matchCedula;
     });
@@ -591,12 +652,34 @@ export class ViewServiciosOrdenListado extends LitElement {
   }
 
   render() {
+    if (this.loading) {
+      return html`
+        <div class="header-section">
+          <div class="title-group">
+            <h1>Libro de Órdenes</h1>
+            <p>Monitoreo y gestión de solicitudes de servicios</p>
+          </div>
+        </div>
+        <div class="loader-container">
+          <div class="spinner"></div>
+          <p>Sincronizando información...</p>
+        </div>
+      `;
+    }
+
+    const totalPages = Math.ceil(this.filteredOrdenes.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const paginatedOrdenes = this.filteredOrdenes.slice(startIndex, startIndex + this.itemsPerPage);
+
     return html`
-      <div class="header">
-        <h1>Ordenes</h1>
+      <div class="header-section">
+        <div class="title-group">
+          <h1>Libro de Órdenes</h1>
+          <p>Monitoreo y gestión de solicitudes de servicios</p>
+        </div>
       </div>
 
-      <div class="filters-panel">
+      <div class="filters-panel ${this.id_rol === '00001' ? 'filters-client' : ''}">
         <div class="filter-group">
           <label for="filtro-direccion">Dirección</label>
           <input type="text" id="filtro-direccion" placeholder="Filtrar por dirección..." @input=${this.handleFilterChange}>
@@ -608,13 +691,13 @@ export class ViewServiciosOrdenListado extends LitElement {
             <option value="">Todos los estados</option>
             ${this.id_rol === '00002' ? html`
               <option value="en espera">En espera</option>
-              <option value="en ejecucion">En ejecucion</option>
+              <option value="en ejecucion">En ejecución</option>
               <option value="completada">Completada</option>
             ` : html`
               <option value="pendiente">Pendiente</option>
               <option value="aceptada">Aceptada</option>
               <option value="presupuestada">Presupuestada</option>
-              <option value="en ejecucion">En ejecucion</option>
+              <option value="en ejecucion">En ejecución</option>
               <option value="completada">Completada</option>
               <option value="cancelada">Cancelada</option>
               <option value="en espera">En espera</option>
@@ -638,18 +721,17 @@ export class ViewServiciosOrdenListado extends LitElement {
             .min=${this.filters.fecha_inicio} 
             @change=${this.handleFilterChange}
           >
+          ${this.isDateRangeInvalid() ? html`<div class="error-msg">Rango de fechas inválido</div>` : ''}
         </div>
-        ${this.isDateRangeInvalid() ? html`<div class="error-msg" style="grid-column: 1 / -1; margin-top: -0.5rem;">La fecha de fin no puede ser menor a la de inicio</div>` : ''}
 
-        <!-- si es admin mostrar filtro por nombre y cedula de cliente-->
-        ${this.id_rol === '00003' ? html`
+        ${this.id_rol === '00003' || this.id_rol === '00002' ? html`
           <div class="filter-group">
-            <label for="filtro-nombre">Nombre</label>
+            <label for="filtro-nombre">Nombre de Cliente</label>
             <input type="text" id="filtro-nombre" placeholder="Filtrar por nombre..." @input=${this.handleFilterChange}>
           </div>
           <div class="filter-group">
-            <label for="filtro-cedula">Cedula</label>
-            <input type="text" id="filtro-cedula" placeholder="Filtrar por cedula..." @input=${this.handleFilterChange}>
+            <label for="filtro-cedula">Identificación</label>
+            <input type="text" id="filtro-cedula" placeholder="Filtrar por cédula..." @input=${this.handleFilterChange}>
           </div>
         ` : ''}
       </div>
@@ -658,37 +740,41 @@ export class ViewServiciosOrdenListado extends LitElement {
         <table>
           <thead>
             <tr>
-              <th>Id</th>
-              <!-- si es admin u operativo mostrar nombre y cedula de cliente-->
+              <th style="width: 80px;">ID</th>
               ${['00003', '00002'].includes(this.id_rol) ? html`
-                <th>Nombre</th>
-                <th>Cedula</th>
+                <th>Cliente</th>
+                <th>Cédula</th>
               ` : ''}
-              <th>Dirección</th>
-              <th>Emisión</th>
-              <th>Estado</th>
-              <th style="text-align: center;">Acciones</th>
+              <th>Dirección de Entrega</th>
+              <th>Fecha Emisión</th>
+              <th>Estado Actual</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            ${this.filteredOrdenes.length === 0 ? html`<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-light);">No se encontraron órdenes</td></tr>` : ''}
-            ${this.filteredOrdenes.map(orden => html`
+            ${paginatedOrdenes.length === 0 ? html`
               <tr>
-                <td style="font-weight: 700;">#${orden.id_orden}</td>
-                <!-- si es admin u operativo mostrar nombre y cedula de cliente-->
+                <td colspan="7" style="text-align: center; padding: 4rem; color: var(--text-light);">
+                  No se encontraron órdenes registradas para este criterio.
+                </td>
+              </tr>
+            ` : ''}
+            ${paginatedOrdenes.map(orden => html`
+              <tr class="row-animate">
+                <td style="font-weight: 800; color: var(--text-light);">#${orden.id_orden}</td>
                 ${['00003', '00002'].includes(this.id_rol) ? html`
-                  <td>${orden.nombre}</td>
-                  <td>${orden.cedula}</td>
+                  <td style="font-weight: 700;">${orden.nombre}</td>
+                  <td style="font-family: monospace;">${orden.cedula}</td>
                 ` : ''}
                 <td>${orden.direccion}</td>
-                <td>${orden.fecha_emision}</td>
+                <td style="color: var(--text-light); font-weight: 500;">${orden.fecha_emision}</td>
                 <td>
                   <span class="status-badge ${this.getStatusClass(orden.estado)}">
                     ${orden.estado}
                   </span>
                 </td>
                 <td>
-                  <div class="actions-cell" style="justify-content: flex-end;">
+                  <div class="actions-cell">
                     <button class="btn btn-info" @click=${() => this.verDetallesOrden(orden.id_orden)}>Detalles</button>
                     ${orden.estado?.toLowerCase() === 'aceptada' && this.id_rol === '00003' ? html`
                       <button class="btn btn-purple" @click=${() => this.realizarPresupuesto(orden.id_orden)}>Presupuestar</button>
@@ -697,19 +783,19 @@ export class ViewServiciosOrdenListado extends LitElement {
                       <button class="btn btn-success" @click=${() => this.pagarOrden(orden.id_orden)}>Pagar</button>
                     ` : ''}
                     ${orden.estado?.toLowerCase() === 'asignando personal' && this.id_rol === '00003' ? html`
-                      <button class="btn btn-success" @click=${() => this.asignarPersonal(orden.id_orden)}>Asignar personal</button>
+                      <button class="btn btn-success" @click=${() => this.asignarPersonal(orden.id_orden)}>Asignar</button>
                     ` : ''}
                     ${orden.estado?.toLowerCase().includes('espera') && this.id_rol === '00003' ? html`
-                      <button class="btn btn-primary" @click=${() => this.ponerEnEjecucion(orden.id_orden)}>Poner en ejecución</button>
+                      <button class="btn btn-primary" @click=${() => this.ponerEnEjecucion(orden.id_orden)}>Ejecutar</button>
                     ` : ''}
                     ${(this.normalize(orden.estado).includes('ejecucion') || this.normalize(orden.estado).includes('comp')) ? html`
-                      <button class="btn btn-amber" @click=${() => this.verAvances(orden.id_orden)}>Ver avances</button>
+                      <button class="btn btn-amber" @click=${() => this.verAvances(orden.id_orden)}>Avances</button>
                     ` : ''}
                     ${this.canCancel(orden.estado) && this.id_rol !== '00002' ? html`
-                      <button class="btn btn-delete" @click=${() => this.cancelarOrden(orden.id_orden)}>Cancelar</button>
+                      <button class="btn btn-delete" @click=${() => this.cancelarOrden(orden.id_orden)}>X</button>
                     ` : ''}
                     ${this.id_rol === '00003' && this.normalize(orden.estado).includes('ejecucion') && Number(orden.porcentaje_avance) === 100 ? html`
-                      <button class="btn btn-success" @click=${() => this.completarOrden(orden.id_orden)}>Completar</button>
+                      <button class="btn btn-success" @click=${() => this.completarOrden(orden.id_orden)}>Finalizar</button>
                     ` : ''}
                     ${this.id_rol === '00001' && this.normalize(orden.estado).includes('comp') && !orden.calificacion ? html`
                       <button class="btn btn-primary" @click=${() => this.openRatingModal(orden.id_orden)}>Calificar</button>
@@ -722,9 +808,19 @@ export class ViewServiciosOrdenListado extends LitElement {
         </table>
       </div>
 
-      <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end;">
+      ${totalPages > 1 ? html`
+        <div class="pagination">
+          <button class="page-btn nav-btn" ?disabled=${this.currentPage === 1} @click=${() => this.changePage(this.currentPage - 1)}>Anterior</button>
+          ${Array.from({ length: totalPages }, (_, i) => i + 1).map(page => html`
+            <button class="page-btn ${this.currentPage === page ? 'active' : ''}" @click=${() => this.changePage(page)}>${page}</button>
+          `)}
+          <button class="page-btn nav-btn" ?disabled=${this.currentPage === totalPages} @click=${() => this.changePage(this.currentPage + 1)}>Siguiente</button>
+        </div>
+      ` : ''}
+
+      <div style="display: flex; justify-content: flex-end;">
         <button class="btn-back" @click=${() => navigator.goto('/categoria/00017')}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Volver
         </button>
       </div>
@@ -752,15 +848,14 @@ export class ViewServiciosOrdenListado extends LitElement {
             ></textarea>
 
             <div class="modal-actions">
-              <button class="btn btn-delete" @click=${this.closeRatingModal}>Cancelar</button>
-              <button class="btn btn-primary" @click=${this.submitRating}>Enviar Calificación</button>
+              <button class="btn btn-info" @click=${this.closeRatingModal}>Ignorar</button>
+              <button class="btn btn-primary" @click=${this.submitRating}>Enviar Opinión</button>
             </div>
           </div>
         </div>
       ` : ''}
     `;
   }
-
 }
 
 customElements.define('view-servicios-orden-listado', ViewServiciosOrdenListado);

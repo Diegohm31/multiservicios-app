@@ -247,6 +247,28 @@ export class ViewServiciosServicioForm extends LitElement {
             background: #e2e8f0;
         }
 
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.8rem 1.5rem;
+            background: #1e293b;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+        }
+
+        .btn-back:hover {
+            background: #000000;
+            transform: translateX(-4px);
+        }
+
         .btn-primary {
             background: #3182ce;
             color: #fff;
@@ -274,12 +296,52 @@ export class ViewServiciosServicioForm extends LitElement {
             display: none !important;
         }
 
-        .image-preview-container {
-            margin-top: 12px;
-            border: 2px dashed #e2e8f0;
-            border-radius: 8px;
-            padding: 12px;
+        .upload-zone {
+            border: 2.5px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 2.5rem;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+
+        .upload-zone:hover {
+            border-color: #3182ce;
+            background: #ebf8ff;
+            color: #3182ce;
+            transform: translateY(-2px);
+        }
+
+        .upload-zone span {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .upload-zone.has-file {
+            border-color: #48bb78;
+            background: #f0fff4;
+            color: #48bb78;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .image-preview-container {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            display: inline-block;
         }
 
         .image-preview {
@@ -591,7 +653,10 @@ export class ViewServiciosServicioForm extends LitElement {
         return html`
             <div class="form-header">
                 <h1>${this.servicioId ? 'Editar Servicio' : 'Nuevo Servicio'}</h1>
-                <button class="btn btn-secondary" @click=${() => navigator.goto('/categoria/00017')}>Volver</button>
+                <button class="btn-back" type="button" @click=${() => navigator.goto('/categoria/00017')}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Volver
+                </button>
             </div>
 
             <form @submit=${this.handleSubmit}>
@@ -618,8 +683,14 @@ export class ViewServiciosServicioForm extends LitElement {
 
                             <div class="form-group">
                                 <label>Imagen del Servicio</label>
-                                <input type="file" class="input-field" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage} ?required=${!this.previewUrl}>
-                                <small style="display: block; margin-top: 4px; color: #718096; font-size: 0.75rem;">
+                                <label class="upload-zone ${this.servicio.image || this.previewUrl ? 'has-file' : ''}" for="image">
+                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                                  </svg>
+                                  <span>${this.servicio.image ? this.servicio.image.name : (this.previewUrl ? 'Cambiar Imagen' : 'Subir Imagen del Servicio')}</span>
+                                </label>
+                                <input type="file" id="image" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage} ?required=${!this.previewUrl}>
+                                <small style="display: block; margin-top: 6px; color: #718096; font-size: 0.75rem;">
                                     Formatos: jpeg, png, jpg, gif, svg. Máx: 2048KB
                                 </small>
                                 ${this.previewUrl ? html`
