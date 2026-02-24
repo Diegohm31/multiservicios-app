@@ -34,6 +34,7 @@ import './views/view-servicios-orden-avances.js';
 import './views/view-membresias-planes-form.js';
 import './views/view-membresias-planes-listado.js';
 import './views/view-membresias-pago.js';
+import './views/view-dashboard.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -124,7 +125,12 @@ export class MainApp extends LitElement {
         }
         return true;
       },
-      render: (params) => html`<view-categoria .id_padre=${params.id}></view-categoria>`
+      render: (params) => {
+        if (params.id === '00007') {
+          return html`<view-dashboard></view-dashboard>`;
+        }
+        return html`<view-categoria .id_padre=${params.id}></view-categoria>`;
+      }
     },
     {
       path: '/operativos/listado',
@@ -592,9 +598,27 @@ export class MainApp extends LitElement {
   }
 
   updateActiveCategory() {
-    const match = window.location.pathname.match(/\/categoria\/(\w+)/);
+    const path = window.location.pathname;
+
+    // 1. Intentar por coincidencia directa de categoría en URL
+    const match = path.match(/\/categoria\/(\w+)/);
     if (match) {
       this.activeCategoryId = match[1];
+    } else {
+      // 2. Intentar por prefijo de ruta (para subpáginas)
+      if (this.opciones_aside_bar && this.opciones_aside_bar.length > 0) {
+        const found = this.opciones_aside_bar.find(opcion =>
+          path === `/${opcion.ruta}` || path.startsWith(`/${opcion.ruta}/`)
+        );
+        if (found) {
+          this.activeCategoryId = found.id_opcion;
+        } else if (path === '/dashboard' || path.startsWith('/categoria/00007')) {
+          this.activeCategoryId = '00007';
+        }
+      }
+    }
+
+    if (this.activeCategoryId) {
       localStorage.setItem('activeCategoryId', this.activeCategoryId);
     }
   }
@@ -609,6 +633,7 @@ export class MainApp extends LitElement {
     if (user) {
       this.user = user;
     }
+    this.updateActiveCategory();
   }
 
   toggleMenu() {
