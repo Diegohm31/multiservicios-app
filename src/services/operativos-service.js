@@ -129,6 +129,31 @@ export class OperativosService {
             return false;
         }
     }
+
+    async getAllOperativosWithDeleted() {
+        let url = `${this.baseUrl}/api/operativos/with-deleted`;
+        let token = localStorage.getItem('token');
+        const requestOptions = {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        try {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const response_json = await response.json();
+
+            return response_json.data;
+        } catch (error) {
+            console.error('Error al obtener operativos:', error);
+            return false;
+        }
+    }
 }
 
 export const operativosService = new OperativosService();

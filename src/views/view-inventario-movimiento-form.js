@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { materialesService } from '../services/materiales-service.js';
 import { movimientosService } from '../services/movimientos-service.js';
 import { navigator } from '../utils/navigator.js';
+import { authService } from '../services/auth-service.js';
 
 export class ViewInventarioMovimientoForm extends LitElement {
     static properties = {
@@ -411,6 +412,11 @@ export class ViewInventarioMovimientoForm extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
+        const user = await authService.getUser();
+        if (user?.id_rol === '00002') {
+            navigator.goto('/inventario/listado/movimiento');
+            return;
+        }
         await this.loadMateriales();
     }
 

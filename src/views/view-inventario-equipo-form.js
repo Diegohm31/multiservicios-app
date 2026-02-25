@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { equiposService } from '../services/equipos-service.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
+import { authService } from '../services/auth-service.js';
 
 export class ViewInventarioEquipoForm extends LitElement {
   static properties = {
@@ -191,8 +192,13 @@ export class ViewInventarioEquipoForm extends LitElement {
     this.array_tiposEquipos = [];
   }
 
-  connectedCallback() {
+  async connectedCallback() {
     super.connectedCallback();
+    const user = await authService.getUser();
+    if (user?.id_rol === '00002') {
+      navigator.goto('/inventario/listado/equipo');
+      return;
+    }
     this.loadTiposEquipo();
     if (!this.equipoId) {
       this.equipo.codigo_interno = this.generarCodigoInterno();

@@ -377,7 +377,7 @@ export class ViewReportesPagosListado extends LitElement {
 
   handleFilterChange(e) {
     const { id, value } = e.target;
-    const filterKey = id.replace('filtro-', '').replace('-', '_');
+    const filterKey = id.replace('filtro-', '').replace(/-/g, '_');
     this.filters = { ...this.filters, [filterKey]: value };
     this.currentPage = 1; // Reset to first page on filter
     this.applyFilters();
@@ -475,9 +475,9 @@ export class ViewReportesPagosListado extends LitElement {
           <label for="filtro-estado">Estado de Pago</label>
           <select id="filtro-estado" @change=${this.handleFilterChange}>
             <option value="">Todos los estados</option>
-            <option value="Pendiente">⏳ Pendiente</option>
-            <option value="Aceptado">✅ Aceptado</option>
-            <option value="Cancelado">❌ Cancelado</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Aceptado">Aceptado</option>
+            <option value="Cancelado">Cancelado</option>
           </select>
         </div>
 

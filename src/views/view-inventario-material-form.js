@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { materialesService } from '../services/materiales-service.js';
+import { authService } from '../services/auth-service.js';
 
 export class ViewInventarioMaterialForm extends LitElement {
   static properties = {
@@ -163,8 +164,12 @@ export class ViewInventarioMaterialForm extends LitElement {
     };
   }
 
-  connectedCallback() {
+  async connectedCallback() {
     super.connectedCallback();
+    const user = await authService.getUser();
+    if (user?.id_rol === '00002') {
+      navigator.goto('/inventario/listado/material');
+    }
   }
 
   updated(changedProperties) {

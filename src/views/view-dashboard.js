@@ -429,18 +429,22 @@ export class ViewDashboard extends LitElement {
         { label: 'Gestionar Órdenes', route: '/servicios/listado/orden', color: '#eff6ff' },
         { label: 'Validar Pagos', route: '/reportesPagos/listado', color: '#f0fdf4' },
         { label: 'Control Inventario', route: '/categoria/00008', color: '#fff7ed' },
-        { label: 'Personal Operativo', route: '/operativos/listado', color: '#faf5ff' }
+        { label: 'Personal Operativo', route: '/operativos/listado', color: '#faf5ff' },
+        { label: 'Configuración', route: '/categoria/00033', color: '#fef2f2' }
       ];
     } else if (roleId === '00002') {
       this.shortcuts = [
-        { label: 'Mis Asignaciones', route: '/servicios/listado/orden', color: '#eff6ff' }
+        { label: 'Mis Asignaciones', route: '/servicios/listado/orden', color: '#eff6ff' },
+        { label: 'Inventario Materiales', route: '/inventario/listado/material', color: '#fff7ed' },
+        { label: 'Inventario Equipos', route: '/inventario/listado/equipo', color: '#f0fdf4' },
+        { label: 'Historial Movimientos', route: '/inventario/listado/movimiento', color: '#faf5ff' }
       ];
     } else {
       this.shortcuts = [
         { label: 'Nueva Orden', route: '/servicios/catalogo', color: '#f0fdf4' },
         { label: 'Mis Órdenes', route: '/servicios/listado/orden', color: '#eff6ff' },
         { label: 'Membresías', route: '/membresias/planes/listado', color: '#faf5ff' },
-        //{ label: 'Mis Pagos', route: '/reportesPagos/listado', color: '#fff7ed' }
+        { label: 'Mis Pagos', route: '/reportesPagos/listado', color: '#fff7ed' }
       ];
     }
   }

@@ -1,11 +1,13 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { materialesService } from '../services/materiales-service.js';
+import { authService } from '../services/auth-service.js';
 
 export class ViewInventarioMaterialListado extends LitElement {
   static properties = {
     materiales: { type: Array },
     loading: { type: Boolean },
+    userRole: { type: String },
   };
 
   static styles = css`
@@ -265,6 +267,7 @@ export class ViewInventarioMaterialListado extends LitElement {
     super();
     this.materiales = [];
     this.loading = true;
+    this.userRole = '';
   }
 
   connectedCallback() {
@@ -275,7 +278,12 @@ export class ViewInventarioMaterialListado extends LitElement {
   async loadMateriales() {
     this.loading = true;
     try {
-      this.materiales = await materialesService.getMateriales();
+      const [materiales, user] = await Promise.all([
+        materialesService.getMateriales(),
+        authService.getUser()
+      ]);
+      this.materiales = materiales;
+      this.userRole = user?.id_rol || '';
     } catch (error) {
       console.error('Error loading materials:', error);
     } finally {
@@ -304,10 +312,12 @@ export class ViewInventarioMaterialListado extends LitElement {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             Volver
           </button>
-          <button class="btn-create" @click=${() => navigator.goto('/inventario/register/material')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
-            Nuevo Material
-          </button>
+          ${this.userRole !== '00002' ? html`
+            <button class="btn-create" @click=${() => navigator.goto('/inventario/register/material')}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+              Nuevo Material
+            </button>
+          ` : ''}
         </div>
       </div>
       
@@ -340,12 +350,14 @@ export class ViewInventarioMaterialListado extends LitElement {
                   </div>
                 </div>
 
-                <div class="card-actions">
-                  <button class="btn-action btn-edit" @click=${() => navigator.goto(`/inventario/edit/material/${material.id_material}`)}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Editar Ficha
-                  </button>
-                </div>
+                ${this.userRole !== '00002' ? html`
+                  <div class="card-actions">
+                    <button class="btn-action btn-edit" @click=${() => navigator.goto(`/inventario/edit/material/${material.id_material}`)}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Editar Ficha
+                    </button>
+                  </div>
+                ` : ''}
               </div>
             `;
     })}

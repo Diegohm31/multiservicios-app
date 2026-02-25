@@ -275,6 +275,106 @@ export class AuthService {
       return false;
     }
   }
+
+  async updateProfile(userData) {
+    let url = `${this.baseUrl}/api/user/profile`;
+    let token = localStorage.getItem('token');
+    const requestOptions = {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(userData)
+    };
+    try {
+      const response = await fetch(url, requestOptions);
+      const response_json = await response.json();
+      if (!response.ok) {
+        throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+      }
+      return response_json;
+    } catch (error) {
+      console.error('Error al actualizar perfil:', error);
+      throw error;
+    }
+  }
+
+  async updatePassword(passwordData) {
+    let url = `${this.baseUrl}/api/user/password`;
+    let token = localStorage.getItem('token');
+    const requestOptions = {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(passwordData)
+    };
+    try {
+      const response = await fetch(url, requestOptions);
+      const response_json = await response.json();
+      if (!response.ok) {
+        throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+      }
+      return response_json;
+    } catch (error) {
+      console.error('Error al actualizar contraseña:', error);
+      throw error;
+    }
+  }
+
+  async verifyEmailChange(data) {
+    let url = `${this.baseUrl}/api/user/verify-email`;
+    let token = localStorage.getItem('token');
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    };
+    try {
+      const response = await fetch(url, requestOptions);
+      const response_json = await response.json();
+      if (!response.ok) {
+        throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+      }
+      return response_json;
+    } catch (error) {
+      console.error('Error al verificar cambio de correo:', error);
+      throw error;
+    }
+  }
+
+  async enviarDuda(data) {
+    let url = `${this.baseUrl}/api/enviar-duda`;
+    let token = localStorage.getItem('token');
+    const requestOptions = {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    };
+    try {
+      const response = await fetch(url, requestOptions);
+      const response_json = await response.json();
+      if (!response.ok) {
+        throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+      }
+      return response_json;
+    } catch (error) {
+      console.error('Error al enviar duda:', error);
+      throw error;
+    }
+  }
 }
 
 

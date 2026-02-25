@@ -4,6 +4,7 @@ import { navigator } from '../utils/navigator.js';
 import { movimientosService } from '../services/movimientos-service.js';
 import { materialesService } from '../services/materiales-service.js';
 import { usuariosService } from '../services/usuarios-service.js';
+import { authService } from '../services/auth-service.js';
 
 export class ViewInventarioMovimientoListado extends LitElement {
   static properties = {
@@ -12,7 +13,8 @@ export class ViewInventarioMovimientoListado extends LitElement {
     admins: { type: Array },
     loading: { type: Boolean },
     currentPage: { type: Number },
-    itemsPerPage: { type: Number }
+    itemsPerPage: { type: Number },
+    userRole: { type: String }
   };
 
   static styles = css`
@@ -306,6 +308,7 @@ export class ViewInventarioMovimientoListado extends LitElement {
     this.loading = true;
     this.currentPage = 1;
     this.itemsPerPage = 7;
+    this.userRole = '';
   }
 
   changePage(page) {
@@ -321,11 +324,13 @@ export class ViewInventarioMovimientoListado extends LitElement {
   async loadAllData() {
     this.loading = true;
     try {
-      await Promise.all([
+      const [, , , user] = await Promise.all([
         this.loadMovimientos(),
         this.loadMateriales(),
-        this.loadAdmins()
+        this.loadAdmins(),
+        authService.getUser()
       ]);
+      this.userRole = user?.id_rol || '';
     } catch (error) {
       console.error('Error loading movements history:', error);
     } finally {
@@ -370,10 +375,12 @@ export class ViewInventarioMovimientoListado extends LitElement {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             Volver
           </button>
-          <button class="btn-create" @click=${() => navigator.goto('/inventario/register/movimiento')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
-            Nuevo Movimiento
-          </button>
+          ${this.userRole !== '00002' ? html`
+            <button class="btn-create" @click=${() => navigator.goto('/inventario/register/movimiento')}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+              Nuevo Movimiento
+            </button>
+          ` : ''}
         </div>
       </div>
 

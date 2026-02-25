@@ -1,10 +1,13 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { operativosService } from '../services/operativos-service.js';
+import { usuariosService } from '../services/usuarios-service.js';
 
 export class ViewOperativosListado extends LitElement {
   static properties = {
     operativos: { type: Array },
+    currentPage: { type: Number },
+    itemsPerPage: { type: Number },
     loading: { type: Boolean },
   };
 
@@ -284,11 +287,62 @@ export class ViewOperativosListado extends LitElement {
       .header-actions { width: 100%; flex-direction: column; }
       .btn-create, .btn-back { width: 100%; justify-content: center; }
     }
+
+    /* Pagination Styles */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 3rem;
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.9s ease-out;
+    }
+
+    .page-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f0f7ff;
+    }
+
+    .page-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f8fafc;
+    }
+
+    .nav-btn {
+      padding: 0 1.25rem;
+      width: auto;
+    }
   `;
 
   constructor() {
     super();
     this.operativos = [];
+    this.currentPage = 1;
+    this.itemsPerPage = 4;
     this.loading = true;
   }
 
@@ -300,7 +354,7 @@ export class ViewOperativosListado extends LitElement {
   async loadOperativos() {
     this.loading = true;
     try {
-      this.operativos = await operativosService.getAllOperativos();
+      this.operativos = await operativosService.getAllOperativosWithDeleted();
     } catch (error) {
       console.error('Error loading operativos:', error);
     } finally {
@@ -308,13 +362,20 @@ export class ViewOperativosListado extends LitElement {
     }
   }
 
-  async deleteOperativo(id_operativo) {
-    if (confirm('¿Está seguro de que desea eliminar este operativo?')) {
+  changePage(page) {
+    this.currentPage = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async handleToggleStatus(id_usuario, is_deleted) {
+    const newActiveValue = is_deleted ? 1 : 0; // Si is_deleted=1 (Inactivo/Borrado), activamos con 1.
+    const action = newActiveValue ? 'activar' : 'inactivar';
+    if (confirm(`¿Está seguro de que desea ${action} a este operativo?`)) {
       try {
-        await operativosService.deleteOperativo(id_operativo);
+        await usuariosService.toggleStatus(id_usuario, newActiveValue);
         this.loadOperativos();
       } catch (error) {
-        alert('Error al eliminar operativo');
+        alert('Error al cambiar el estado del operativo');
       }
     }
   }
@@ -328,6 +389,10 @@ export class ViewOperativosListado extends LitElement {
         </div>
       `;
     }
+
+    const totalPages = Math.ceil(this.operativos.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const paginatedOperativos = this.operativos.slice(startIndex, startIndex + this.itemsPerPage);
 
     return html`
       <div class="header-section">
@@ -348,8 +413,12 @@ export class ViewOperativosListado extends LitElement {
       </div>
       
       <div class="grid">
-        ${this.operativos.map(operativo => html`
+        ${this.operativos.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron operativos registrados.</p>` : ''}
+        ${paginatedOperativos.map(operativo => html`
           <div class="card">
+            <span class="status-badge ${!operativo.is_deleted ? 'status-active' : 'status-inactive'}" style="position: absolute; top: 1.25rem; right: 1.25rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: ${!operativo.is_deleted ? '#dcfce7' : '#fee2e2'}; color: ${!operativo.is_deleted ? '#166534' : '#991b1b'};">
+              ${!operativo.is_deleted ? 'Activo' : 'Inactivo'}
+            </span>
             <div class="card-header">
               <div class="avatar-placeholder">
                 ${(operativo.nombre || 'O').charAt(0).toUpperCase()}
@@ -384,14 +453,37 @@ export class ViewOperativosListado extends LitElement {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Editar
               </button>
-              <button class="btn-action btn-delete" @click=${() => this.deleteOperativo(operativo.id_operativo)}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                Eliminar
+              <button class="btn-action ${!operativo.is_deleted ? 'btn-delete' : 'btn-edit'}" style="background: ${!operativo.is_deleted ? '#fee2e2' : '#dcfce7'}; color: ${!operativo.is_deleted ? '#dc2626' : '#166534'};" @click=${() => this.handleToggleStatus(operativo.id_user, operativo.is_deleted)}>
+                ${!operativo.is_deleted ? html`
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                  Inactivar
+                ` : html`
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>
+                  Activar
+                `}
               </button>
             </div>
           </div>
         `)}
       </div>
+
+      ${totalPages > 1 ? html`
+        <div class="pagination">
+          <button class="page-btn nav-btn" ?disabled=${this.currentPage === 1} @click=${() => this.changePage(this.currentPage - 1)}>
+            Anterior
+          </button>
+          
+          ${Array.from({ length: totalPages }, (_, i) => i + 1).map(page => html`
+            <button class="page-btn ${this.currentPage === page ? 'active' : ''}" @click=${() => this.changePage(page)}>
+              ${page}
+            </button>
+          `)}
+
+          <button class="page-btn nav-btn" ?disabled=${this.currentPage === totalPages} @click=${() => this.changePage(this.currentPage + 1)}>
+            Siguiente
+          </button>
+        </div>
+      ` : ''}
     `;
   }
 }

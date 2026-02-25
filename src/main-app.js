@@ -35,6 +35,10 @@ import './views/view-membresias-planes-form.js';
 import './views/view-membresias-planes-listado.js';
 import './views/view-membresias-pago.js';
 import './views/view-dashboard.js';
+import './views/view-usuarios-listado.js';
+import './views/view-mi-cuenta.js';
+import './views/view-centro-ayuda.js';
+import './views/view-configuracion.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -129,6 +133,19 @@ export class MainApp extends LitElement {
         if (params.id === '00007') {
           return html`<view-dashboard></view-dashboard>`;
         }
+
+        if (params.id === '00031') {
+          return html`<view-mi-cuenta></view-mi-cuenta>`;
+        }
+
+        if (params.id === '00032') {
+          return html`<view-centro-ayuda></view-centro-ayuda>`;
+        }
+
+        if (params.id === '00033') {
+          return html`<view-configuracion></view-configuracion>`;
+        }
+
         return html`<view-categoria .id_padre=${params.id}></view-categoria>`;
       }
     },
@@ -528,6 +545,17 @@ export class MainApp extends LitElement {
         return true;
       },
       render: (params) => html`<view-membresias-pago .planId=${params.id}></view-membresias-pago>`
+    },
+    {
+      path: '/usuarios/listado',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: () => html`<view-usuarios-listado></view-usuarios-listado>`
     },
     // {
     //   path: '/products/create',

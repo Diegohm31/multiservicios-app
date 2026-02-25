@@ -3,12 +3,15 @@ import { navigator } from '../utils/navigator.js';
 import { planesMembresiasService } from '../services/planes-membresias-service.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
+import { empresaService } from '../services/empresa-service.js';
 
 export class ViewMembresiasPago extends LitElement {
   static properties = {
     planId: { type: String },
     plan: { type: Object },
     user: { type: Object },
+    cuentas: { type: Array },
+    empresa: { type: Object },
     loading: { type: Boolean },
     processing: { type: Boolean },
     formData: { type: Object },
@@ -237,6 +240,71 @@ export class ViewMembresiasPago extends LitElement {
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    .accounts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .account-card {
+      padding: 1rem;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #f8fafc;
+      position: relative;
+    }
+
+    .account-card:hover {
+      border-color: var(--primary);
+      background: #f0f7ff;
+    }
+
+    .account-card.selected {
+      border-color: var(--primary);
+      background: #eff6ff;
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    .account-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: var(--primary);
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .account-card h4 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .account-card-info {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      color: var(--text-light);
+    }
+
+    .account-card-info strong {
+      color: var(--text);
+    }
   `;
 
   constructor() {
@@ -244,11 +312,14 @@ export class ViewMembresiasPago extends LitElement {
     this.loading = true;
     this.processing = false;
     this.user = null;
+    this.cuentas = [];
+    this.empresa = null;
     this.formData = {
       id_plan_membresia: '',
       monto: '',
       metodo_pago: '',
       num_referencia: '',
+      id_cuenta_bancaria: '',
       image: null
     };
   }
@@ -261,14 +332,19 @@ export class ViewMembresiasPago extends LitElement {
   async loadData() {
     this.loading = true;
     try {
-      const [planData, userData] = await Promise.all([
+      const [planData, userData, accounts, empresas] = await Promise.all([
         planesMembresiasService.getOnePlan(this.planId),
-        authService.getUser()
+        authService.getUser(),
+        empresaService.getCuentasBancarias(),
+        empresaService.getEmpresas()
       ]);
 
       if (planData) {
         this.plan = planData;
         this.user = userData;
+        this.cuentas = accounts;
+        this.empresa = empresas.length > 0 ? empresas[0] : null;
+
         this.formData = {
           ...this.formData,
           monto: parseFloat(this.plan.precio).toFixed(2),
@@ -299,7 +375,7 @@ export class ViewMembresiasPago extends LitElement {
   async handleSubmit(e) {
     e.preventDefault();
 
-    if (!this.formData.metodo_pago || !this.formData.num_referencia || !this.formData.image) {
+    if (!this.formData.metodo_pago || !this.formData.id_cuenta_bancaria || !this.formData.num_referencia || !this.formData.image) {
       alert('Por favor complete todos los campos obligatorios y adjunte el comprobante.');
       return;
     }
@@ -325,6 +401,7 @@ export class ViewMembresiasPago extends LitElement {
       paymentFormData.append('id_membresia', membresia.id_membresia);
       paymentFormData.append('monto', this.formData.monto);
       paymentFormData.append('metodo_pago', this.formData.metodo_pago);
+      paymentFormData.append('id_cuenta_bancaria', this.formData.id_cuenta_bancaria);
       paymentFormData.append('num_referencia', this.formData.num_referencia);
       paymentFormData.append('image', this.formData.image);
 
@@ -353,6 +430,10 @@ export class ViewMembresiasPago extends LitElement {
     if (!this.plan) {
       return html`<div class="container"><h2>Plan no encontrado</h2></div>`;
     }
+
+    const filteredCuentas = this.formData.metodo_pago === 'Pago Móvil'
+      ? this.cuentas.filter(c => c.pago_movil)
+      : this.cuentas;
 
     return html`
       <div class="container">
@@ -383,14 +464,40 @@ export class ViewMembresiasPago extends LitElement {
             <div class="form-grid">
               <div class="form-group">
                 <label>Método de Pago</label>
-                <select name="metodo_pago" .value=${this.formData.metodo_pago} @change=${this.handleInput} required>
+                <select name="metodo_pago" .value=${this.formData.metodo_pago} @change=${(e) => { this.handleInput(e); this.formData = { ...this.formData, id_cuenta_bancaria: '' }; }} required>
                   <option value="">Seleccione un método</option>
                   <option value="Transferencia Bancaria">Transferencia Bancaria</option>
                   <option value="Pago Móvil">Pago Móvil</option>
-                  <option value="Zelle">Zelle</option>
-                  <option value="Efectivo">Efectivo</option>
-                  <option value="Binance">Binance (USDT)</option>
                 </select>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Seleccione la Cuenta de Destino</label>
+                ${!this.formData.metodo_pago ? html`
+                  <div style="padding: 1rem; background: #f8fafc; border-radius: 12px; font-size: 0.9rem; color: var(--text-light); text-align: center; border: 1px solid var(--border);">
+                    Seleccione un método de pago para ver las cuentas disponibles
+                  </div>
+                ` : html`
+                  <div class="accounts-grid">
+                    ${filteredCuentas.length === 0 ? html`
+                      <div style="grid-column: 1/-1; padding: 1rem; text-align: center; color: var(--text-light);">
+                        No hay cuentas disponibles para este método
+                      </div>
+                    ` : filteredCuentas.map(cuenta => html`
+                      <div class="account-card ${this.formData.id_cuenta_bancaria === cuenta.id_cuenta_bancaria ? 'selected' : ''}" 
+                           @click=${() => this.formData = { ...this.formData, id_cuenta_bancaria: cuenta.id_cuenta_bancaria }}>
+                        <h4>${cuenta.banco}</h4>
+                        <div class="account-card-info">
+                          <div><strong>Titular:</strong> ${this.empresa?.nombre || 'N/A'}</div>
+                          <div><strong>RIF:</strong> ${this.empresa?.rif || 'N/A'}</div>
+                          <div><strong>Número:</strong> ${cuenta.numero_cuenta}</div>
+                          <div><strong>Tipo:</strong> ${cuenta.tipo_cuenta}</div>
+                          <div><strong>Teléfono:</strong> ${cuenta.telefono}</div>
+                        </div>
+                      </div>
+                    `)}
+                  </div>
+                `}
               </div>
 
               <div class="form-group">
