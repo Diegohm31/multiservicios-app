@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { equiposService } from '../services/equipos-service.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioEquipoListado extends LitElement {
   static properties = {
@@ -285,14 +286,19 @@ export class ViewInventarioEquipoListado extends LitElement {
   }
 
   async deleteEquipo(id_equipo) {
-    if (confirm('¿Está seguro de que desea eliminar este equipo?')) {
-      try {
-        await equiposService.deleteEquipo(id_equipo);
-        this.loadEquipos();
-      } catch (error) {
-        alert('Error al eliminar equipo');
+    popupService.confirm(
+      'Eliminar Equipo',
+      '¿Está seguro de que desea eliminar este equipo?',
+      async () => {
+        try {
+          await equiposService.deleteEquipo(id_equipo);
+          this.loadEquipos();
+          popupService.success('Éxito', 'Equipo eliminado correctamente');
+        } catch (error) {
+          popupService.error('Error', 'Error al eliminar equipo');
+        }
       }
-    }
+    );
   }
 
   render() {

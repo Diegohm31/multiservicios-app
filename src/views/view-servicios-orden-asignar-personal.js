@@ -3,6 +3,7 @@ import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { operativosService } from '../services/operativos-service.js';
 import { equiposService } from '../services/equipos-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosOrdenAsignarPersonal extends LitElement {
     static properties = {
@@ -499,7 +500,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
 
         } catch (error) {
             console.error('Error loading data:', error);
-            alert('Error al cargar la información: ' + error.message);
+            popupService.error('Error', 'Error al cargar la información: ' + error.message);
         } finally {
             this.loading = false;
         }
@@ -598,7 +599,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
 
                 if (isDuplicate) {
                     const label = type === 'operatives' ? 'personal' : 'equipo';
-                    alert(`ACCIÓN BLOQUEADA: Este ${label} ya está asignado a este mismo requerimiento en este servicio.`);
+                    popupService.warning('Acción Bloqueada', `Este ${label} ya está asignado a este mismo requerimiento en este servicio.`);
                     this.requestUpdate();
                     return;
                 }
@@ -610,9 +611,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                         const msg = overlap.type === 'internal'
                             ? `¡Precaución! El recurso ya está asignado al servicio "${overlap.name}" (${overlap.role}) en esta misma orden.`
                             : `¡Precaución! El recurso ya tiene una asignación en la Orden #${overlap.orderId} para ese mismo horario.`;
-                        alert(msg);
-                        // Optionally, we could clear the value, but let's just warn for now as requested
-                        // if (field === 'id_operativo' || field === 'id_unidad_equipo') list[index][field] = '';
+                        popupService.info('Aviso de Traslape', msg);
                     }
                 }
             }
@@ -953,13 +952,13 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         // Validation: All services must be complete and have exactly 1 Jefe de Obra
         for (const s of this.orden.servicios) {
             if (!this.isServiceComplete(s.id_orden_servicio)) {
-                alert(`Debe completar la asignación de todo el personal y equipos para el servicio: ${s.nombre || s.id_servicio}`);
+                popupService.warning('Asignación Incompleta', `Debe completar la asignación de todo el personal y equipos para el servicio: ${s.nombre || s.id_servicio}`);
                 return;
             }
 
             const jeteCount = (this.assignments[s.id_orden_servicio]?.operatives || []).filter(op => op.es_jefe === 1).length;
             if (jeteCount !== 1) {
-                alert(`Cada servicio debe tener exactamente un Jefe de Obra asignado. El servicio "${s.nombre || s.id_servicio}" tiene ${jeteCount}.`);
+                popupService.warning('Requerimiento no cumplido', `Cada servicio debe tener exactamente un Jefe de Obra asignado. El servicio "${s.nombre || s.id_servicio}\" tiene ${jeteCount}.`);
                 return;
             }
         }
@@ -973,13 +972,13 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 const end = new Date(o.fecha_fin);
 
                 if (end <= start) {
-                    alert(`Fin debe ser mayor a inicio para "${o.nombre_especialidad}" en "${s.nombre}"`);
+                    popupService.warning('Error de Fechas', `Fin debe ser mayor a inicio para "${o.nombre_especialidad}\" en \"${s.nombre}\"`);
                     return;
                 }
 
                 const diffHours = (end - start) / (1000 * 60 * 60);
                 if (Math.abs(diffHours - o.horas_req) > 0.01) {
-                    alert(`Duración de "${o.nombre_especialidad}" en "${s.nombre}" debe ser de ${o.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
+                    popupService.warning('Cálculo de Horas', `Duración de "${o.nombre_especialidad}\" en \"${s.nombre}\" debe ser de ${o.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
                     return;
                 }
             }
@@ -989,70 +988,74 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 const end = new Date(e.fecha_fin);
 
                 if (end <= start) {
-                    alert(`Fin debe ser mayor a inicio para equipo "${e.nombre_equipo}"`);
+                    popupService.warning('Error de Fechas', `Fin debe ser mayor a inicio para equipo \"${e.nombre_equipo}\"`);
                     return;
                 }
 
                 const diffHours = (end - start) / (1000 * 60 * 60);
                 if (Math.abs(diffHours - e.horas_req) > 0.01) {
-                    alert(`Duración equipo "${e.nombre_equipo}" debe ser de ${e.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
+                    popupService.warning('Cálculo de Horas', `Duración equipo "${e.nombre_equipo}" debe ser de ${e.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
                     return;
                 }
             }
         }
 
-        if (!confirm('¿Desea guardar la asignación global? La orden cambiará a estado "En espera".')) return;
+        popupService.confirm(
+            'Guardar Asignación',
+            '¿Desea guardar la asignación global? La orden cambiará a estado "En espera".',
+            async () => {
+                this.loading = true;
 
-        this.loading = true;
-
-        const orderDates = this.getOrderDates();
-        const formatForDB = (dateStr) => {
-            if (!dateStr) return null;
-            const d = new Date(dateStr);
-            const pad = (n) => n.toString().padStart(2, '0');
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
-        };
-
-        const payload = {
-            fecha_inicio: formatForDB(orderDates.start),
-            fecha_fin: formatForDB(orderDates.end),
-            servicios: this.orden.servicios.map(s => {
-                const sKey = s.id_orden_servicio;
-                const sDates = this.getServiceDates(sKey);
-                const assign = this.assignments[sKey];
-                return {
-                    id_orden_servicio: sKey,
-                    fecha_inicio: formatForDB(sDates.start),
-                    fecha_fin: formatForDB(sDates.end),
-                    operadores: assign.operatives.map(op => ({
-                        id_operativo: op.id_operativo,
-                        id_especialidad: op.id_especialidad,
-                        fecha_inicio: formatForDB(op.fecha_inicio),
-                        fecha_fin: formatForDB(op.fecha_fin),
-                        es_jefe: op.es_jefe
-                    })),
-                    equipos: assign.equipos.map(eq => ({
-                        id_equipo: eq.id_unidad_equipo,
-                        fecha_inicio: formatForDB(eq.fecha_inicio),
-                        fecha_fin: formatForDB(eq.fecha_fin)
-                    }))
+                const orderDates = this.getOrderDates();
+                const formatForDB = (dateStr) => {
+                    if (!dateStr) return null;
+                    const d = new Date(dateStr);
+                    const pad = (n) => n.toString().padStart(2, '0');
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
                 };
-            })
-        };
 
-        try {
-            const result = await serviciosService.asignarPersonal(this.orden.id_orden, payload);
+                const payload = {
+                    fecha_inicio: formatForDB(orderDates.start),
+                    fecha_fin: formatForDB(orderDates.end),
+                    servicios: this.orden.servicios.map(s => {
+                        const sKey = s.id_orden_servicio;
+                        const sDates = this.getServiceDates(sKey);
+                        const assign = this.assignments[sKey];
+                        return {
+                            id_orden_servicio: sKey,
+                            fecha_inicio: formatForDB(sDates.start),
+                            fecha_fin: formatForDB(sDates.end),
+                            operadores: assign.operatives.map(op => ({
+                                id_operativo: op.id_operativo,
+                                id_especialidad: op.id_especialidad,
+                                fecha_inicio: formatForDB(op.fecha_inicio),
+                                fecha_fin: formatForDB(op.fecha_fin),
+                                es_jefe: op.es_jefe
+                            })),
+                            equipos: assign.equipos.map(eq => ({
+                                id_equipo: eq.id_unidad_equipo,
+                                fecha_inicio: formatForDB(eq.fecha_inicio),
+                                fecha_fin: formatForDB(eq.fecha_fin)
+                            }))
+                        };
+                    })
+                };
 
-            if (result) {
-                alert('Asignación guardada con éxito. La orden está ahora "En espera".');
-                navigator.goto('/servicios/listado/orden');
+                try {
+                    const result = await serviciosService.asignarPersonal(this.orden.id_orden, payload);
+
+                    if (result) {
+                        popupService.success('Éxito', 'Asignación guardada con éxito. La orden está ahora "En espera".');
+                        navigator.goto('/servicios/listado/orden');
+                    }
+                } catch (error) {
+                    console.error('Error saving assignments:', error);
+                    popupService.error('Error', 'Error al guardar la asignación: ' + error.message);
+                } finally {
+                    this.loading = false;
+                }
             }
-        } catch (error) {
-            console.error('Error saving assignments:', error);
-            alert('Error al guardar la asignación: ' + error.message);
-        } finally {
-            this.loading = false;
-        }
+        );
     }
 }
 

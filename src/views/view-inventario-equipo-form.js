@@ -3,6 +3,7 @@ import { navigator } from '../utils/navigator.js';
 import { equiposService } from '../services/equipos-service.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioEquipoForm extends LitElement {
   static properties = {
@@ -237,19 +238,19 @@ export class ViewInventarioEquipoForm extends LitElement {
       // validar que la fecha de adquisicion no sea mayor a la fecha actual
       const today = new Date().toLocaleString('sv-SE', { timeZone: 'America/Caracas' }).split(' ')[0];
       if (this.equipo.fecha_adquisicion > today) {
-        alert('La fecha de adquisición no puede ser mayor a la fecha actual');
+        popupService.warning('Fecha Inválida', 'La fecha de adquisición no puede ser mayor a la fecha actual');
         return;
       }
       if (this.equipoId) {
         await equiposService.updateEquipo(this.equipoId, this.equipo);
-        alert('Equipo actualizado correctamente');
+        popupService.success('Éxito', 'Equipo actualizado correctamente');
       } else {
         await equiposService.createEquipo(this.equipo);
-        alert('Equipo creado correctamente');
+        popupService.success('Éxito', 'Equipo creado correctamente');
       }
       navigator.goto('/inventario/listado/equipo');
     } catch (error) {
-      alert('Error al guardar el equipo');
+      popupService.error('Error', 'Error al guardar el equipo');
       console.error(error);
     }
   }

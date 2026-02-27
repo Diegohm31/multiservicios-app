@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { materialesService } from '../services/materiales-service.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioMaterialForm extends LitElement {
   static properties = {
@@ -196,14 +197,14 @@ export class ViewInventarioMaterialForm extends LitElement {
     try {
       if (this.materialId) {
         await materialesService.updateMaterial(this.materialId, this.material);
-        alert('Material actualizado correctamente');
+        popupService.success('Éxito', 'Material actualizado correctamente');
       } else {
         await materialesService.createMaterial(this.material);
-        alert('Material creado correctamente');
+        popupService.success('Éxito', 'Material creado correctamente');
       }
       navigator.goto('/inventario/listado/material');
     } catch (error) {
-      alert(`Error al guardar el material: ${error.message}`);
+      popupService.error('Error', `Error al guardar el material: ${error.message}`);
       console.error(error);
     }
   }

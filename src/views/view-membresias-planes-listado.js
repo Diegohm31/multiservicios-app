@@ -2,15 +2,16 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { planesMembresiasService } from '../services/planes-membresias-service.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewMembresiasPlanesListado extends LitElement {
-    static properties = {
-        planes: { type: Array },
-        user: { type: Object },
-        loading: { type: Boolean }
-    };
+  static properties = {
+    planes: { type: Array },
+    user: { type: Object },
+    loading: { type: Boolean }
+  };
 
-    static styles = css`
+  static styles = css`
     :host {
       --primary: #3b82f6;
       --primary-hover: #2563eb;
@@ -341,73 +342,81 @@ export class ViewMembresiasPlanesListado extends LitElement {
     }
   `;
 
-    constructor() {
-        super();
-        this.planes = [];
-        this.user = null;
-        this.loading = true;
-    }
+  constructor() {
+    super();
+    this.planes = [];
+    this.user = null;
+    this.loading = true;
+  }
 
-    async connectedCallback() {
-        super.connectedCallback();
-        await this.loadPlanes();
-    }
+  async connectedCallback() {
+    super.connectedCallback();
+    await this.loadPlanes();
+  }
 
-    async loadPlanes() {
-        this.loading = true;
+  async loadPlanes() {
+    this.loading = true;
+    try {
+      const [planesData, userData] = await Promise.all([
+        planesMembresiasService.getPlanes(),
+        authService.getUser()
+      ]);
+      this.planes = planesData || [];
+      this.user = userData;
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  async handleDelete(id) {
+    popupService.confirm(
+      'Eliminar Plan',
+      '¿Estás seguro de que deseas eliminar este plan?',
+      async () => {
         try {
-            const [planesData, userData] = await Promise.all([
-                planesMembresiasService.getPlanes(),
-                authService.getUser()
-            ]);
-            this.planes = planesData || [];
-            this.user = userData;
+          await planesMembresiasService.deletePlan(id);
+          await this.loadPlanes();
+          popupService.success('Éxito', 'Plan eliminado correctamente');
         } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            this.loading = false;
+          console.error('Error deleting plan:', error);
+          popupService.error('Error', 'Ocurrió un error al eliminar el plan');
         }
-    }
+      }
+    );
+  }
 
-    async handleDelete(id) {
-        if (confirm('¿Estás seguro de que deseas eliminar este plan?')) {
-            try {
-                await planesMembresiasService.deletePlan(id);
-                await this.loadPlanes();
-                alert('Plan eliminado correctamente');
-            } catch (error) {
-                console.error('Error deleting plan:', error);
-                alert('Ocurrió un error al eliminar el plan');
-            }
+  async handleCancelMembresia(id) {
+    popupService.confirm(
+      'Cancelar Membresía',
+      '¿Estás seguro de que deseas cancelar tu membresía activa? Perderás todos tus beneficios de inmediato.',
+      async () => {
+        try {
+          await planesMembresiasService.cancelMembresia(id);
+          await this.loadPlanes();
+          popupService.success('Éxito', 'Membresía cancelada correctamente');
+        } catch (error) {
+          console.error('Error canceling membership:', error);
+          popupService.error('Error', 'Ocurrió un error al cancelar la membresía');
         }
-    }
+      }
+    );
+  }
 
-    async handleCancelMembresia(id) {
-        if (confirm('¿Estás seguro de que deseas cancelar tu membresía activa? Perderás todos tus beneficios de inmediato.')) {
-            try {
-                await planesMembresiasService.cancelMembresia(id);
-                await this.loadPlanes();
-                alert('Membresía cancelada correctamente');
-            } catch (error) {
-                console.error('Error canceling membership:', error);
-                alert('Ocurrió un error al cancelar la membresía');
-            }
-        }
-    }
-
-    render() {
-        if (this.loading) {
-            return html`
+  render() {
+    if (this.loading) {
+      return html`
                 <div class="loader">
                     <div class="spinner"></div>
                     <p style="margin-top: 1.5rem; font-weight: 600; color: var(--text-light);">Cargando planes...</p>
                 </div>
             `;
-        }
+    }
 
-        const isClient = this.user?.id_rol === '00001';
+    const isClient = this.user?.id_rol === '00001';
 
-        return html`
+    return html`
       <div class="container">
         <header>
           <div class="title-group">
@@ -504,7 +513,7 @@ export class ViewMembresiasPlanesListado extends LitElement {
         `}
       </div>
     `;
-    }
+  }
 }
 
 customElements.define('view-membresias-planes-listado', ViewMembresiasPlanesListado);

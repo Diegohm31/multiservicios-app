@@ -486,15 +486,21 @@ export class ViewConfiguracion extends LitElement {
   }
 
   async deleteCuenta(id) {
-    if (!confirm('¿Estás seguro de eliminar esta cuenta bancaria?')) return;
-    try {
-      const success = await empresaService.deleteCuentaBancaria(id);
-      if (success) {
-        await this.loadData();
+    popupService.confirm(
+      'Eliminar Cuenta',
+      '¿Estás seguro de eliminar esta cuenta bancaria?',
+      async () => {
+        try {
+          const success = await empresaService.deleteCuentaBancaria(id);
+          if (success) {
+            await this.loadData();
+            popupService.success('Éxito', 'Cuenta bancaria eliminada correctamente');
+          }
+        } catch (error) {
+          popupService.warning('Error', 'Error al eliminar');
+        }
       }
-    } catch (error) {
-      popupService.warning('Error', 'Error al eliminar');
-    }
+    );
   }
 
   render() {

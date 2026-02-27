@@ -3,6 +3,7 @@ import { materialesService } from '../services/materiales-service.js';
 import { movimientosService } from '../services/movimientos-service.js';
 import { navigator } from '../utils/navigator.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioMovimientoForm extends LitElement {
     static properties = {
@@ -492,15 +493,15 @@ export class ViewInventarioMovimientoForm extends LitElement {
             });
 
             if (res) {
-                alert('¡Éxito! Todos los movimientos se registraron correctamente.');
+                popupService.success('Éxito', '¡Éxito! Todos los movimientos se registraron correctamente.');
                 this.movimientosSeleccionados = [];
                 navigator.goto('/inventario/listado/movimiento');
             } else {
-                alert('Hubo un error al procesar la solicitud en el servidor.');
+                popupService.error('Error', 'Hubo un error al procesar la solicitud en el servidor.');
             }
         } catch (error) {
             console.error(error);
-            alert('Error crítico: ' + error.message);
+            popupService.error('Error', 'Error crítico: ' + error.message);
         } finally {
             this.cargando = false;
         }

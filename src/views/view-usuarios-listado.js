@@ -383,16 +383,21 @@ export class ViewUsuariosListado extends LitElement {
   }
 
   async handleToggleStatus(id_usuario, is_deleted) {
-    const newActiveValue = is_deleted ? 1 : 0; // Si está borrado (is_deleted=1), lo activamos (active=1). Si no, lo inactivamos (active=0).
+    const newActiveValue = is_deleted ? 1 : 0;
     const action = newActiveValue ? 'activar' : 'inactivar';
-    if (confirm(`¿Está seguro de que desea ${action} a este cliente?`)) {
-      try {
-        await usuariosService.toggleStatus(id_usuario, newActiveValue);
-        this.loadClientes();
-      } catch (error) {
-        popupService.warning('Error', 'Ocurrió un error al cambiar el estado del cliente');
+
+    popupService.confirm(
+      'Confirmación',
+      `¿Está seguro de que desea ${action} a este cliente?`,
+      async () => {
+        try {
+          await usuariosService.toggleStatus(id_usuario, newActiveValue);
+          this.loadClientes();
+        } catch (error) {
+          popupService.warning('Error', 'Ocurrió un error al cambiar el estado del cliente');
+        }
       }
-    }
+    );
   }
 
   render() {

@@ -3,6 +3,7 @@ import { repeat } from 'lit/directives/repeat.js';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 import confetti from 'canvas-confetti';
 
 export class ViewServiciosOrdenAvances extends LitElement {
@@ -731,7 +732,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
       .reduce((acc, a) => acc + parseFloat(a.porcentaje_avance || a.porcentaje || 0), 0);
 
     if (otherAdvancesSum + newPorcentaje > 100) {
-      alert(`El porcentaje total no puede exceder el 100%. El máximo permitido para este avance es ${100 - otherAdvancesSum}%.`);
+      popupService.warning('Límite Excedido', `El porcentaje total no puede exceder el 100%. El máximo permitido para este avance es ${100 - otherAdvancesSum}%.`);
       return;
     }
 
@@ -742,7 +743,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
     let opId = this.myOperativoId;
 
     if (!opId) {
-      alert('Solo los Jefes de Obra asignados pueden registrar o editar avances.');
+      popupService.warning('Acceso Denegado', 'Solo los Jefes de Obra asignados pueden registrar o editar avances.');
       return;
     }
     formData.append('id_operativo', opId);
@@ -769,7 +770,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
         this.triggerConfetti();
       }
     } catch (error) {
-      alert('Error: ' + error.message);
+      popupService.error('Error', error.message);
     } finally {
       this.loading = false;
     }
@@ -806,18 +807,23 @@ export class ViewServiciosOrdenAvances extends LitElement {
 
   async handleDelete() {
     if (!this.selectedAvance) return;
-    if (confirm('¿Está seguro de que desea eliminar este avance?')) {
-      try {
-        this.loading = true;
-        await serviciosService.eliminarAvance(this.selectedAvance.id_avance_orden);
-        this.selectedAvance = null;
-        await this.loadData();
-      } catch (error) {
-        alert('Error: ' + error.message);
-      } finally {
-        this.loading = false;
+    popupService.confirm(
+      'Eliminar Avance',
+      '¿Está seguro de que desea eliminar este avance?',
+      async () => {
+        try {
+          this.loading = true;
+          await serviciosService.eliminarAvance(this.selectedAvance.id_avance_orden);
+          this.selectedAvance = null;
+          await this.loadData();
+          popupService.success('Éxito', 'Avance eliminado correctamente.');
+        } catch (error) {
+          popupService.error('Error', error.message);
+        } finally {
+          this.loading = false;
+        }
       }
-    }
+    );
   }
 
   render() {

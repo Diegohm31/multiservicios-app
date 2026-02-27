@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewReportesPagosDetalles extends LitElement {
     static properties = {
@@ -253,7 +254,7 @@ export class ViewReportesPagosDetalles extends LitElement {
             this.observaciones = this.reporte?.observaciones || '';
         } catch (error) {
             console.error('Error loading reporte:', error);
-            alert('Error al cargar el reporte de pago');
+            popupService.warning('Error', 'Error al cargar el reporte de pago');
         } finally {
             this.loading = false;
         }
@@ -264,31 +265,31 @@ export class ViewReportesPagosDetalles extends LitElement {
     }
 
     async handleAction(action) {
-        if (!confirm(`¿Estás seguro de que deseas ${action} este reporte?`)) return;
+        popupService.confirm('Confirmar Acción', `¿Estás seguro de que deseas ${action} este reporte?`, async () => {
+            const payload = {
+                id_reporte_pago: this.reporte.id_reporte_pago,
+                id_orden: this.reporte.id_orden || null,
+                id_membresia: this.reporte.id_membresia || null,
+                observaciones: this.observaciones
+            };
 
-        const payload = {
-            id_reporte_pago: this.reporte.id_reporte_pago,
-            id_orden: this.reporte.id_orden || null,
-            id_membresia: this.reporte.id_membresia || null,
-            observaciones: this.observaciones
-        };
-
-        try {
-            this.loading = true;
-            if (action === 'aceptar') {
-                await serviciosService.aceptarReportePago(payload);
-                alert('Reporte aceptado correctamente');
-            } else {
-                await serviciosService.cancelarReportePago(payload);
-                alert('Reporte cancelado correctamente');
+            try {
+                this.loading = true;
+                if (action === 'aceptar') {
+                    await serviciosService.aceptarReportePago(payload);
+                    popupService.success('Éxito', 'Reporte aceptado correctamente');
+                } else {
+                    await serviciosService.cancelarReportePago(payload);
+                    popupService.success('Éxito', 'Reporte cancelado correctamente');
+                }
+                await this.loadReporte();
+            } catch (error) {
+                console.error(`Error al ${action} reporte:`, error);
+                popupService.warning('Error', `Ocurrió un error al ${action} el reporte: ${error.message}`);
+            } finally {
+                this.loading = false;
             }
-            await this.loadReporte();
-        } catch (error) {
-            console.error(`Error al ${action} reporte:`, error);
-            alert(`Ocurrió un error al ${action} el reporte`);
-        } finally {
-            this.loading = false;
-        }
+        });
     }
 
     getStatusClass(status) {

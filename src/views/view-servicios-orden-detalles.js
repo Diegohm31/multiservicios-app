@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosOrdenDetalles extends LitElement {
   static properties = {
@@ -443,32 +444,48 @@ export class ViewServiciosOrdenDetalles extends LitElement {
 
   async cancelarOrden(id) {
     const observaciones = this.shadowRoot.getElementById('observaciones-admin')?.value;
-    if (confirm('¿Está seguro de que desea cancelar la orden?')) {
-      await serviciosService.cancelarOrden(id, observaciones);
-      await this.loadOrden();
-    }
+    popupService.confirm(
+      'Cancelar Orden',
+      '¿Está seguro de que desea cancelar la orden?',
+      async () => {
+        await serviciosService.cancelarOrden(id, observaciones);
+        await this.loadOrden();
+      }
+    );
   }
 
   async aceptarOrden(id) {
     const observaciones = this.shadowRoot.getElementById('observaciones-admin')?.value;
-    if (confirm('¿Está seguro de que desea aceptar la orden?')) {
-      await serviciosService.aceptarOrden(id, observaciones);
-      await this.loadOrden();
-    }
+    popupService.confirm(
+      'Aceptar Orden',
+      '¿Está seguro de que desea aceptar la orden?',
+      async () => {
+        await serviciosService.aceptarOrden(id, observaciones);
+        await this.loadOrden();
+      }
+    );
   }
 
   async aceptarPresupuesto(id) {
-    if (confirm('¿Está seguro de que desea aceptar el presupuesto?')) {
-      await serviciosService.aceptarPresupuesto(id);
-      await this.loadOrden();
-    }
+    popupService.confirm(
+      'Aceptar Presupuesto',
+      '¿Está seguro de que desea aceptar el presupuesto?',
+      async () => {
+        await serviciosService.aceptarPresupuesto(id);
+        await this.loadOrden();
+      }
+    );
   }
 
   async cancelarPresupuesto(id) {
-    if (confirm('¿Está seguro de que desea cancelar el presupuesto?')) {
-      await serviciosService.cancelarPresupuesto(id);
-      await this.loadOrden();
-    }
+    popupService.confirm(
+      'Cancelar Presupuesto',
+      '¿Está seguro de que desea cancelar el presupuesto?',
+      async () => {
+        await serviciosService.cancelarPresupuesto(id);
+        await this.loadOrden();
+      }
+    );
   }
 
   async triggerFileUpload() {
@@ -483,10 +500,10 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       this.loading = true;
       await serviciosService.subirPeritaje(this.orden.id_orden, file);
       await this.loadOrden();
-      alert('Archivo de peritaje subido correctamente');
+      popupService.success('Éxito', 'Archivo de peritaje subido correctamente');
     } catch (error) {
       console.error('Error uploading peritaje:', error);
-      alert('Error al subir el archivo: ' + error.message);
+      popupService.warning('Error', 'Error al subir el archivo: ' + error.message);
     } finally {
       this.loading = false;
     }

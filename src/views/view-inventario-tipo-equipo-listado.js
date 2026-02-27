@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioTipoEquipoListado extends LitElement {
   static properties = {
@@ -284,14 +285,19 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
   }
 
   async deleteTipoEquipo(id_tipo_equipo) {
-    if (confirm('¿Está seguro de que desea eliminar este tipo de equipo?')) {
-      try {
-        await tiposEquiposService.deleteTipoEquipo(id_tipo_equipo);
-        this.loadTiposEquipos();
-      } catch (error) {
-        alert('Error al eliminar tipo de equipo');
+    popupService.confirm(
+      'Eliminar Tipo de Equipo',
+      '¿Está seguro de que desea eliminar este tipo de equipo?',
+      async () => {
+        try {
+          await tiposEquiposService.deleteTipoEquipo(id_tipo_equipo);
+          this.loadTiposEquipos();
+          popupService.success('Éxito', 'Tipo de equipo eliminado correctamente');
+        } catch (error) {
+          popupService.error('Error', 'Error al eliminar tipo de equipo');
+        }
       }
-    }
+    );
   }
 
   render() {

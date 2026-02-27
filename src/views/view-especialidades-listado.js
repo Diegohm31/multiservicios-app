@@ -285,14 +285,19 @@ export class ViewEspecialidadesListado extends LitElement {
   }
 
   async deleteEspecialidad(id_especialidad) {
-    if (confirm('¿Está seguro de que desea eliminar esta especialidad?')) {
-      try {
-        await especialidadesService.deleteEspecialidad(id_especialidad);
-        this.loadEspecialidades();
-      } catch (error) {
-        popupService.warning('Error', 'Error al eliminar especialidad');
+    popupService.confirm(
+      'Eliminar Especialidad',
+      '¿Está seguro de que desea eliminar esta especialidad?',
+      async () => {
+        try {
+          await especialidadesService.deleteEspecialidad(id_especialidad);
+          this.loadEspecialidades();
+          popupService.success('Éxito', 'Especialidad eliminada correctamente');
+        } catch (error) {
+          popupService.warning('Error', 'Error al eliminar especialidad');
+        }
       }
-    }
+    );
   }
 
   render() {

@@ -1,18 +1,20 @@
 import { LitElement, html, css } from 'lit';
 
 export class CommonPopup extends LitElement {
-    static properties = {
-        title: { type: String },
-        message: { type: String },
-        type: { type: String }, // success, warning, info
-        visible: { type: Boolean }
-    };
+  static properties = {
+    title: { type: String },
+    message: { type: String },
+    type: { type: String }, // success, warning, info, confirm
+    visible: { type: Boolean },
+    onConfirm: { type: Object }
+  };
 
-    static styles = css`
+  static styles = css`
     :host {
       --success: #10b981;
       --warning: #ef4444;
       --info: #f59e0b;
+      --confirm: #3b82f6;
       --text: #1e293b;
       --text-light: #64748b;
     }
@@ -57,6 +59,7 @@ export class CommonPopup extends LitElement {
     .popup.success::before { background: var(--success); }
     .popup.warning::before { background: var(--warning); }
     .popup.info::before { background: var(--info); }
+    .popup.confirm::before { background: var(--confirm); }
 
     .icon-wrapper {
       width: 80px;
@@ -72,6 +75,7 @@ export class CommonPopup extends LitElement {
     .success .icon-wrapper { background: #ecfdf5; color: var(--success); }
     .warning .icon-wrapper { background: #fef2f2; color: var(--warning); }
     .info .icon-wrapper { background: #fffbeb; color: var(--info); }
+    .confirm .icon-wrapper { background: #eff6ff; color: var(--confirm); }
 
     h2 {
       margin: 0 0 0.75rem;
@@ -88,6 +92,11 @@ export class CommonPopup extends LitElement {
       font-size: 1.1rem;
     }
 
+    .btn-group {
+        display: flex;
+        gap: 1rem;
+    }
+
     .btn {
       width: 100%;
       padding: 1rem;
@@ -99,6 +108,16 @@ export class CommonPopup extends LitElement {
       transition: all 0.2s;
     }
 
+    .btn-close {
+        background: #f1f5f9;
+        color: var(--text-light);
+    }
+
+    .btn-close:hover {
+        background: #e2e8f0;
+        color: var(--text);
+    }
+
     .btn-success { background: var(--success); color: white; }
     .btn-success:hover { background: #059669; transform: translateY(-2px); }
 
@@ -107,6 +126,9 @@ export class CommonPopup extends LitElement {
 
     .btn-info { background: var(--info); color: white; }
     .btn-info:hover { background: #d97706; transform: translateY(-2px); }
+
+    .btn-confirm { background: var(--confirm); color: white; }
+    .btn-confirm:hover { background: #2563eb; transform: translateY(-2px); }
 
     @keyframes fadeIn {
       from { opacity: 0; }
@@ -119,44 +141,55 @@ export class CommonPopup extends LitElement {
     }
   `;
 
-    constructor() {
-        super();
-        this.visible = false;
-        this.title = '';
-        this.message = '';
-        this.type = 'info';
+  constructor() {
+    super();
+    this.visible = false;
+    this.title = '';
+    this.message = '';
+    this.type = 'info';
+    this.onConfirm = null;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this._handler = (e) => {
+      this.title = e.detail.title;
+      this.message = e.detail.message;
+      this.type = e.detail.type;
+      this.onConfirm = e.detail.onConfirm;
+      this.visible = true;
+    };
+    window.addEventListener('show-popup', this._handler);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener('show-popup', this._handler);
+  }
+
+  close() {
+    this.visible = false;
+    this.onConfirm = null;
+  }
+
+  handleConfirm() {
+    if (typeof this.onConfirm === 'function') {
+      this.onConfirm();
     }
+    this.close();
+  }
 
-    connectedCallback() {
-        super.connectedCallback();
-        this._handler = (e) => {
-            this.title = e.detail.title;
-            this.message = e.detail.message;
-            this.type = e.detail.type;
-            this.visible = true;
-        };
-        window.addEventListener('show-popup', this._handler);
-    }
+  render() {
+    if (!this.visible) return html``;
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        window.removeEventListener('show-popup', this._handler);
-    }
+    const icons = {
+      success: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+      warning: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+      info: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line><circle cx="12" cy="12" r="10"></circle></svg>`,
+      confirm: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`
+    };
 
-    close() {
-        this.visible = false;
-    }
-
-    render() {
-        if (!this.visible) return html``;
-
-        const icons = {
-            success: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
-            warning: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
-            info: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line><circle cx="12" cy="12" r="10"></circle></svg>`
-        };
-
-        return html`
+    return html`
       <div class="overlay" @click=${this.close}>
         <div class="popup ${this.type}" @click=${(e) => e.stopPropagation()}>
           <div class="icon-wrapper">
@@ -164,13 +197,25 @@ export class CommonPopup extends LitElement {
           </div>
           <h2>${this.title}</h2>
           <p>${this.message}</p>
-          <button class="btn btn-${this.type}" @click=${this.close}>
-            Entendido
-          </button>
+          
+          ${this.type === 'confirm' ? html`
+            <div class="btn-group">
+                <button class="btn btn-close" @click=${this.close}>
+                    Cancelar
+                </button>
+                <button class="btn btn-confirm" @click=${this.handleConfirm}>
+                    Confirmar
+                </button>
+            </div>
+          ` : html`
+            <button class="btn btn-${this.type}" @click=${this.close}>
+                Entendido
+            </button>
+          `}
         </div>
       </div>
     `;
-    }
+  }
 }
 
 customElements.define('common-popup', CommonPopup);

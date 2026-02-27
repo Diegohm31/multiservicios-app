@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosServicioListado extends LitElement {
   static properties = {
@@ -316,14 +317,19 @@ export class ViewServiciosServicioListado extends LitElement {
   }
 
   async deleteServicio(id) {
-    if (confirm('¿Está seguro de que desea eliminar permanentemente este servicio?')) {
-      try {
-        await serviciosService.deleteServicio(id);
-        this.loadServicios();
-      } catch (error) {
-        alert('Error al eliminar: ' + error.message);
+    popupService.confirm(
+      'Confirmar Eliminación',
+      '¿Está seguro de que desea eliminar permanentemente este servicio?',
+      async () => {
+        try {
+          await serviciosService.deleteServicio(id);
+          this.loadServicios();
+          popupService.success('Éxito', 'Servicio eliminado correctamente');
+        } catch (error) {
+          popupService.warning('Error', 'Error al eliminar: ' + error.message);
+        }
       }
-    }
+    );
   }
 
   changePage(page) {

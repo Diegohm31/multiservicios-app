@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { tiposServiciosService } from '../services/tipos-servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewTiposServiciosForm extends LitElement {
   static properties = {
@@ -272,7 +273,7 @@ export class ViewTiposServiciosForm extends LitElement {
       if (this.tipo_servicioId) {
         formData.append('_method', 'PUT');
         await tiposServiciosService.updateTipoServicio(this.tipo_servicioId, formData);
-        alert('Tipo de servicio actualizado correctamente');
+        popupService.success('Éxito', 'Tipo de servicio actualizado correctamente');
       } else {
         this.tipos_servicios.forEach(tipo_servicio => {
           if (tipo_servicio.nombre.toLowerCase() === this.tipo_servicio.nombre.toLowerCase()) {
@@ -280,11 +281,11 @@ export class ViewTiposServiciosForm extends LitElement {
           }
         });
         await tiposServiciosService.createTipoServicio(formData);
-        alert('Tipo de servicio creado correctamente');
+        popupService.success('Éxito', 'Tipo de servicio creado correctamente');
       }
       navigator.goto('/servicios/listado/tipo_servicio');
     } catch (error) {
-      alert(error.message);
+      popupService.warning('Error', error.message);
       console.error(error);
     }
   }

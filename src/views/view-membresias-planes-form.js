@@ -2,17 +2,18 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { planesMembresiasService } from '../services/planes-membresias-service.js';
 import { tiposServiciosService } from '../services/tipos-servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewMembresiasPlanesForm extends LitElement {
-    static properties = {
-        planId: { type: String },
-        plan: { type: Object },
-        tiposServicios: { type: Array },
-        selectedTiposServicios: { type: Array },
-        loading: { type: Boolean }
-    };
+  static properties = {
+    planId: { type: String },
+    plan: { type: Object },
+    tiposServicios: { type: Array },
+    selectedTiposServicios: { type: Array },
+    loading: { type: Boolean }
+  };
 
-    static styles = css`
+  static styles = css`
     :host {
       --primary: #3b82f6;
       --primary-hover: #2563eb;
@@ -300,115 +301,115 @@ export class ViewMembresiasPlanesForm extends LitElement {
     }
   `;
 
-    constructor() {
-        super();
-        this.planId = '';
-        this.plan = {
-            nombre: '',
-            descripcion: '',
-            duracion_meses: '',
-            precio: ''
-        };
-        this.tiposServicios = [];
-        this.selectedTiposServicios = [];
-        this.loading = false;
-    }
+  constructor() {
+    super();
+    this.planId = '';
+    this.plan = {
+      nombre: '',
+      descripcion: '',
+      duracion_meses: '',
+      precio: ''
+    };
+    this.tiposServicios = [];
+    this.selectedTiposServicios = [];
+    this.loading = false;
+  }
 
-    async connectedCallback() {
-        super.connectedCallback();
-        await this.loadInitialData();
-    }
+  async connectedCallback() {
+    super.connectedCallback();
+    await this.loadInitialData();
+  }
 
-    async loadInitialData() {
-        this.loading = true;
-        try {
-            const ts = await tiposServiciosService.getTiposServicios();
-            if (ts) this.tiposServicios = ts;
+  async loadInitialData() {
+    this.loading = true;
+    try {
+      const ts = await tiposServiciosService.getTiposServicios();
+      if (ts) this.tiposServicios = ts;
 
-            if (this.planId) {
-                const data = await planesMembresiasService.getOnePlan(this.planId);
-                if (data) {
-                    this.plan = {
-                        nombre: data.nombre,
-                        descripcion: data.descripcion,
-                        duracion_meses: data.duracion_meses,
-                        precio: data.precio
-                    };
-                    // Cargar tipos de servicios asociados si existen
-                    if (data.array_tipos_servicios) {
-                        this.selectedTiposServicios = data.array_tipos_servicios.map(ts => ({
-                            id_tipo_servicio: ts.id_tipo_servicio,
-                            porcentaje_descuento: ts.porcentaje_descuento || 100
-                        }));
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            this.loading = false;
+      if (this.planId) {
+        const data = await planesMembresiasService.getOnePlan(this.planId);
+        if (data) {
+          this.plan = {
+            nombre: data.nombre,
+            descripcion: data.descripcion,
+            duracion_meses: data.duracion_meses,
+            precio: data.precio
+          };
+          // Cargar tipos de servicios asociados si existen
+          if (data.array_tipos_servicios) {
+            this.selectedTiposServicios = data.array_tipos_servicios.map(ts => ({
+              id_tipo_servicio: ts.id_tipo_servicio,
+              porcentaje_descuento: ts.porcentaje_descuento || 100
+            }));
+          }
         }
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  handleInput(e) {
+    const { name, value } = e.target;
+    this.plan = { ...this.plan, [name]: value };
+  }
+
+  toggleTipoServicio(id) {
+    if (this.selectedTiposServicios.find(i => i.id_tipo_servicio === id)) {
+      this.selectedTiposServicios = this.selectedTiposServicios.filter(i => i.id_tipo_servicio !== id);
+    } else {
+      this.selectedTiposServicios = [...this.selectedTiposServicios, {
+        id_tipo_servicio: id,
+        porcentaje_descuento: 100 // Por defecto 100
+      }];
+    }
+  }
+
+  handleDiscountChange(id, value) {
+    this.selectedTiposServicios = this.selectedTiposServicios.map(item => {
+      if (item.id_tipo_servicio === id) {
+        return { ...item, porcentaje_descuento: Number(value) };
+      }
+      return item;
+    });
+  }
+
+  async handleSubmit(e) {
+    e.preventDefault();
+    this.loading = true;
+
+    const payload = {
+      ...this.plan,
+      duracion_meses: Number(this.plan.duracion_meses),
+      precio: Number(this.plan.precio),
+      array_tipos_servicios: this.selectedTiposServicios
+    };
+
+    try {
+      if (this.planId) {
+        await planesMembresiasService.updatePlan(this.planId, payload);
+        popupService.success('Éxito', 'Plan actualizado con éxito');
+      } else {
+        await planesMembresiasService.createPlan(payload);
+        popupService.success('Éxito', 'Plan creado con éxito');
+      }
+      navigator.goto('/membresias/planes/listado');
+    } catch (error) {
+      console.error('Error saving plan:', error);
+      popupService.error('Error', 'Hubo un error al guardar el plan');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  render() {
+    if (this.loading && !this.tiposServicios.length) {
+      return html`<div class="loader"><div class="spinner"></div></div>`;
     }
 
-    handleInput(e) {
-        const { name, value } = e.target;
-        this.plan = { ...this.plan, [name]: value };
-    }
-
-    toggleTipoServicio(id) {
-        if (this.selectedTiposServicios.find(i => i.id_tipo_servicio === id)) {
-            this.selectedTiposServicios = this.selectedTiposServicios.filter(i => i.id_tipo_servicio !== id);
-        } else {
-            this.selectedTiposServicios = [...this.selectedTiposServicios, {
-                id_tipo_servicio: id,
-                porcentaje_descuento: 100 // Por defecto 100
-            }];
-        }
-    }
-
-    handleDiscountChange(id, value) {
-        this.selectedTiposServicios = this.selectedTiposServicios.map(item => {
-            if (item.id_tipo_servicio === id) {
-                return { ...item, porcentaje_descuento: Number(value) };
-            }
-            return item;
-        });
-    }
-
-    async handleSubmit(e) {
-        e.preventDefault();
-        this.loading = true;
-
-        const payload = {
-            ...this.plan,
-            duracion_meses: Number(this.plan.duracion_meses),
-            precio: Number(this.plan.precio),
-            array_tipos_servicios: this.selectedTiposServicios
-        };
-
-        try {
-            if (this.planId) {
-                await planesMembresiasService.updatePlan(this.planId, payload);
-                alert('Plan actualizado con éxito');
-            } else {
-                await planesMembresiasService.createPlan(payload);
-                alert('Plan creado con éxito');
-            }
-            navigator.goto('/membresias/planes/listado');
-        } catch (error) {
-            console.error('Error saving plan:', error);
-            alert('Hubo un error al guardar el plan');
-        } finally {
-            this.loading = false;
-        }
-    }
-
-    render() {
-        if (this.loading && !this.tiposServicios.length) {
-            return html`<div class="loader"><div class="spinner"></div></div>`;
-        }
-
-        return html`
+    return html`
       <div class="container">
         <header>
           <h1>${this.planId ? 'Editar Plan de Membresía' : 'Nuevo Plan de Membresía'}</h1>
@@ -450,8 +451,8 @@ export class ViewMembresiasPlanesForm extends LitElement {
             <div class="list-container">
               <div class="list-grid">
                 ${this.tiposServicios.map(ts => {
-            const isSelected = this.selectedTiposServicios.find(i => i.id_tipo_servicio === ts.id_tipo_servicio);
-            return html`
+      const isSelected = this.selectedTiposServicios.find(i => i.id_tipo_servicio === ts.id_tipo_servicio);
+      return html`
                         <div class="list-item" style="${isSelected ? 'border-color: var(--primary);' : ''}">
                           <input type="checkbox" 
                                  .checked=${!!isSelected} 
@@ -469,7 +470,7 @@ export class ViewMembresiasPlanesForm extends LitElement {
                           ` : ''}
                         </div>
                     `;
-        })}
+    })}
               </div>
             </div>
 
@@ -484,7 +485,7 @@ export class ViewMembresiasPlanesForm extends LitElement {
         </div>
       </div>
     `;
-    }
+  }
 }
 
 customElements.define('view-membresias-planes-form', ViewMembresiasPlanesForm);

@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 import { materialesService } from '../services/materiales-service.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
 import { especialidadesService } from '../services/especialidades-service.js';
@@ -589,64 +590,64 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
 
 
     async handleSave() {
-        if (!confirm('¿Desea guardar este presupuesto?')) return;
+        popupService.confirm('Guardar Presupuesto', '¿Desea guardar este presupuesto?', async () => {
+            this.loading = true;
 
-        this.loading = true;
+            const totalMat = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitMat(s) * s.cantidad), 0);
+            const totalEqu = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitEqu(s) * s.cantidad), 0);
+            const totalMO = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitMO(s) * s.cantidad), 0);
+            const totalGen = totalMat + totalEqu + totalMO;
 
-        const totalMat = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitMat(s) * s.cantidad), 0);
-        const totalEqu = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitEqu(s) * s.cantidad), 0);
-        const totalMO = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitMO(s) * s.cantidad), 0);
-        const totalGen = totalMat + totalEqu + totalMO;
-
-        const payload = {
-            id_orden: this.ordenId,
-            total_materiales: totalMat,
-            total_equipos: totalEqu,
-            total_mano_obra: totalMO,
-            total_general: totalGen,
-            total_descuento: this.serviciosEditados.reduce((acc, s) => acc + (this.calculateDescuentoUnitario(s) * (Number(s.cantidad) || 1)), 0),
-            total_a_pagar: this.totalGlobal,
-            array_servicios: this.serviciosEditados.map(s => ({
-                id_orden_servicio: s.id_orden_servicio,
-                precio_materiales_unitario: this.calculateUnitMat(s),
-                precio_tipos_equipos_unitario: this.calculateUnitEqu(s),
-                precio_mano_obra_unitario: this.calculateUnitMO(s),
-                precio_general_unitario: this.calculatePrecioGeneralUnitario(s),
-                porcentaje_descuento: this.calculatePorcentajeDescuentoTotal(s),
-                descuento_unitario: this.calculateDescuentoUnitario(s),
-                precio_neto_unitario: this.calculatePrecioNetoUnitario(s),
-                precio_a_pagar: this.calculatePrecioAPagar(s),
-                array_materiales: s.selectedMateriales.map(m => ({
-                    id_material: m.id_material,
-                    cantidad: Number(m.cantidad),
-                    precio_unitario: Number(m.precio_unitario)
-                })),
-                array_tipos_equipos: s.selectedEquipos.map(e => ({
-                    id_tipo_equipo: e.id_tipo_equipo,
-                    cantidad: Number(e.cantidad),
-                    horas_uso: Number(e.horas_uso),
-                    costo_hora: Number(e.costo_hora)
-                })),
-                array_especialidades: s.selectedEspecialidades.map(esp => ({
-                    id_especialidad: esp.id_especialidad,
-                    cantidad: Number(esp.cantidad),
-                    horas_hombre: Number(esp.horas_hombre),
-                    tarifa_hora: Number(esp.tarifa_hora)
+            const payload = {
+                id_orden: this.ordenId,
+                total_materiales: totalMat,
+                total_equipos: totalEqu,
+                total_mano_obra: totalMO,
+                total_general: totalGen,
+                total_descuento: this.serviciosEditados.reduce((acc, s) => acc + (this.calculateDescuentoUnitario(s) * (Number(s.cantidad) || 1)), 0),
+                total_a_pagar: this.totalGlobal,
+                array_servicios: this.serviciosEditados.map(s => ({
+                    id_orden_servicio: s.id_orden_servicio,
+                    precio_materiales_unitario: this.calculateUnitMat(s),
+                    precio_tipos_equipos_unitario: this.calculateUnitEqu(s),
+                    precio_mano_obra_unitario: this.calculateUnitMO(s),
+                    precio_general_unitario: this.calculatePrecioGeneralUnitario(s),
+                    porcentaje_descuento: this.calculatePorcentajeDescuentoTotal(s),
+                    descuento_unitario: this.calculateDescuentoUnitario(s),
+                    precio_neto_unitario: this.calculatePrecioNetoUnitario(s),
+                    precio_a_pagar: this.calculatePrecioAPagar(s),
+                    array_materiales: s.selectedMateriales.map(m => ({
+                        id_material: m.id_material,
+                        cantidad: Number(m.cantidad),
+                        precio_unitario: Number(m.precio_unitario)
+                    })),
+                    array_tipos_equipos: s.selectedEquipos.map(e => ({
+                        id_tipo_equipo: e.id_tipo_equipo,
+                        cantidad: Number(e.cantidad),
+                        horas_uso: Number(e.horas_uso),
+                        costo_hora: Number(e.costo_hora)
+                    })),
+                    array_especialidades: s.selectedEspecialidades.map(esp => ({
+                        id_especialidad: esp.id_especialidad,
+                        cantidad: Number(esp.cantidad),
+                        horas_hombre: Number(esp.horas_hombre),
+                        tarifa_hora: Number(esp.tarifa_hora)
+                    }))
                 }))
-            }))
-        };
+            };
 
-        try {
-            const res = await serviciosService.createPresupuesto(payload);
-            if (res) {
-                alert('Presupuesto generado correctamente');
-                navigator.goto('/servicios/listado/orden');
+            try {
+                const res = await serviciosService.createPresupuesto(payload);
+                if (res) {
+                    popupService.success('Éxito', 'Presupuesto generado correctamente');
+                    navigator.goto('/servicios/listado/orden');
+                }
+            } catch (error) {
+                popupService.warning('Error', 'Error al guardar: ' + error.message);
+            } finally {
+                this.loading = false;
             }
-        } catch (error) {
-            alert('Error al guardar: ' + error.message);
-        } finally {
-            this.loading = false;
-        }
+        });
     }
 
     render() {

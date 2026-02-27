@@ -371,14 +371,19 @@ export class ViewOperativosListado extends LitElement {
   async handleToggleStatus(id_usuario, is_deleted) {
     const newActiveValue = is_deleted ? 1 : 0; // Si is_deleted=1 (Inactivo/Borrado), activamos con 1.
     const action = newActiveValue ? 'activar' : 'inactivar';
-    if (confirm(`¿Está seguro de que desea ${action} a este operativo?`)) {
-      try {
-        await usuariosService.toggleStatus(id_usuario, newActiveValue);
-        this.loadOperativos();
-      } catch (error) {
-        popupService.warning('Error', 'Error al cambiar el estado del operativo');
+    popupService.confirm(
+      'Cambiar Estado',
+      `¿Está seguro de que desea ${action} a este operativo?`,
+      async () => {
+        try {
+          await usuariosService.toggleStatus(id_usuario, newActiveValue);
+          this.loadOperativos();
+          popupService.success('Éxito', `Operativo ${action}ado correctamente`);
+        } catch (error) {
+          popupService.warning('Error', 'Error al cambiar el estado del operativo');
+        }
       }
-    }
+    );
   }
 
   render() {

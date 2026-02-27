@@ -2,6 +2,7 @@ import { LitElement, css, html } from 'lit';
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
 import { navigator } from '../utils/navigator.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewCatalogoServicios extends LitElement {
   static properties = {
@@ -184,7 +185,7 @@ export class ViewCatalogoServicios extends LitElement {
 
       const result = await serviciosService.createOrden(orderPayload);
       if (result) {
-        alert('¡Orden creada correctamente!');
+        popupService.success('Orden Creada', '¡Orden creada correctamente!');
         this.cart = [];
         this.orderData = {
           direccion: this.user?.direccion || '',
@@ -192,7 +193,7 @@ export class ViewCatalogoServicios extends LitElement {
       }
     } catch (error) {
       console.error('Error submitting order:', error);
-      alert('Error al crear la orden: ' + error.message);
+      popupService.error('Error', 'Error al crear la orden: ' + error.message);
     } finally {
       this.submitting = false;
     }

@@ -5,6 +5,7 @@ import { materialesService } from '../services/materiales-service.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
 import { especialidadesService } from '../services/especialidades-service.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosServicioForm extends LitElement {
     static properties = {
@@ -561,7 +562,7 @@ export class ViewServiciosServicioForm extends LitElement {
                 let finalValue = value;
                 // Validation: hours cannot exceed service duration
                 if ((field === 'horas_uso' || field === 'horas_hombre') && Number(value) > this.actualDuracionHoras) {
-                    alert(`El tiempo (${value}h) no puede ser mayor a la duración del servicio (${this.actualDuracionHoras}h)`);
+                    popupService.warning('Tiempo Excedido', `El tiempo (${value}h) no puede ser mayor a la duración del servicio (${this.actualDuracionHoras}h)`);
                     finalValue = this.actualDuracionHoras;
 
                     // Sobrescribir el valor del input en el DOM inmediatamente
@@ -586,7 +587,7 @@ export class ViewServiciosServicioForm extends LitElement {
         // Validar que se haya subido una imagen al crear un nuevo servicio
         // O al editar un servicio que no tiene imagen previa
         if (!this.servicio.image && !this.previewUrl) {
-            alert('Debe subir una imagen del servicio');
+            popupService.info('Imagen Requerida', 'Debe subir una imagen del servicio');
             return;
         }
 
@@ -634,14 +635,14 @@ export class ViewServiciosServicioForm extends LitElement {
             this.loading = true;
             if (this.servicioId) {
                 await serviciosService.updateServicio(this.servicioId, formData);
-                alert('Servicio actualizado correctamente');
+                popupService.success('Éxito', 'Servicio actualizado correctamente');
             } else {
                 await serviciosService.createServicio(formData);
-                alert('Servicio creado correctamente');
+                popupService.success('Éxito', 'Servicio creado correctamente');
             }
             navigator.goto('/servicios/listado/servicio');
         } catch (error) {
-            alert('Error al guardar: ' + error.message);
+            popupService.warning('Error', 'Error al guardar: ' + error.message);
         } finally {
             this.loading = false;
         }

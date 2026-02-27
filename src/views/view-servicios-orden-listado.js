@@ -496,10 +496,14 @@ export class ViewServiciosOrdenListado extends LitElement {
   }
 
   async cancelarOrden(id) {
-    if (confirm('¿Está seguro de que desea cancelar la orden?')) {
-      await serviciosService.cancelarOrden(id);
-      this.loadOrdenes();
-    }
+    popupService.confirm(
+      'Cancelar Orden',
+      '¿Está seguro de que desea cancelar la orden?',
+      async () => {
+        await serviciosService.cancelarOrden(id);
+        this.loadOrdenes();
+      }
+    );
   }
 
   async asignarPersonal(id) {
@@ -507,15 +511,19 @@ export class ViewServiciosOrdenListado extends LitElement {
   }
 
   async completarOrden(id) {
-    if (confirm('¿Desea marcar esta orden como completada?')) {
-      try {
-        await serviciosService.completarOrden(id);
-        popupService.success('Éxito', 'Orden completada correctamente.');
-        this.loadOrdenes();
-      } catch (error) {
-        popupService.warning('Error', 'Error: ' + error.message);
+    popupService.confirm(
+      'Finalizar Orden',
+      '¿Desea marcar esta orden como completada?',
+      async () => {
+        try {
+          await serviciosService.completarOrden(id);
+          popupService.success('Éxito', 'Orden completada correctamente.');
+          this.loadOrdenes();
+        } catch (error) {
+          popupService.warning('Error', 'Error: ' + error.message);
+        }
       }
-    }
+    );
   }
 
   openRatingModal(id) {
@@ -576,15 +584,19 @@ export class ViewServiciosOrdenListado extends LitElement {
   }
 
   async ponerEnEjecucion(id) {
-    if (confirm('¿Desea poner esta orden en ejecución? Esto descontará los materiales del inventario.')) {
-      try {
-        await serviciosService.ponerEnEjecucion(id);
-        popupService.success('Éxito', 'Orden puesta en ejecución correctamente.');
-        this.loadOrdenes();
-      } catch (error) {
-        popupService.warning('Error', 'Error: ' + error.message);
+    popupService.confirm(
+      'Iniciar Ejecución',
+      '¿Desea poner esta orden en ejecución? Esto descontará los materiales del inventario.',
+      async () => {
+        try {
+          await serviciosService.ponerEnEjecucion(id);
+          popupService.success('Éxito', 'Orden puesta en ejecución correctamente.');
+          this.loadOrdenes();
+        } catch (error) {
+          popupService.warning('Error', 'Error: ' + error.message);
+        }
       }
-    }
+    );
   }
 
   handleFilterChange(e) {

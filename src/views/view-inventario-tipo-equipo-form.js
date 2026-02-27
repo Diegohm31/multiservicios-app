@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioTipoEquipoForm extends LitElement {
   static properties = {
@@ -180,14 +181,14 @@ export class ViewInventarioTipoEquipoForm extends LitElement {
     try {
       if (this.tipo_equipoId) {
         await tiposEquiposService.updateTipoEquipo(this.tipo_equipoId, this.tipo_equipo);
-        alert('Tipo de equipo actualizado correctamente');
+        popupService.success('Éxito', 'Tipo de equipo actualizado correctamente');
       } else {
         await tiposEquiposService.createTipoEquipo(this.tipo_equipo);
-        alert('Tipo de equipo creado correctamente');
+        popupService.success('Éxito', 'Tipo de equipo creado correctamente');
       }
       navigator.goto('/inventario/listado/tipo_equipo');
     } catch (error) {
-      alert('Error al guardar el tipo de equipo');
+      popupService.error('Error', 'Error al guardar el tipo de equipo');
       console.error(error);
     }
   }
