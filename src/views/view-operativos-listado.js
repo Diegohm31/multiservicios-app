@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { operativosService } from '../services/operativos-service.js';
 import { usuariosService } from '../services/usuarios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewOperativosListado extends LitElement {
   static properties = {
@@ -375,7 +376,7 @@ export class ViewOperativosListado extends LitElement {
         await usuariosService.toggleStatus(id_usuario, newActiveValue);
         this.loadOperativos();
       } catch (error) {
-        alert('Error al cambiar el estado del operativo');
+        popupService.warning('Error', 'Error al cambiar el estado del operativo');
       }
     }
   }

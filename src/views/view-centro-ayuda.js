@@ -1,17 +1,18 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewCentroAyuda extends LitElement {
-    static properties = {
-        faqs: { type: Array },
-        expandedFaq: { type: Number },
-        customQuestion: { type: String },
-        sending: { type: Boolean },
-        user: { type: Object }
-    };
+  static properties = {
+    faqs: { type: Array },
+    expandedFaq: { type: Number },
+    customQuestion: { type: String },
+    sending: { type: Boolean },
+    user: { type: Object }
+  };
 
-    static styles = css`
+  static styles = css`
     :host {
       --primary: #3b82f6;
       --primary-hover: #2563eb;
@@ -234,70 +235,70 @@ export class ViewCentroAyuda extends LitElement {
     }
   `;
 
-    constructor() {
-        super();
-        this.expandedFaq = -1;
-        this.customQuestion = '';
-        this.sending = false;
-        this.user = null;
-        this.faqs = [
-            {
-                question: '¿Cómo puedo solicitar un servicio?',
-                answer: 'Para solicitar un servicio, ingresa a la sección "Catálogo de Servicios", selecciona el que necesites y sigue los pasos para completar tu orden. Un administrador revisará tu solicitud y te enviará un presupuesto.'
-            },
-            {
-                question: '¿Cuáles son los métodos de pago aceptados?',
-                answer: 'Aceptamos transferencias bancarias, depósitos y pagos por plataformas digitales. Una vez realizado el pago, debes subir el comprobante en la sección "Mis Órdenes" para que sea validado por nuestro equipo.'
-            },
-            {
-                question: '¿Qué es una membresía y qué beneficios ofrece?',
-                answer: 'Nuestras membresías ofrecen descuentos exclusivos en servicios. Puedes consultar los planes disponibles en la sección "Membresías".'
-            },
-            {
-                question: '¿Cómo puedo cancelar una orden?',
-                answer: 'Puedes cancelar una orden desde la vista de detalles de la orden, siempre y cuando esta no haya sido puesta en ejecución. Si tienes problemas, contáctanos directamente.'
-            },
-            {
-                question: '¿En cuánto tiempo recibiré mi presupuesto?',
-                answer: 'Normalmente, procesamos las solicitudes en un periodo de 24 a 48 horas hábiles. Recibirás una notificación por correo electrónico una vez que tu presupuesto esté listo para ser revisado.'
-            }
-        ];
+  constructor() {
+    super();
+    this.expandedFaq = -1;
+    this.customQuestion = '';
+    this.sending = false;
+    this.user = null;
+    this.faqs = [
+      {
+        question: '¿Cómo puedo solicitar un servicio?',
+        answer: 'Para solicitar un servicio, ingresa a la sección "Catálogo de Servicios", selecciona el que necesites y sigue los pasos para completar tu orden. Un administrador revisará tu solicitud y te enviará un presupuesto.'
+      },
+      {
+        question: '¿Cuáles son los métodos de pago aceptados?',
+        answer: 'Aceptamos transferencias bancarias, depósitos y pagos por plataformas digitales. Una vez realizado el pago, debes subir el comprobante en la sección "Mis Órdenes" para que sea validado por nuestro equipo.'
+      },
+      {
+        question: '¿Qué es una membresía y qué beneficios ofrece?',
+        answer: 'Nuestras membresías ofrecen descuentos exclusivos en servicios. Puedes consultar los planes disponibles en la sección "Membresías".'
+      },
+      {
+        question: '¿Cómo puedo cancelar una orden?',
+        answer: 'Puedes cancelar una orden desde la vista de detalles de la orden, siempre y cuando esta no haya sido puesta en ejecución. Si tienes problemas, contáctanos directamente.'
+      },
+      {
+        question: '¿En cuánto tiempo recibiré mi presupuesto?',
+        answer: 'Normalmente, procesamos las solicitudes en un periodo de 24 a 48 horas hábiles. Recibirás una notificación por correo electrónico una vez que tu presupuesto esté listo para ser revisado.'
+      }
+    ];
+  }
+
+  async connectedCallback() {
+    super.connectedCallback();
+    this.user = await authService.getUser();
+  }
+
+  toggleFaq(index) {
+    this.expandedFaq = this.expandedFaq === index ? -1 : index;
+  }
+
+  handleInputChange(e) {
+    this.customQuestion = e.target.value;
+  }
+
+  async sendQuestion() {
+    if (!this.customQuestion.trim() || this.sending) return;
+
+    this.sending = true;
+    try {
+      await authService.enviarDuda({
+        duda: this.customQuestion,
+        email: this.user?.email
+      });
+
+      popupService.success('Consulta Enviada', 'Tu duda ha sido enviada exitosamente. Un administrador se pondrá en contacto contigo pronto.');
+      this.customQuestion = '';
+    } catch (error) {
+      popupService.warning('Error', `Error: ${error.message}`);
+    } finally {
+      this.sending = false;
     }
+  }
 
-    async connectedCallback() {
-        super.connectedCallback();
-        this.user = await authService.getUser();
-    }
-
-    toggleFaq(index) {
-        this.expandedFaq = this.expandedFaq === index ? -1 : index;
-    }
-
-    handleInputChange(e) {
-        this.customQuestion = e.target.value;
-    }
-
-    async sendQuestion() {
-        if (!this.customQuestion.trim() || this.sending) return;
-
-        this.sending = true;
-        try {
-            await authService.enviarDuda({
-                duda: this.customQuestion,
-                email: this.user?.email
-            });
-
-            alert('Tu duda ha sido enviada exitosamente. Un administrador se pondrá en contacto contigo pronto.');
-            this.customQuestion = '';
-        } catch (error) {
-            alert(`Error: ${error.message}`);
-        } finally {
-            this.sending = false;
-        }
-    }
-
-    render() {
-        return html`
+  render() {
+    return html`
       <div class="header-section">
         <div class="title-group">
           <p>Soporte y Consultas</p>
@@ -355,7 +356,7 @@ export class ViewCentroAyuda extends LitElement {
         </button>
       </div>
     `;
-    }
+  }
 }
 
 customElements.define('view-centro-ayuda', ViewCentroAyuda);

@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { especialidadesService } from '../services/especialidades-service.js';
 import { operativosService } from '../services/operativos-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewOperativoForm extends LitElement {
   static properties = {
@@ -280,7 +281,7 @@ export class ViewOperativoForm extends LitElement {
 
     //validar que al memnos haya una especialidad seleccionada
     if (this.selectedEspecialidades.length === 0) {
-      alert('Debe seleccionar al menos una especialidad');
+      popupService.info('Especialidad Requerida', 'Debe seleccionar al menos una especialidad');
       return;
     }
 
@@ -290,14 +291,14 @@ export class ViewOperativoForm extends LitElement {
     try {
       if (this.operativoId) {
         await operativosService.updateOperativo(this.operativoId, this.operativo);
-        alert('Operativo actualizado correctamente');
+        popupService.success('Operativo Actualizado', 'Operativo actualizado correctamente');
       } else {
         await operativosService.createOperativo(this.operativo);
-        alert('Operativo creado correctamente');
+        popupService.success('Operativo Creado', 'Operativo creado correctamente');
       }
       navigator.goto('/operativos/listado');
     } catch (error) {
-      alert('Error al guardar el operativo');
+      popupService.warning('Error', 'Error al guardar el operativo');
       console.error(error);
     }
   }

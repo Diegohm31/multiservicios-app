@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { especialidadesService } from '../services/especialidades-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewEspecialidadesListado extends LitElement {
   static properties = {
@@ -289,7 +290,7 @@ export class ViewEspecialidadesListado extends LitElement {
         await especialidadesService.deleteEspecialidad(id_especialidad);
         this.loadEspecialidades();
       } catch (error) {
-        alert('Error al eliminar especialidad');
+        popupService.warning('Error', 'Error al eliminar especialidad');
       }
     }
   }

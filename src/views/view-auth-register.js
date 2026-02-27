@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { authService } from '../services/auth-service.js';
 import { navigator } from '../utils/navigator.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewAuthRegister extends LitElement {
   static styles = css`
@@ -93,7 +94,7 @@ export class ViewAuthRegister extends LitElement {
     try {
 
       if (!this.name || !this.email || !this.password || !this.cedula || !this.telefono || !this.direccion) {
-        alert('Por favor, completa todos los campos.');
+        popupService.info('Campo Falante', 'Por favor, completa todos los campos.');
         return;
       }
 
@@ -109,11 +110,11 @@ export class ViewAuthRegister extends LitElement {
       let response = await authService.register($user);
 
       if (response) {
-        alert('Registro exitoso. Por favor inicia sesión.');
+        popupService.success('Registro Exitoso', 'Registro exitoso. Por favor inicia sesión.');
         navigator.goto('/login');
       }
     } catch (error) {
-      alert('Error en el registro');
+      popupService.warning('Error', 'Error en el registro');
     }
   }
 

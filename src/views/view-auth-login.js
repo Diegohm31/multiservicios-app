@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { authService } from '../services/auth-service.js';
 import { navigator } from '../utils/navigator.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewAuthLogin extends LitElement {
 
@@ -104,7 +105,7 @@ export class ViewAuthLogin extends LitElement {
         this.error = 'Usuario o contraseña incorrectos';
       }
     } catch (error) {
-      alert('Error al iniciar sesión');
+      popupService.warning('Error', 'Error al iniciar sesión');
     }
   }
 

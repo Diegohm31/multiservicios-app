@@ -39,6 +39,7 @@ import './views/view-usuarios-listado.js';
 import './views/view-mi-cuenta.js';
 import './views/view-centro-ayuda.js';
 import './views/view-configuracion.js';
+import './components/common-popup.js';
 
 import { authService } from './services/auth-service.js';
 import { navigator } from './utils/navigator.js';
@@ -989,6 +990,7 @@ export class MainApp extends LitElement {
           <a href="#">Soporte</a>
         </p>
       </footer>
+      <common-popup></common-popup>
     `;
   }
 }

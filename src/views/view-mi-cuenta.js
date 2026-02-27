@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewMiCuenta extends LitElement {
     static properties = {
@@ -414,17 +415,17 @@ export class ViewMiCuenta extends LitElement {
             });
 
             if (response.email_change_pending) {
-                alert(response.message);
+                popupService.info('Cambio Pendiente', response.message);
                 this.emailVerifyData.new_email = response.new_email;
                 this.showEmailVerifyModal = true;
                 this.user = response.data; // Actualizar con otros cambios
                 return;
             }
 
-            alert('Perfil actualizado con éxito');
+            popupService.success('Éxito', 'Perfil actualizado con éxito');
             this.user = response.data;
         } catch (error) {
-            alert('Error al actualizar el perfil: ' + error.message);
+            popupService.warning('Error', 'Error al actualizar el perfil: ' + error.message);
         } finally {
             this.saving = false;
         }
@@ -432,21 +433,21 @@ export class ViewMiCuenta extends LitElement {
 
     async handleVerifyEmail() {
         if (!this.emailVerifyData.codigo) {
-            alert('Por favor, ingrese el código de verificación');
+            popupService.info('Código Requerido', 'Por favor, ingrese el código de verificación');
             return;
         }
 
         this.saving = true;
         try {
             const response = await authService.verifyEmailChange(this.emailVerifyData);
-            alert(response.message);
+            popupService.success('Éxito', response.message);
             if (response.logout) {
                 // Forzar logout y redirección
                 localStorage.removeItem('token');
                 window.location.href = '/login';
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            popupService.warning('Error', 'Error: ' + error.message);
         } finally {
             this.saving = false;
         }
@@ -454,17 +455,17 @@ export class ViewMiCuenta extends LitElement {
 
     async handleChangePassword() {
         if (this.passwordData.new_password !== this.passwordData.new_password_confirmation) {
-            alert('Las contraseñas nuevas no coinciden');
+            popupService.warning('Error', 'Las contraseñas nuevas no coinciden');
             return;
         }
 
         this.saving = true;
         try {
             await authService.updatePassword(this.passwordData);
-            alert('Contraseña actualizada con éxito');
+            popupService.success('Éxito', 'Contraseña actualizada con éxito');
             this.closePasswordModal();
         } catch (error) {
-            alert('Error: ' + error.message);
+            popupService.warning('Error', 'Error: ' + error.message);
         } finally {
             this.saving = false;
         }

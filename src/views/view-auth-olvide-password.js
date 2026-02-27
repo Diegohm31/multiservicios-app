@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { authService } from '../services/auth-service.js';
 import { navigator } from '../utils/navigator.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewAuthOlvidePassword extends LitElement {
 
@@ -96,7 +97,8 @@ export class ViewAuthOlvidePassword extends LitElement {
     this.error = '';
     try {
       await authService.forgotPassword(this.email);
-      alert('Se ha enviado un código de verificación a su correo electrónico.');
+      popupService.success('Email Enviado', 'Se ha enviado un código de verificación a su correo electrónico.');
+      navigator.goto(`/new_password/${this.email}`);
     } catch (error) {
       this.error = error.message || 'Error al procesar la solicitud.';
     } finally {

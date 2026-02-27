@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosOrdenListado extends LitElement {
   static properties = {
@@ -509,10 +510,10 @@ export class ViewServiciosOrdenListado extends LitElement {
     if (confirm('¿Desea marcar esta orden como completada?')) {
       try {
         await serviciosService.completarOrden(id);
-        alert('Orden completada correctamente.');
+        popupService.success('Éxito', 'Orden completada correctamente.');
         this.loadOrdenes();
       } catch (error) {
-        alert('Error: ' + error.message);
+        popupService.warning('Error', 'Error: ' + error.message);
       }
     }
   }
@@ -534,7 +535,7 @@ export class ViewServiciosOrdenListado extends LitElement {
 
   async submitRating() {
     if (this.selectedRating === 0) {
-      alert('Por favor selecciona una calificación de 1 a 5 estrellas.');
+      popupService.info('Selección Requerida', 'Por favor selecciona una calificación de 1 a 5 estrellas.');
       return;
     }
 
@@ -546,10 +547,10 @@ export class ViewServiciosOrdenListado extends LitElement {
       );
       this.closeRatingModal();
       await this.loadOrdenes();
-      alert('¡Gracias por tu calificación!');
+      popupService.success('Calificación Enviada', '¡Gracias por tu calificación!');
     } catch (error) {
       console.error('Error submitting rating:', error);
-      alert('Ocurrió un error al enviar la calificación.');
+      popupService.warning('Error', 'Ocurrió un error al enviar la calificación.');
     }
   }
 
@@ -578,10 +579,10 @@ export class ViewServiciosOrdenListado extends LitElement {
     if (confirm('¿Desea poner esta orden en ejecución? Esto descontará los materiales del inventario.')) {
       try {
         await serviciosService.ponerEnEjecucion(id);
-        alert('Orden puesta en ejecución correctamente.');
+        popupService.success('Éxito', 'Orden puesta en ejecución correctamente.');
         this.loadOrdenes();
       } catch (error) {
-        alert('Error: ' + error.message);
+        popupService.warning('Error', 'Error: ' + error.message);
       }
     }
   }

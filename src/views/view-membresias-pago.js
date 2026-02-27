@@ -4,6 +4,7 @@ import { planesMembresiasService } from '../services/planes-membresias-service.j
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
 import { empresaService } from '../services/empresa-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewMembresiasPago extends LitElement {
   static properties = {
@@ -353,7 +354,7 @@ export class ViewMembresiasPago extends LitElement {
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      alert('Error al cargar la información');
+      popupService.warning('Error', 'Error al cargar la información');
     } finally {
       this.loading = false;
     }
@@ -376,12 +377,12 @@ export class ViewMembresiasPago extends LitElement {
     e.preventDefault();
 
     if (!this.formData.metodo_pago || !this.formData.id_cuenta_bancaria || !this.formData.num_referencia || !this.formData.image) {
-      alert('Por favor complete todos los campos obligatorios y adjunte el comprobante.');
+      popupService.info('Información Faltante', 'Por favor complete todos los campos obligatorios y adjunte el comprobante.');
       return;
     }
 
     if (!this.user.id_cliente) {
-      alert('No se pudo encontrar la información de cliente del usuario actual.');
+      popupService.warning('Usuario no identificado', 'No se pudo encontrar la información de cliente del usuario actual.');
       return;
     }
 
@@ -407,11 +408,11 @@ export class ViewMembresiasPago extends LitElement {
 
       await serviciosService.createReportePago(paymentFormData);
 
-      alert('¡Excelente! El reporte de pago ha sido enviado y tu membresía está en proceso de activación.');
+      popupService.success('Éxito', '¡Excelente! El reporte de pago ha sido enviado y tu membresía está en proceso de activación.');
       navigator.goto('/membresias/planes/listado');
     } catch (error) {
       console.error('Error in payment process:', error);
-      alert('Ocurrió un error: ' + error.message);
+      popupService.warning('Error', 'Ocurrió un error: ' + error.message);
     } finally {
       this.processing = false;
     }

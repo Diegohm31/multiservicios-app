@@ -2,16 +2,17 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { usuariosService } from '../services/usuarios-service.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewUsuariosListado extends LitElement {
-    static properties = {
-        clientes: { type: Array },
-        currentPage: { type: Number },
-        itemsPerPage: { type: Number },
-        loading: { type: Boolean },
-    };
+  static properties = {
+    clientes: { type: Array },
+    currentPage: { type: Number },
+    itemsPerPage: { type: Number },
+    loading: { type: Boolean },
+  };
 
-    static styles = css`
+  static styles = css`
     :host {
       --primary: #3b82f6;
       --primary-hover: #2563eb;
@@ -336,79 +337,79 @@ export class ViewUsuariosListado extends LitElement {
       }
     `;
 
-    constructor() {
-        super();
-        this.clientes = [];
-        this.currentPage = 1;
-        this.itemsPerPage = 4;
-        this.loading = true;
-    }
+  constructor() {
+    super();
+    this.clientes = [];
+    this.currentPage = 1;
+    this.itemsPerPage = 4;
+    this.loading = true;
+  }
 
-    connectedCallback() {
-        super.connectedCallback();
+  connectedCallback() {
+    super.connectedCallback();
+    this.loadClientes();
+  }
+
+  async loadClientes() {
+    this.loading = true;
+    try {
+      const [clientes, ordenesData] = await Promise.all([
+        usuariosService.getClientes(),
+        serviciosService.getOrdenes()
+      ]);
+
+      const allOrders = ordenesData?.ordenes || [];
+
+      this.clientes = (clientes || []).map(cliente => {
+        const clientOrders = allOrders.filter(o => o.id_cliente === cliente.id_cliente);
+        const activeOrders = clientOrders.filter(o => !['Completada', 'Cancelada'].includes(o.estado));
+
+        return {
+          ...cliente,
+          ordenes_totales: clientOrders.length,
+          ordenes_activas: activeOrders.length
+        };
+      });
+    } catch (error) {
+      console.error('Error loading clientes:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  changePage(page) {
+    this.currentPage = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async handleToggleStatus(id_usuario, is_deleted) {
+    const newActiveValue = is_deleted ? 1 : 0; // Si está borrado (is_deleted=1), lo activamos (active=1). Si no, lo inactivamos (active=0).
+    const action = newActiveValue ? 'activar' : 'inactivar';
+    if (confirm(`¿Está seguro de que desea ${action} a este cliente?`)) {
+      try {
+        await usuariosService.toggleStatus(id_usuario, newActiveValue);
         this.loadClientes();
+      } catch (error) {
+        popupService.warning('Error', 'Ocurrió un error al cambiar el estado del cliente');
+      }
     }
+  }
 
-    async loadClientes() {
-        this.loading = true;
-        try {
-            const [clientes, ordenesData] = await Promise.all([
-                usuariosService.getClientes(),
-                serviciosService.getOrdenes()
-            ]);
-
-            const allOrders = ordenesData?.ordenes || [];
-
-            this.clientes = (clientes || []).map(cliente => {
-                const clientOrders = allOrders.filter(o => o.id_cliente === cliente.id_cliente);
-                const activeOrders = clientOrders.filter(o => !['Completada', 'Cancelada'].includes(o.estado));
-
-                return {
-                    ...cliente,
-                    ordenes_totales: clientOrders.length,
-                    ordenes_activas: activeOrders.length
-                };
-            });
-        } catch (error) {
-            console.error('Error loading clientes:', error);
-        } finally {
-            this.loading = false;
-        }
-    }
-
-    changePage(page) {
-        this.currentPage = page;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    async handleToggleStatus(id_usuario, is_deleted) {
-        const newActiveValue = is_deleted ? 1 : 0; // Si está borrado (is_deleted=1), lo activamos (active=1). Si no, lo inactivamos (active=0).
-        const action = newActiveValue ? 'activar' : 'inactivar';
-        if (confirm(`¿Está seguro de que desea ${action} a este cliente?`)) {
-            try {
-                await usuariosService.toggleStatus(id_usuario, newActiveValue);
-                this.loadClientes();
-            } catch (error) {
-                alert('Ocurrió un error al cambiar el estado del cliente');
-            }
-        }
-    }
-
-    render() {
-        if (this.loading) {
-            return html`
+  render() {
+    if (this.loading) {
+      return html`
         <div class="loading-container">
           <div class="loader"></div>
           <p style="color: var(--text-light); font-weight: 500;">Cargando listado de clientes...</p>
         </div>
       `;
-        }
+    }
 
-        const totalPages = Math.ceil(this.clientes.length / this.itemsPerPage);
-        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-        const paginatedClientes = this.clientes.slice(startIndex, startIndex + this.itemsPerPage);
+    const totalPages = Math.ceil(this.clientes.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const paginatedClientes = this.clientes.slice(startIndex, startIndex + this.itemsPerPage);
 
-        return html`
+    return html`
       <div class="header-section">
         <div class="title-group">
           <h1>Gestión de Clientes</h1>
@@ -495,7 +496,7 @@ export class ViewUsuariosListado extends LitElement {
         </div>
       ` : ''}
     `;
-    }
+  }
 }
 
 customElements.define('view-usuarios-listado', ViewUsuariosListado);

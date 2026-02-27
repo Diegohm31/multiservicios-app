@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { authService } from '../services/auth-service.js';
 import { empresaService } from '../services/empresa-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewConfiguracion extends LitElement {
   static properties = {
@@ -433,10 +434,10 @@ export class ViewConfiguracion extends LitElement {
 
       if (result) {
         this.empresa = result;
-        alert('Información de la empresa guardada correctamente');
+        popupService.success('Éxito', 'Información de la empresa guardada correctamente');
       }
     } catch (error) {
-      alert('Error al guardar: ' + error.message);
+      popupService.warning('Error', 'Error al guardar: ' + error.message);
     } finally {
       this.saving = false;
     }
@@ -478,7 +479,7 @@ export class ViewConfiguracion extends LitElement {
         this.showCuentaModal = false;
       }
     } catch (error) {
-      alert('Error al guardar cuenta: ' + error.message);
+      popupService.warning('Error', 'Error al guardar cuenta: ' + error.message);
     } finally {
       this.saving = false;
     }
@@ -492,7 +493,7 @@ export class ViewConfiguracion extends LitElement {
         await this.loadData();
       }
     } catch (error) {
-      alert('Error al eliminar');
+      popupService.warning('Error', 'Error al eliminar');
     }
   }
 

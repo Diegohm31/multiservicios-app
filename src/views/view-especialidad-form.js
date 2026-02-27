@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { especialidadesService } from '../services/especialidades-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewEspecialidadForm extends LitElement {
   static properties = {
@@ -185,7 +186,7 @@ export class ViewEspecialidadForm extends LitElement {
     try {
       if (this.especialidadId) {
         await especialidadesService.updateEspecialidad(this.especialidadId, this.especialidad);
-        alert('Especialidad actualizada correctamente');
+        popupService.success('Éxito', 'Especialidad actualizada correctamente');
       } else {
         this.especialidades.forEach(especialidad => {
           if (especialidad.nombre === this.especialidad.nombre && especialidad.nivel === this.especialidad.nivel) {
@@ -193,11 +194,11 @@ export class ViewEspecialidadForm extends LitElement {
           }
         });
         await especialidadesService.createEspecialidad(this.especialidad);
-        alert('Especialidad creada correctamente');
+        popupService.success('Éxito', 'Especialidad creada correctamente');
       }
       navigator.goto('/especialidades/listado');
     } catch (error) {
-      alert(error.message);
+      popupService.warning('Error', error.message);
       console.error(error);
     }
   }

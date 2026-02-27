@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { empresaService } from '../services/empresa-service.js';
+import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosOrdenPago extends LitElement {
   static properties = {
@@ -347,7 +348,7 @@ export class ViewServiciosOrdenPago extends LitElement {
       }
     } catch (error) {
       console.error('Error loading data:', error);
-      alert('Error al cargar la información');
+      popupService.warning('Error', 'Error al cargar la información');
     } finally {
       this.loading = false;
     }
@@ -370,7 +371,7 @@ export class ViewServiciosOrdenPago extends LitElement {
     e.preventDefault();
 
     if (!this.formData.metodo_pago || !this.formData.id_cuenta_bancaria || !this.formData.num_referencia || !this.formData.image) {
-      alert('Por favor complete todos los campos obligatorios y adjunte el comprobante.');
+      popupService.info('Información Faltante', 'Por favor complete todos los campos obligatorios y adjunte el comprobante.');
       return;
     }
 
@@ -385,11 +386,11 @@ export class ViewServiciosOrdenPago extends LitElement {
       formData.append('image', this.formData.image);
 
       await serviciosService.createReportePago(formData);
-      alert('Reporte de pago enviado correctamente. Será validado por un administrador.');
+      popupService.success('Éxito', 'Reporte de pago enviado correctamente. Será validado por un administrador.');
       navigator.goto('/servicios/listado/orden');
     } catch (error) {
       console.error('Error submitting payment:', error);
-      alert('Error al enviar el reporte: ' + error.message);
+      popupService.warning('Error', 'Error al enviar el reporte: ' + error.message);
     } finally {
       this.processing = false;
     }
