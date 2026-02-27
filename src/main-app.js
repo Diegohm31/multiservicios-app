@@ -42,6 +42,7 @@ import './views/view-configuracion.js';
 import './components/common-popup.js';
 
 import { authService } from './services/auth-service.js';
+import { empresaService } from './services/empresa-service.js';
 import { navigator } from './utils/navigator.js';
 
 
@@ -52,7 +53,8 @@ export class MainApp extends LitElement {
     isMenuOpen: { type: Boolean },
     currentPath: { type: String },
     user: { type: Object },
-    activeCategoryId: { type: String }
+    activeCategoryId: { type: String },
+    company: { type: Object }
   };
 
   constructor() {
@@ -63,6 +65,7 @@ export class MainApp extends LitElement {
     this.currentPath = window.location.pathname;
     this.user = {};
     this.activeCategoryId = localStorage.getItem('activeCategoryId');
+    this.company = { nombre: 'MultiServiciosApp', imagePath: '' };
   }
 
   router = new Router(this, [
@@ -617,7 +620,11 @@ export class MainApp extends LitElement {
       this.loadMenu();
     }
 
+    this.loadCompany();
     this.updateActiveCategory();
+
+    this._companyHandler = () => this.loadCompany();
+    window.addEventListener('company-updated', this._companyHandler);
 
     window.addEventListener('popstate', () => {
       this.currentPath = window.location.pathname;
@@ -654,6 +661,7 @@ export class MainApp extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener('company-updated', this._companyHandler);
   }
 
   async loadMenu() {
@@ -662,7 +670,19 @@ export class MainApp extends LitElement {
     if (user) {
       this.user = user;
     }
+    await this.loadCompany();
     this.updateActiveCategory();
+  }
+
+  async loadCompany() {
+    try {
+      const companies = await empresaService.getEmpresas();
+      if (companies && companies.length > 0) {
+        this.company = companies[0];
+      }
+    } catch (error) {
+      console.error('Error loading company data:', error);
+    }
   }
 
   toggleMenu() {
@@ -920,8 +940,12 @@ export class MainApp extends LitElement {
       <header class="app-header">
         <div style="display:flex; align-items:center">
            <button class="menu-toggle" @click=${this.toggleMenu}>☰</button>
-           <img src="/logo_msv.png" alt="Logo" style="width: 50px; height: 50px; margin-right: 10px">
-           <a href="/" class="brand" @click=${(e) => this.scrollTo(e, null)}>MultiServicios Villarroel</a>
+           <img 
+            src="${this.company.imagePath ? `${empresaService.baseUrl}/storage/${this.company.imagePath}` : '/logo_msv.png'}" 
+            alt="Logo" 
+            style="width: 50px; height: 50px; margin-right: 10px; border-radius: 8px; object-fit: cover;"
+           >
+           <a href="/" class="brand" @click=${(e) => this.scrollTo(e, null)}>${this.company.nombre}</a>
         </div>
         
         <nav>
@@ -983,7 +1007,7 @@ export class MainApp extends LitElement {
 
       <!-- Footer Global -->
       <footer class="app-footer">
-        <p>&copy; 2026 MultiServicios S.A. Todos los derechos reservados.</p>
+        <p>&copy; ${new Date().getFullYear()} ${this.company.nombre}. Todos los derechos reservados.</p>
         <p>
           <a href="#">Política de Privacidad</a> | 
           <a href="#">Términos de Uso</a> |

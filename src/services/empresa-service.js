@@ -30,14 +30,21 @@ export class EmpresaService {
     async storeEmpresa(empresa) {
         let url = `${this.baseUrl}/api/empresas`;
         let token = localStorage.getItem('token');
+        const headers = {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        // If it's not FormData, we need to set Content-Type and stringify
+        const isFormData = empresa instanceof FormData;
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+
         const requestOptions = {
             method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(empresa)
+            headers: headers,
+            body: isFormData ? empresa : JSON.stringify(empresa)
         };
         try {
             const response = await fetch(url, requestOptions);
@@ -53,14 +60,21 @@ export class EmpresaService {
     async updateEmpresa(id, empresa) {
         let url = `${this.baseUrl}/api/empresas/${id}`;
         let token = localStorage.getItem('token');
+        const headers = {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        const isFormData = empresa instanceof FormData;
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+
         const requestOptions = {
-            method: 'PUT',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(empresa)
+            // Using POST with _method=PUT (in FormData) for multipart support in some backends
+            method: isFormData ? 'POST' : 'PUT',
+            headers: headers,
+            body: isFormData ? empresa : JSON.stringify(empresa)
         };
         try {
             const response = await fetch(url, requestOptions);

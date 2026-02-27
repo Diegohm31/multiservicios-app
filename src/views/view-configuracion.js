@@ -355,6 +355,55 @@ export class ViewConfiguracion extends LitElement {
     @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes modalSlideUp { from { opacity: 0; transform: translateY(40px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    
+    .logo-upload-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 2px dashed var(--border);
+      transition: all 0.2s;
+    }
+
+    .logo-upload-container:hover {
+      border-color: var(--primary);
+      background: #f0f9ff;
+    }
+
+    .logo-preview {
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: #e2e8f0;
+      border: 2px solid white;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-upload {
+      padding: 0.5rem 1rem;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.2s;
+    }
+
+    .btn-upload:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .hidden-file-input {
+      display: none;
+    }
 
     @media (max-width: 1024px) {
       .grid-container { grid-template-columns: 1fr; }
@@ -369,7 +418,7 @@ export class ViewConfiguracion extends LitElement {
 
   constructor() {
     super();
-    this.empresa = { nombre: '', email: '', telefono: '', direccion: '', rif: '' };
+    this.empresa = { nombre: '', correo: '', telefono: '', direccion: '', rif: '', porcentaje_iva: 15, image: null, imagePath: '' };
     this.cuentas = [];
     this.loading = true;
     this.saving = false;
@@ -416,24 +465,50 @@ export class ViewConfiguracion extends LitElement {
   }
 
   handleEmpresaChange(e) {
-    const { id, value } = e.target;
+    const { id, value, type, files } = e.target;
     const field = id.replace('empresa-', '');
-    this.empresa = { ...this.empresa, [field]: value };
+
+    if (type === 'file') {
+      const file = files[0];
+      if (file) {
+        this.empresa = {
+          ...this.empresa,
+          image: file,
+          _preview: URL.createObjectURL(file)
+        };
+      }
+      return;
+    }
+
+    const finalValue = type === 'number' ? Number(value) : value;
+    this.empresa = { ...this.empresa, [field]: finalValue };
   }
 
   async saveEmpresa() {
     if (this.saving) return;
     this.saving = true;
     try {
+      const formData = new FormData();
+      Object.entries(this.empresa).forEach(([key, value]) => {
+        if (key === '_preview') return;
+        if (key === 'image' && !(value instanceof File)) return;
+        if (value !== null && value !== undefined) {
+          formData.append(key, value);
+        }
+      });
+
       let result;
       if (this.empresa.id_empresa) {
-        result = await empresaService.updateEmpresa(this.empresa.id_empresa, this.empresa);
+        formData.append('_method', 'PUT'); // For Laravel multipart PUT support
+        result = await empresaService.updateEmpresa(this.empresa.id_empresa, formData);
       } else {
-        result = await empresaService.storeEmpresa(this.empresa);
+        result = await empresaService.storeEmpresa(formData);
       }
 
       if (result) {
         this.empresa = result;
+        // Dispatch event for main-app to refresh logo and name
+        window.dispatchEvent(new CustomEvent('company-updated'));
         popupService.success('Éxito', 'Información de la empresa guardada correctamente');
       }
     } catch (error) {
@@ -535,6 +610,25 @@ export class ViewConfiguracion extends LitElement {
             </h2>
           </div>
 
+          <div class="logo-upload-container">
+            <img 
+              class="logo-preview" 
+              src="${this.empresa._preview || (this.empresa.imagePath ? `${empresaService.baseUrl}/storage/${this.empresa.imagePath}` : 'https://ui-avatars.com/api/?name=Logo&background=e2e8f0&color=64748b&size=120')}" 
+              alt="Logo Preview"
+            >
+            <button class="btn-upload" @click=${() => this.shadowRoot.querySelector('#empresa-image').click()}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Subir Logo
+            </button>
+            <input 
+              type="file" 
+              id="empresa-image" 
+              class="hidden-file-input" 
+              accept="image/*" 
+              @change=${this.handleEmpresaChange}
+            >
+          </div>
+
           <div class="form-group">
             <label for="empresa-nombre">Nombre de la Empresa</label>
             <input type="text" id="empresa-nombre" .value=${this.empresa.nombre} @input=${this.handleEmpresaChange}>
@@ -553,6 +647,11 @@ export class ViewConfiguracion extends LitElement {
           <div class="form-group">
             <label for="empresa-telefono">Teléfono de Contacto</label>
             <input type="text" id="empresa-telefono" .value=${this.empresa.telefono} @input=${this.handleEmpresaChange}>
+          </div>
+
+          <div class="form-group">
+            <label for="empresa-porcentaje_iva">IVA (%)</label>
+            <input type="number" id="empresa-porcentaje_iva" .value=${this.empresa.porcentaje_iva} @input=${this.handleEmpresaChange} min="0" max="100" step="1">
           </div>
 
           <div class="form-group">
