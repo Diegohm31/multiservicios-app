@@ -53,6 +53,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 2rem;
+      gap: 2.5rem;
     }
 
     .header-title {
@@ -516,6 +517,14 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
   }
 
+  viewFactura() {
+    const pdfPath = this.orden.presupuesto?.pdf_factura || this.orden.pdf_factura;
+    if (pdfPath) {
+      const url = `${serviciosService.baseUrl}/storage/${pdfPath}`;
+      window.open(url, '_blank');
+    }
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -538,7 +547,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
 
     const servicios = this.orden.servicios || this.orden.array_servicios || [];
-    const total = servicios.reduce((acc, s) => acc + parseFloat(s.pivot?.precio_a_pagar || s.precio_a_pagar || 0), 0);
+    const subtotal = servicios.reduce((acc, s) => acc + parseFloat(s.pivot?.precio_a_pagar || s.precio_a_pagar || 0), 0);
+    const iva = parseFloat(this.orden.presupuesto?.iva || this.orden.iva || 0);
+    const total = subtotal + iva;
 
     return html`
       <div class="container">
@@ -577,6 +588,14 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                   style="display: none;" 
                   @change=${this.handleFileUpload}
                 >
+
+                <!-- Botón de Factura/Presupuesto -->
+                ${(this.orden.presupuesto?.pdf_factura || this.orden.pdf_factura) ? html`
+                  <button class="btn-outline-danger" @click=${this.viewFactura}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Visualizar Factura
+                  </button>
+                ` : ''}
               ` : this.id_rol === '00001' ? html`
                 <!-- Cliente -->
                 ${this.orden.pdf_peritaje ? html`
@@ -589,6 +608,14 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                     Aun no se ha subido el Archivo de Peritaje
                   </span>
                 `}
+
+                <!-- Botón de Factura para Cliente -->
+                ${(this.orden.presupuesto?.pdf_factura || this.orden.pdf_factura) ? html`
+                  <button class="btn-outline-danger" @click=${this.viewFactura}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Visualizar Factura
+                  </button>
+                ` : ''}
               ` : ''}
             </div>
           </div>
@@ -687,8 +714,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
           </div>
         </section>
 
-        <!-- si es admin mostrar botones para aceptar o cancelar orden-->
-        ${this.id_rol === '00003' && this.orden.estado === 'Pendiente' ? html`
+        <!--si es admin mostrar botones para aceptar o cancelar orden-- >
+  ${this.id_rol === '00003' && this.orden.estado === 'Pendiente' ? html`
           <div class="card">
             <div class="card-header">
               <h2 class="card-title">Acciones</h2>
@@ -710,10 +737,11 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               </div>
             </div>
           </div>
-        ` : ''}
+        ` : ''
+      }
 
-        <!-- si es admin y el estado es Asignando personal -->
-        ${this.id_rol === '00003' && this.orden.estado === 'Asignando personal' ? html`
+        < !--si es admin y el estado es Asignando personal-- >
+  ${this.id_rol === '00003' && this.orden.estado === 'Asignando personal' ? html`
 
           <div class="card">
             <div class="card-header">
@@ -726,11 +754,12 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               </button>
             </div>
           </div>
-        ` : ''}
+        ` : ''
+      }
 
 
-        <!-- si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto -->
-        ${this.id_rol === '00001' && this.orden.estado === 'Presupuestada' ? html`
+        < !--si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto-- >
+  ${this.id_rol === '00001' && this.orden.estado === 'Presupuestada' ? html`
           <div class="card">
             <div class="card-header">
               <h2 class="card-title">Acciones</h2>
@@ -748,10 +777,11 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               </div>
             </div>
           </div>
-        ` : ''}
+        ` : ''
+      }
 
-      </div>
-    `;
+      </div >
+  `;
   }
 }
 

@@ -665,11 +665,44 @@ export class MainApp extends LitElement {
   }
 
   async loadMenu() {
-    this.opciones_aside_bar = await authService.getMenu();
+    let menu = await authService.getMenu();
     const user = await authService.getUser();
     if (user) {
       this.user = user;
+
+      // Definir el orden deseado por rol
+      const roleOrders = {
+        '00003': [ // Admin
+          'dashboard', 'servicios', 'especialidades', 'empleados operativos',
+          'inventario', 'membresias', 'reportes de pagos', 'usuarios',
+          'configuracion', 'mi cuenta'
+        ],
+        '00001': [ // Cliente
+          'dashboard', 'servicios', 'membresias', 'reportes de pagos',
+          'mi cuenta', 'centro de ayuda'
+        ],
+        '00002': [ // Operativo
+          'dashboard', 'servicios', 'inventario', 'mi cuenta'
+        ]
+      };
+
+      const desiredOrder = roleOrders[user.id_rol];
+      if (desiredOrder && Array.isArray(menu)) {
+        menu.sort((a, b) => {
+          const labelA = (a.nombre || '').toLowerCase().trim();
+          const labelB = (b.nombre || '').toLowerCase().trim();
+
+          const indexA = desiredOrder.indexOf(labelA);
+          const indexB = desiredOrder.indexOf(labelB);
+
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+          if (indexA !== -1) return -1;
+          if (indexB !== -1) return 1;
+          return 0;
+        });
+      }
     }
+    this.opciones_aside_bar = menu || [];
     await this.loadCompany();
     this.updateActiveCategory();
   }
