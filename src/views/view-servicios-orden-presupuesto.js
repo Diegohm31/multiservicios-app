@@ -5,6 +5,7 @@ import { popupService } from '../utils/popup-service.js';
 import { materialesService } from '../services/materiales-service.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
 import { especialidadesService } from '../services/especialidades-service.js';
+import { empresaService } from '../services/empresa-service.js';
 
 export class ViewServiciosOrdenPresupuesto extends LitElement {
     static properties = {
@@ -14,7 +15,8 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         tiposEquipos: { type: Array },
         especialidades: { type: Array },
         loading: { type: Boolean },
-        serviciosEditados: { type: Array }
+        serviciosEditados: { type: Array },
+        porcentajeIva: { type: Number }
     };
 
     static styles = css`
@@ -394,6 +396,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         this.especialidades = [];
         this.loading = true;
         this.serviciosEditados = [];
+        this.porcentajeIva = 15; // Default fallback
     }
 
     async connectedCallback() {
@@ -406,11 +409,12 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
     async loadData() {
         this.loading = true;
         try {
-            const [orderData, m, te, e] = await Promise.all([
+            const [orderData, m, te, e, companies] = await Promise.all([
                 serviciosService.getOneOrden(this.ordenId, true),
                 materialesService.getMateriales(),
                 tiposEquiposService.getTiposEquipos(),
-                especialidadesService.getEspecialidades()
+                especialidadesService.getEspecialidades(),
+                empresaService.getEmpresas()
             ]);
 
             if (orderData && orderData.orden) {
@@ -448,6 +452,10 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         };
                     })
                 }));
+
+                if (companies && companies.length > 0) {
+                    this.porcentajeIva = Number(companies[0].porcentaje_iva) || 0;
+                }
             }
         } catch (error) {
             console.error('Error loading data:', error);
@@ -584,8 +592,24 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         return qty * this.calculatePrecioNetoUnitario(s);
     }
 
+    get totalGeneral() {
+        return this.serviciosEditados.reduce((acc, s) => acc + (this.calculatePrecioGeneralUnitario(s) * s.cantidad), 0);
+    }
+
+    get totalDescuento() {
+        return this.serviciosEditados.reduce((acc, s) => acc + (this.calculateDescuentoUnitario(s) * (Number(s.cantidad) || 1)), 0);
+    }
+
+    get subTotal() {
+        return this.totalGeneral - this.totalDescuento;
+    }
+
+    get iva() {
+        return this.subTotal * (this.porcentajeIva / 100);
+    }
+
     get totalGlobal() {
-        return this.serviciosEditados.reduce((acc, s) => acc + this.calculatePrecioAPagar(s), 0);
+        return this.subTotal + this.iva;
     }
 
 
@@ -597,6 +621,9 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
             const totalEqu = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitEqu(s) * s.cantidad), 0);
             const totalMO = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateUnitMO(s) * s.cantidad), 0);
             const totalGen = totalMat + totalEqu + totalMO;
+            const totalDesc = this.serviciosEditados.reduce((acc, s) => acc + (this.calculateDescuentoUnitario(s) * (Number(s.cantidad) || 1)), 0);
+            const subTotal = totalGen - totalDesc;
+            const ivaValue = subTotal * (this.porcentajeIva / 100);
 
             const payload = {
                 id_orden: this.ordenId,
@@ -604,8 +631,11 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                 total_equipos: totalEqu,
                 total_mano_obra: totalMO,
                 total_general: totalGen,
-                total_descuento: this.serviciosEditados.reduce((acc, s) => acc + (this.calculateDescuentoUnitario(s) * (Number(s.cantidad) || 1)), 0),
-                total_a_pagar: this.totalGlobal,
+                total_descuento: totalDesc,
+                sub_total: subTotal,
+                porcentaje_iva: this.porcentajeIva,
+                iva: ivaValue,
+                total_a_pagar: subTotal + ivaValue,
                 array_servicios: this.serviciosEditados.map(s => ({
                     id_orden_servicio: s.id_orden_servicio,
                     precio_materiales_unitario: this.calculateUnitMat(s),
@@ -752,9 +782,27 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                 `)}
 
                 <footer class="global-footer">
-                    <div>
-                        <div class="global-total-label">Total del Presupuesto</div>
-                        <div class="global-total-value">$${this.totalGlobal.toFixed(2)}</div>
+                    <div style="display: flex; gap: 3rem; align-items: center;">
+                        <div>
+                            <div class="global-total-label">Total General</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">$${this.totalGeneral.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="global-total-label">Descuento (-)</div>
+                            <div style="font-size: 1.1rem; font-weight: 600; color: #fda4af;">-$${this.totalDescuento.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="global-total-label">Sub-Total</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">$${this.subTotal.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="global-total-label">IVA (${this.porcentajeIva}%)</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">$${this.iva.toFixed(2)}</div>
+                        </div>
+                        <div style="border-left: 2px solid rgba(255,255,255,0.2); padding-left: 3rem;">
+                            <div class="global-total-label" style="opacity: 1; font-weight: 800; color: var(--success);">TOTAL A PAGAR</div>
+                            <div class="global-total-value" style="color: var(--success);">$${this.totalGlobal.toFixed(2)}</div>
+                        </div>
                     </div>
                     <button class="btn-save" @click=${this.handleSave} ?disabled=${this.loading}>
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v13a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
