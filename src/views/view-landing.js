@@ -1,12 +1,21 @@
 import { LitElement, html, css } from 'lit';
 import { tiposServiciosService } from '../services/tipos-servicios-service';
+import { empresaService } from '../services/empresa-service';
+import { planesMembresiasService } from '../services/planes-membresias-service';
+import { authService } from '../services/auth-service.js';
+import { popupService } from '../utils/popup-service.js';
 import trabajadoresImg from '../assets/trabajadores.jpg';
 import fondoImg from '../assets/fondo.png';
 
 export class ViewLanding extends LitElement {
 
   static properties = {
-    tipos_servicios: { type: Array }
+    tipos_servicios: { type: Array },
+    empresa: { type: Object },
+    membershipPlans: { type: Array },
+    contactEmail: { type: String },
+    contactMessage: { type: String },
+    sending: { type: Boolean }
   };
 
   static styles = css`
@@ -193,16 +202,156 @@ export class ViewLanding extends LitElement {
     /* Navbar Override for Landing */
     /* Note: Since this view is inside the router outlet, the main navbar is outside. 
        We will handle navigation links inside the content for now or update the generic shell later.
-    */
+    /* Memberships Section */
+    .memberships {
+      background: #fdfdfd;
+    }
+    .memberships-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 20px;
+    }
+    .membership-card {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      text-align: left;
+      transition: all 0.3s;
+      display: flex;
+      flex-direction: column;
+      color: #333;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      border: 1px solid #f1f5f9;
+    }
+    .membership-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    }
+    .membership-header {
+      padding-bottom: 20px;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 20px;
+    }
+    .membership-name {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #3b82f6;
+      margin-bottom: 15px;
+      margin-top: 0;
+    }
+    .price-container {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+    .membership-price {
+      font-size: 2.2rem;
+      color: #1e293b;
+      font-weight: 800;
+      margin: 0;
+    }
+    .price-symbol {
+      font-size: 1.2rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .membership-duration {
+      color: #64748b;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .membership-desc {
+      color: #64748b;
+      font-size: 1rem;
+      line-height: 1.5;
+      margin-bottom: 25px;
+    }
+    .services-title {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    .services-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .service-tag {
+      background: #f8fafc;
+      padding: 8px 15px;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .discount-badge {
+      background: #3b82f6;
+      color: white;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    
   `;
 
   constructor() {
     super();
     this.tipos_servicios = [];
+    this.empresa = {};
+    this.membershipPlans = [];
+    this.contactEmail = '';
+    this.contactMessage = '';
+    this.sending = false;
   }
 
   async firstUpdated() {
     this.tipos_servicios = await tiposServiciosService.getTiposServicios();
+    const empresasResult = await empresaService.getEmpresas();
+    this.empresa = empresasResult[0];
+    this.membershipPlans = await planesMembresiasService.getPlanes();
+  }
+
+  handleInputChange(e) {
+    const { name, value } = e.target;
+    if (name === 'email') this.contactEmail = value;
+    if (name === 'message') this.contactMessage = value;
+  }
+
+  async handleSubmit(e) {
+    e.preventDefault();
+    if (!this.contactEmail.trim() || !this.contactMessage.trim() || this.sending) return;
+
+    this.sending = true;
+    try {
+      await authService.enviarDuda({
+        email: this.contactEmail,
+        duda: this.contactMessage
+      });
+
+      popupService.success('Mensaje Enviado', 'Su mensaje ha sido enviado exitosamente. Nos pondremos en contacto con usted pronto.');
+      this.contactEmail = '';
+      this.contactMessage = '';
+
+      // Reset form if needed
+      const form = this.shadowRoot.querySelector('.contact-form');
+      if (form) form.reset();
+
+    } catch (error) {
+      popupService.warning('Error', `No se pudo enviar el mensaje: ${error.message}`);
+    } finally {
+      this.sending = false;
+    }
   }
 
   render() {
@@ -210,7 +359,7 @@ export class ViewLanding extends LitElement {
       <!-- Hero -->
       <section class="hero" style="background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('${fondoImg}'); background-size: cover; background-position: center; background-repeat: no-repeat;">
         <div class="container">
-          <h1>Servicios Integrales Multi-Hogar</h1>
+          <h1>Servicios Integrales ${this.empresa.nombre}</h1>
           <p>Expertos en Electricidad, Plomería, Construcción y más.</p>
           <a href="/register" class="btn">Regístrate Ahora</a>
         </div>
@@ -250,17 +399,45 @@ export class ViewLanding extends LitElement {
         </div>
       </section>
 
-      <!-- Promociones -->
+      <!-- Promociones y Membresías -->
       <section class="promo">
         <div class="container">
-          <h2 class="section-title" style="color:white; margin-bottom:1rem">Promociones del Mes</h2>
+          <h2 class="section-title" style="color:white; margin-bottom:1rem">Planes de Membresías Activos</h2>
           <p class="section-title::after" style="background:white"></p>
-          <div class="promo-card">
-             <h3>¡20% de Descuento en tu primer servicio!</h3>
-             <p>Regístrate hoy y obtén un descuento especial en cualquier servicio de mantenimiento general.</p>
-             <br>
-             <a href="/register" class="btn" style="background:white; color:#3498db">Aprovechar Oferta</a>
-          </div>
+
+          <!-- Cards de Membresías Blancas dentro de la sección azul -->
+          ${this.membershipPlans && this.membershipPlans.length > 0 ? html`
+            <div class="memberships-grid">
+              ${this.membershipPlans.map(plan => html`
+                <div class="membership-card">
+                  <div class="membership-header">
+                    <h3 class="membership-name">${plan.nombre}</h3>
+                    <div class="price-container">
+                      <span class="price-symbol">$</span>
+                      <span class="membership-price">${Number(plan.precio).toFixed(2)}</span>
+                      <span class="membership-duration">/ ${plan.duracion_meses} ${plan.duracion_meses === 1 ? 'mes' : 'meses'}</span>
+                    </div>
+                  </div>
+
+                  <p class="membership-desc">${plan.descripcion}</p>
+
+                  <div class="services-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    Servicios Incluidos
+                  </div>
+
+                  <div class="services-list">
+                    ${(plan.array_tipos_servicios || []).map(ts => html`
+                      <div class="service-tag">
+                        <span>${ts.nombre_tipo_servicio}</span>
+                        <span class="discount-badge">${Number(ts.porcentaje_descuento).toFixed(2)}% desc.</span>
+                      </div>
+                    `)}
+                  </div>
+                </div>
+              `)}
+            </div>
+          ` : ''}
         </div>
       </section>
 
@@ -287,11 +464,26 @@ export class ViewLanding extends LitElement {
       <section id="contacto" class="contact">
         <div class="container">
           <h2 class="section-title">Contáctanos</h2>
-          <form class="contact-form" @submit=${(e) => e.preventDefault()}>
-            <input type="text" placeholder="Nombre completo" required>
-            <input type="email" placeholder="Correo electrónico" required>
-            <textarea rows="5" placeholder="¿En qué podemos ayudarte?" required></textarea>
-            <button type="submit" class="btn">Enviar Mensaje</button>
+          <form class="contact-form" @submit=${this.handleSubmit}>
+            <input 
+              type="email" 
+              name="email"
+              placeholder="Correo electrónico" 
+              .value=${this.contactEmail}
+              @input=${this.handleInputChange}
+              required
+            >
+            <textarea 
+              name="message"
+              rows="5" 
+              placeholder="¿En qué podemos ayudarte?" 
+              .value=${this.contactMessage}
+              @input=${this.handleInputChange}
+              required
+            ></textarea>
+            <button type="submit" class="btn" ?disabled=${this.sending}>
+              ${this.sending ? 'Enviando...' : 'Enviar Mensaje'}
+            </button>
           </form>
         </div>
       </section>

@@ -137,13 +137,12 @@ export class PlanesMembresiasService {
         let url = `${this.baseUrl}/api/membresias/${id}`;
         let token = localStorage.getItem('token');
         const requestOptions = {
-            method: 'PUT',
+            method: 'DELETE',
             headers: {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ estado: 'Cancelada' })
+            }
         };
         try {
             const response = await fetch(url, requestOptions);

@@ -989,7 +989,7 @@ export class MainApp extends LitElement {
               <a href="/#nosotros" class="nav-link" @click=${(e) => this.scrollTo(e, 'nosotros')}>Nosotros</a>
               <a href="/#faq" class="nav-link" @click=${(e) => this.scrollTo(e, 'faq')}>FAQs</a>
               <a href="/#contacto" class="nav-link" @click=${(e) => this.scrollTo(e, 'contacto')}>Contacto</a>
-              <a href="/login" class="nav-link btn-login" @click=${(e) => { e.preventDefault(); navigator.goto('/login'); }}>Acceso Clientes</a>
+              <a href="/login" class="nav-link btn-login" @click=${(e) => { e.preventDefault(); navigator.goto('/login'); }}>Acceso</a>
 
               <!-- Mobile Nav Public Dropdown -->
               <div class="mobile-nav-public ${this.isMenuOpen ? 'open' : ''}">
