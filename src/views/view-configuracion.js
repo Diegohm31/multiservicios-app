@@ -3,6 +3,7 @@ import { navigator } from '../utils/navigator.js';
 import { authService } from '../services/auth-service.js';
 import { empresaService } from '../services/empresa-service.js';
 import { popupService } from '../utils/popup-service.js';
+import '../components/address-map.js';
 
 export class ViewConfiguracion extends LitElement {
   static properties = {
@@ -128,15 +129,16 @@ export class ViewConfiguracion extends LitElement {
 
     input, textarea, select {
       width: 100%;
-      padding: 0.8rem 1rem;
+      padding: 1rem 1.2rem;
       border: 1px solid #cbd5e1;
-      border-radius: 12px;
+      border-radius: 14px;
       font-size: 0.95rem;
       background: #f8fafc;
       color: var(--text);
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       font-family: inherit;
       box-sizing: border-box;
+      resize: none;
     }
 
     input:focus, textarea:focus {
@@ -144,6 +146,30 @@ export class ViewConfiguracion extends LitElement {
       border-color: var(--primary);
       background: white;
       box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    }
+
+    textarea {
+      min-height: 100px;
+      line-height: 1.6;
+    }
+
+    textarea::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    textarea::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    textarea::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+      border: 2px solid #f1f5f9;
+    }
+
+    textarea::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
 
     .btn-save {
@@ -657,6 +683,7 @@ export class ViewConfiguracion extends LitElement {
           <div class="form-group">
             <label for="empresa-direccion">Dirección Fiscal</label>
             <textarea id="empresa-direccion" style="color: black;" .value=${this.empresa.direccion} @input=${this.handleEmpresaChange}></textarea>
+            <address-map @address-changed=${(e) => { this.empresa = { ...this.empresa, direccion: e.detail.address }; this.requestUpdate(); }}></address-map>
           </div>
 
           <button class="btn-save" @click=${this.saveEmpresa} ?disabled=${this.saving}>

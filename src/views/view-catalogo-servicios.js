@@ -3,6 +3,7 @@ import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
 import { navigator } from '../utils/navigator.js';
 import { popupService } from '../utils/popup-service.js';
+import '../components/address-map.js';
 
 export class ViewCatalogoServicios extends LitElement {
   static properties = {
@@ -428,6 +429,7 @@ export class ViewCatalogoServicios extends LitElement {
                 placeholder="Ingresa la ubicación detallada donde se realizará el servicio..."
                 rows="3"
               ></textarea>
+              <address-map @address-changed=${(e) => { this.orderData = { ...this.orderData, direccion: e.detail.address }; this.requestUpdate(); }}></address-map>
             </div>
           </div>
 
@@ -645,22 +647,23 @@ export class ViewCatalogoServicios extends LitElement {
     .details-input textarea {
       width: 100%;
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 0.75rem;
-      font-size: 0.8125rem;
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+      font-size: 0.85rem;
       font-family: inherit;
       resize: none;
-      height: 50px;
-      transition: all 0.2s;
+      height: 60px;
+      transition: all 0.3s ease;
       background: #fcfcfc;
-      color: #000;
+      color: var(--text);
+      line-height: 1.5;
     }
 
     .details-input textarea:focus {
       outline: none;
       border-color: var(--primary);
       background: #fff;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
     }
 
     .card-right {
@@ -844,18 +847,29 @@ export class ViewCatalogoServicios extends LitElement {
 
     .order-field.full-width { width: 100%; }
     .order-field textarea {
-      padding: 0.75rem 1rem;
+      padding: 1rem 1.25rem;
       border: 1px solid var(--border);
-      border-radius: 12px;
-      font-size: 0.9rem;
-      transition: all 0.2s;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
       background: #ffffff;
-      color: #000;
-      resize: vertical;
-      min-height: 80px;
+      color: var(--text);
+      resize: none;
+      min-height: 110px;
       font-family: inherit;
+      line-height: 1.6;
     }
-    .order-field textarea:focus { border-color: var(--primary); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+    .order-field textarea:focus { 
+      border-color: var(--primary); 
+      outline: none; 
+      background: #fff; 
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); 
+    }
+    
+    textarea::-webkit-scrollbar { width: 8px; }
+    textarea::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    textarea::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f1f5f9; }
+    textarea::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
     .order-address-section {
       padding: 1rem 0;

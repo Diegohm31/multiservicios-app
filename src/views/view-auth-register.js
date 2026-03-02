@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { authService } from '../services/auth-service.js';
 import { navigator } from '../utils/navigator.js';
 import { popupService } from '../utils/popup-service.js';
+import '../components/address-map.js';
 
 export class ViewAuthRegister extends LitElement {
   static styles = css`
@@ -34,22 +35,33 @@ export class ViewAuthRegister extends LitElement {
       margin-bottom: 8px;
       color: #555;
     }
-    input {
+    input, textarea {
       width: 100%;
-      padding: 10px 14px;
+      padding: 12px 16px;
       border: 1px solid #cbd5e1;
-      border-radius: 8px;
+      border-radius: 12px;
       box-sizing: border-box;
       font-size: 16px;
-      background-color: #ffffff;
-      color: #000000;
-      transition: all 0.2s;
+      background-color: #f8fafc;
+      color: #1e293b;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      resize: none;
     }
-    input:focus {
+    input:focus, textarea:focus {
       outline: none;
-      border-color: #28a745;
-      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+      border-color: #3b82f6;
+      background-color: #ffffff;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
     }
+    textarea {
+      min-height: 100px;
+      line-height: 1.5;
+    }
+    textarea::-webkit-scrollbar { width: 8px; }
+    textarea::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+    textarea::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f1f5f9; }
+    textarea::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     button {
       width: 100%;
       padding: 12px;
@@ -141,7 +153,8 @@ export class ViewAuthRegister extends LitElement {
           </div>
           <div class="form-group">
             <label>Direccion</label>
-            <input type="text" name="direccion" @input=${this.handleInput} required>
+            <input type="text" name="direccion" .value=${this.direccion} @input=${this.handleInput} required>
+            <address-map @address-changed=${(e) => { this.direccion = e.detail.address; this.requestUpdate(); }}></address-map>
           </div>
           <div class="form-group">
             <label>Contraseña</label>
