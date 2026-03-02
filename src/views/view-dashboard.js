@@ -576,6 +576,22 @@ export class ViewDashboard extends LitElement {
     return `status-${normalizedStatus.normalize("NFD").replace(/[\u0300-\u036f]/g, "")}`;
   }
 
+  getRemainingDays(fechaFin) {
+    if (!fechaFin) return 0;
+    const fin = new Date(fechaFin);
+    const hoy = new Date();
+    // Reset hours to compare only dates
+    hoy.setHours(0, 0, 0, 0);
+    const dif = fin - hoy;
+    return Math.max(0, Math.ceil(dif / (1000 * 60 * 60 * 24)));
+  }
+
+  getMembershipStatus(days) {
+    if (days <= 5) return { bg: '#fee2e2', color: '#991b1b', icon: '🚨', label: 'Vence muy pronto' };
+    if (days <= 15) return { bg: '#fef3c7', color: '#92400e', icon: '⏳', label: 'Próxima a vencer' };
+    return { bg: '#dcfce7', color: '#166534', icon: '🛡️', label: 'Membresía al día' };
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -637,6 +653,24 @@ export class ViewDashboard extends LitElement {
                         <span class="value">${this.metrics.extra}</span>
                     </div>
                 </div>
+
+                ${this.user?.id_rol === '00001' && this.user?.membresia_activa ? html`
+                    ${(() => {
+          const days = this.getRemainingDays(this.user.membresia_activa.fecha_fin);
+          const status = this.getMembershipStatus(days);
+          return html`
+                            <div class="stat-card" style="background: ${status.bg}; border-color: ${status.color}33;">
+                                <div class="stat-icon" style="background: white; color: ${status.color}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                    ${status.icon}
+                                </div>
+                                <div class="stat-info">
+                                    <span class="label" style="color: ${status.color}">${status.label}</span>
+                                    <span class="value" style="color: ${status.color}">${days} ${days === 1 ? 'día' : 'días'} restante(s)</span>
+                                </div>
+                            </div>
+                        `;
+        })()}
+                ` : ''}
             </div>
 
             <div class="analysis-section">

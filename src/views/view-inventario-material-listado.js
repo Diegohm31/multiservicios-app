@@ -5,7 +5,8 @@ import { authService } from '../services/auth-service.js';
 
 export class ViewInventarioMaterialListado extends LitElement {
   static properties = {
-    materiales: { type: Array },
+    currentPage: { type: Number },
+    itemsPerPage: { type: Number },
     loading: { type: Boolean },
     userRole: { type: String },
   };
@@ -261,11 +262,62 @@ export class ViewInventarioMaterialListado extends LitElement {
       .header-actions { width: 100%; flex-direction: column; }
       .btn-create, .btn-back { width: 100%; justify-content: center; }
     }
+
+    /* Pagination Styles */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 3rem;
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.9s ease-out;
+    }
+
+    .page-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #f0f7ff;
+    }
+
+    .page-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f8fafc;
+    }
+
+    .nav-btn {
+      padding: 0 1.25rem;
+      width: auto;
+    }
   `;
 
   constructor() {
     super();
     this.materiales = [];
+    this.currentPage = 1;
+    this.itemsPerPage = 4;
     this.loading = true;
     this.userRole = '';
   }
@@ -291,6 +343,11 @@ export class ViewInventarioMaterialListado extends LitElement {
     }
   }
 
+  changePage(page) {
+    this.currentPage = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -300,6 +357,10 @@ export class ViewInventarioMaterialListado extends LitElement {
         </div>
       `;
     }
+
+    const totalPages = Math.ceil(this.materiales.length / this.itemsPerPage);
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const paginatedMateriales = this.materiales.slice(startIndex, startIndex + this.itemsPerPage);
 
     return html`
       <div class="header-section">
@@ -322,7 +383,8 @@ export class ViewInventarioMaterialListado extends LitElement {
       </div>
       
       <div class="grid">
-        ${this.materiales.map(material => {
+        ${this.materiales.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron materiales.</p>` : ''}
+        ${paginatedMateriales.map(material => {
       const lowStock = parseFloat(material.stock_actual) <= parseFloat(material.stock_minimo);
       return html`
               <div class="card">
@@ -362,6 +424,24 @@ export class ViewInventarioMaterialListado extends LitElement {
             `;
     })}
       </div>
+
+      ${totalPages > 1 ? html`
+        <div class="pagination">
+          <button class="page-btn nav-btn" ?disabled=${this.currentPage === 1} @click=${() => this.changePage(this.currentPage - 1)}>
+            Anterior
+          </button>
+          
+          ${Array.from({ length: totalPages }, (_, i) => i + 1).map(page => html`
+            <button class="page-btn ${this.currentPage === page ? 'active' : ''}" @click=${() => this.changePage(page)}>
+              ${page}
+            </button>
+          `)}
+
+          <button class="page-btn nav-btn" ?disabled=${this.currentPage === totalPages} @click=${() => this.changePage(this.currentPage + 1)}>
+            Siguiente
+          </button>
+        </div>
+      ` : ''}
     `;
   }
 }
