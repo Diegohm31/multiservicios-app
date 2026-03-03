@@ -405,10 +405,14 @@ export class ViewServiciosServicioForm extends LitElement {
             especialidadesService.getEspecialidades()
         ]);
 
-        this.tiposServicios = ts || [];
-        this.materiales = m || [];
-        this.tiposEquipos = te || [];
-        this.especialidades = e || [];
+        this.tiposServicios = (ts || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        this.materiales = (m || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        this.tiposEquipos = (te || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
+        this.especialidades = (e || []).sort((a, b) => {
+            const nameCompare = a.nombre.localeCompare(b.nombre);
+            if (nameCompare !== 0) return nameCompare;
+            return a.nivel.localeCompare(b.nivel);
+        });
 
         if (this.servicioId) {
             this.loadServicio(this.servicioId);
@@ -692,7 +696,7 @@ export class ViewServiciosServicioForm extends LitElement {
                                 </label>
                                 <input type="file" id="image" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage} ?required=${!this.previewUrl}>
                                 <small style="display: block; margin-top: 6px; color: #718096; font-size: 0.75rem;">
-                                    Formatos: jpeg, png, jpg, gif, svg. Máx: 2048KB
+                                    Formatos: jpeg, png, jpg, gif, svg. Máx: 5120KB
                                 </small>
                                 ${this.previewUrl ? html`
                                     <div class="image-preview-container">
@@ -729,7 +733,7 @@ export class ViewServiciosServicioForm extends LitElement {
                                         <option value="horas">Horas</option>
                                         <option value="dias">Días</option>
                                     </select>
-                                    <input type="number" class="input-field" .value=${this.duracionValor} @input=${this.handleDurationValue} min="0.1" step="0.1">
+                                    <input type="number" class="input-field" .value=${this.duracionValor} @input=${this.handleDurationValue} min="0.01" step="0.01">
                                 </div>
                             </div>
                         </div>
@@ -819,7 +823,7 @@ export class ViewServiciosServicioForm extends LitElement {
                             <tr>
                                 <td>${m.nombre}</td>
                                 <td>${m.unidad_medida}</td>
-                                <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${m.cantidad} @input=${(e) => this.updateItem('selectedMateriales', 'id_material', m.id_material, 'cantidad', e.target.value)} min="0.1" step="0.1"></td>
+                                <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${m.cantidad} @input=${(e) => this.updateItem('selectedMateriales', 'id_material', m.id_material, 'cantidad', e.target.value)} min="0.01" step="0.01"></td>
                                 <td>$${Number(m.precio_unitario).toFixed(2)}</td>
                                 <td>$${(m.cantidad * m.precio_unitario).toFixed(2)}</td>
                                 <td class="action-cell"><button type="button" class="btn-remove" @click=${() => this.removeItem('selectedMateriales', 'id_material', m.id_material)}>×</button></td>
@@ -859,7 +863,7 @@ export class ViewServiciosServicioForm extends LitElement {
                             <tr>
                                 <td>${e.nombre}</td>
                                 <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${e.cantidad} @input=${(e_ev) => this.updateItem('selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo, 'cantidad', e_ev.target.value)} min="1"></td>
-                                <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${e.horas_uso} data-id=${e.id_tipo_equipo} data-field="horas_uso" @input=${(e_ev) => this.updateItem('selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo, 'horas_uso', e_ev.target.value)} min="0.1" step="0.1"></td>
+                                <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${e.horas_uso} data-id=${e.id_tipo_equipo} data-field="horas_uso" @input=${(e_ev) => this.updateItem('selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo, 'horas_uso', e_ev.target.value)} min="0.01" step="0.01"></td>
                                 <td>$${Number(e.costo_hora).toFixed(2)}</td>
                                 <td>$${(e.cantidad * e.horas_uso * e.costo_hora).toFixed(2)}</td>
                                 <td class="action-cell"><button type="button" class="btn-remove" @click=${() => this.removeItem('selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo)}>×</button></td>
@@ -901,7 +905,7 @@ export class ViewServiciosServicioForm extends LitElement {
                                 <td>${esp.nombre}</td>
                                 <td>${esp.nivel}</td>
                                 <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${esp.cantidad} @input=${(e_ev) => this.updateItem('selectedEspecialidades', 'id_especialidad', esp.id_especialidad, 'cantidad', e_ev.target.value)} min="1"></td>
-                                <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${esp.horas_hombre} data-id=${esp.id_especialidad} data-field="horas_hombre" @input=${(e_ev) => this.updateItem('selectedEspecialidades', 'id_especialidad', esp.id_especialidad, 'horas_hombre', e_ev.target.value)} min="0.1" step="0.1"></td>
+                                <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${esp.horas_hombre} data-id=${esp.id_especialidad} data-field="horas_hombre" @input=${(e_ev) => this.updateItem('selectedEspecialidades', 'id_especialidad', esp.id_especialidad, 'horas_hombre', e_ev.target.value)} min="0.01" step="0.01"></td>
                                 <td>$${Number(esp.tarifa_hora).toFixed(2)}</td>
                                 <td>$${(esp.cantidad * esp.horas_hombre * esp.tarifa_hora).toFixed(2)}</td>
                                 <td class="action-cell"><button type="button" class="btn-remove" @click=${() => this.removeItem('selectedEspecialidades', 'id_especialidad', esp.id_especialidad)}>×</button></td>
