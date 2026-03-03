@@ -36,6 +36,11 @@ export class ViewConfiguracion extends LitElement {
       background-color: var(--bg);
       font-family: 'Inter', -apple-system, sans-serif;
       color: var(--text);
+      box-sizing: border-box;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
     }
 
     .header-section {
@@ -363,9 +368,9 @@ export class ViewConfiguracion extends LitElement {
       flex-direction: column; 
       align-items: center; 
       justify-content: center;
-      padding: 10rem 0; 
-      gap: 1.5rem; 
-      height: 100vh;
+      min-height: calc(100vh - 12rem);
+      gap: 1.5rem;
+      animation: fadeInUp 0.6s ease-out;
     }
     .loader { 
       width: 48px; 

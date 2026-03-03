@@ -398,7 +398,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       const data = await serviciosService.getOneOrden(this.ordenId);
       if (data) {
         this.orden = data.orden;
-        this.id_rol = data.id_rol;
+        this.id_rol = String(data.id_rol);
       }
       if (!this.currentUser) {
         this.currentUser = await authService.getUser();
@@ -714,8 +714,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
           </div>
         </section>
 
-        <!--si es admin mostrar botones para aceptar o cancelar orden-- >
-  ${this.id_rol === '00003' && this.orden.estado === 'Pendiente' ? html`
+        <!-- Si es admin mostrar botones para aceptar o cancelar orden -->
+        ${this.id_rol === '00003' && this.orden.estado?.toLowerCase() === 'pendiente' ? html`
           <div class="card">
             <div class="card-header">
               <h2 class="card-title">Acciones</h2>
@@ -740,8 +740,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
         ` : ''
       }
 
-        < !--si es admin y el estado es Asignando personal-- >
-  ${this.id_rol === '00003' && this.orden.estado === 'Asignando personal' ? html`
+        <!-- Si es admin y el estado es Asignando personal -->
+        ${this.id_rol === '00003' && this.orden.estado?.toLowerCase() === 'asignando personal' ? html`
 
           <div class="card">
             <div class="card-header">
@@ -758,29 +758,28 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       }
 
 
-        < !--si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto-- >
-  ${this.id_rol === '00001' && this.orden.estado === 'Presupuestada' ? html`
+        <!-- Si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto -->
+        ${this.id_rol === '00001' && (this.orden.estado?.toLowerCase() === 'presupuestada' || this.orden.estado?.toLowerCase() === 'presupuestada') ? html`
           <div class="card">
             <div class="card-header">
-              <h2 class="card-title">Acciones</h2>
+              <h2 class="card-title">Acciones del Presupuesto</h2>
             </div>
             <div class="card-body">
-              <div style="display: flex; gap: 1rem;">
+              <p style="margin-bottom: 1.5rem; color: var(--text-light);">El presupuesto para esta orden está listo. Por favor, revíselo y decida si desea aceptarlo para proceder con el servicio.</p>
+              <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 <button class="btn-success" @click=${() => this.aceptarPresupuesto(this.orden.id_orden)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                   Aceptar Presupuesto
                 </button>
                 <button class="btn-danger" @click=${() => this.cancelarPresupuesto(this.orden.id_orden)}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  Cancelar Presupuesto
+                  Rechazar Presupuesto
                 </button>
               </div>
             </div>
           </div>
-        ` : ''
-      }
-
-      </div >
+        ` : ''}
+      </div>
   `;
   }
 }
