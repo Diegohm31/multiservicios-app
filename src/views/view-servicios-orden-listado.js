@@ -1,12 +1,14 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { planesMembresiasService } from '../services/planes-membresias-service.js';
 import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosOrdenListado extends LitElement {
   static properties = {
     id_rol: { type: String },
     ordenes: { type: Array },
+    planes: { type: Array },
     filteredOrdenes: { type: Array },
     filters: { type: Object },
     showRatingModal: { type: Boolean },
@@ -447,6 +449,23 @@ export class ViewServiciosOrdenListado extends LitElement {
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .client-name-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      font-weight: 700;
+    }
+
+    .plan-mini-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      object-fit: cover;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+    }
   `;
 
   constructor() {
@@ -458,7 +477,8 @@ export class ViewServiciosOrdenListado extends LitElement {
       direccion: '',
       estado: '',
       fecha_inicio: '',
-      fecha_fin: ''
+      fecha_fin: '',
+      active_plan_nombre: ''
     };
     this.showRatingModal = false;
     this.ratingOrderId = '';
@@ -467,6 +487,7 @@ export class ViewServiciosOrdenListado extends LitElement {
     this.currentPage = 1;
     this.itemsPerPage = 7;
     this.loading = true;
+    this.planes = [];
   }
 
   connectedCallback() {
@@ -481,6 +502,12 @@ export class ViewServiciosOrdenListado extends LitElement {
       if (data) {
         this.ordenes = data.ordenes || [];
         this.id_rol = data.id_rol;
+
+        // Fetch plans if admin
+        if (this.id_rol === '00003') {
+          this.planes = await planesMembresiasService.getPlanes() || [];
+        }
+
         this.applyFilters();
       }
     } catch (error) {
@@ -601,7 +628,7 @@ export class ViewServiciosOrdenListado extends LitElement {
 
   handleFilterChange(e) {
     const { id, value } = e.target;
-    const filterKey = id.replace('filtro-', '').replace('-', '_');
+    const filterKey = id.replace('filtro-', '').replace(/-/g, '_');
     this.filters = { ...this.filters, [filterKey]: value };
     this.currentPage = 1;
     this.applyFilters();
@@ -621,6 +648,9 @@ export class ViewServiciosOrdenListado extends LitElement {
       const matchDireccion = !this.filters.direccion ||
         this.normalize(orden.direccion).includes(this.normalize(this.filters.direccion));
 
+      const matchPlan = !this.filters.active_plan_nombre ||
+        (orden.active_plan_nombre && orden.active_plan_nombre === this.filters.active_plan_nombre);
+
       const matchEstado = !this.filters.estado ||
         this.normalize(orden.estado) === this.normalize(this.filters.estado);
 
@@ -636,7 +666,7 @@ export class ViewServiciosOrdenListado extends LitElement {
       const matchCedula = !this.filters.cedula ||
         orden.cedula?.toLowerCase().includes(this.filters.cedula.toLowerCase());
 
-      return matchDireccion && matchEstado && matchInicio && matchFin && matchNombre && matchCedula;
+      return matchDireccion && matchPlan && matchEstado && matchInicio && matchFin && matchNombre && matchCedula;
     });
   }
 
@@ -720,6 +750,16 @@ export class ViewServiciosOrdenListado extends LitElement {
           </select>
         </div>
 
+        ${this.id_rol === '00003' ? html`
+          <div class="filter-group">
+            <label for="filtro-active-plan-nombre">Plan Membresía (Activo)</label>
+            <select id="filtro-active-plan-nombre" @change=${this.handleFilterChange}>
+              <option value="">Todos los planes</option>
+              ${this.planes.map(p => html`<option value="${p.nombre}">${p.nombre}</option>`)}
+            </select>
+          </div>
+        ` : ''}
+
         <div class="filter-group">
           <label for="filtro-fecha-inicio">Desde</label>
           <input type="datetime-local" id="filtro-fecha-inicio" @change=${this.handleFilterChange}>
@@ -776,7 +816,19 @@ export class ViewServiciosOrdenListado extends LitElement {
               <tr class="row-animate">
                 <td style="font-weight: 800; color: var(--text-light);">#${orden.id_orden}</td>
                 ${['00003', '00002'].includes(this.id_rol) ? html`
-                  <td style="font-weight: 700;">${orden.nombre}</td>
+                  <td>
+                    <div class="client-name-cell">
+                      ${this.id_rol === '00003' && orden.plan_image_path ? html`
+                        <img 
+                          src="http://api-multiservicios.local/storage/${orden.plan_image_path}" 
+                          alt="Membresía" 
+                          class="plan-mini-icon"
+                          title="Cliente con Membresía Activa"
+                        >
+                      ` : ''}
+                      ${orden.nombre}
+                    </div>
+                  </td>
                   <td style="font-family: monospace;">${orden.cedula}</td>
                 ` : ''}
                 <td>${orden.direccion}</td>

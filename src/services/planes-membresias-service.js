@@ -48,18 +48,20 @@ export class PlanesMembresiasService {
     async createPlan(data) {
         let url = `${this.baseUrl}/api/planes-membresias`;
         let token = localStorage.getItem('token');
+        const isFormData = data instanceof FormData;
         const requestOptions = {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' })
             },
-            body: JSON.stringify(data)
+            body: isFormData ? data : JSON.stringify(data)
         };
         try {
             const response = await fetch(url, requestOptions);
             const response_json = await response.json();
+            if (!response.ok) throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
             return response_json.data;
         } catch (error) {
             console.error('Error al crear plan:', error);
@@ -70,18 +72,25 @@ export class PlanesMembresiasService {
     async updatePlan(id, data) {
         let url = `${this.baseUrl}/api/planes-membresias/${id}`;
         let token = localStorage.getItem('token');
+        const isFormData = data instanceof FormData;
+
+        if (isFormData) {
+            data.append('_method', 'PUT');
+        }
+
         const requestOptions = {
-            method: 'PUT',
+            method: isFormData ? 'POST' : 'PUT',
             headers: {
                 'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                ...(isFormData ? {} : { 'Content-Type': 'application/json' })
             },
-            body: JSON.stringify(data)
+            body: isFormData ? data : JSON.stringify(data)
         };
         try {
             const response = await fetch(url, requestOptions);
             const response_json = await response.json();
+            if (!response.ok) throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
             return response_json.data;
         } catch (error) {
             console.error('Error al actualizar plan:', error);

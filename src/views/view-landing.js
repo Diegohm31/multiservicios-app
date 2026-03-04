@@ -232,6 +232,37 @@ export class ViewLanding extends LitElement {
       padding-bottom: 20px;
       border-bottom: 1px solid #f1f5f9;
       margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .plan-icon-landing {
+      width: 70px;
+      height: 70px;
+      background: #eff6ff;
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+      border: 2px solid white;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+      transition: transform 0.3s ease;
+    }
+    .membership-card:hover .plan-icon-landing {
+      transform: scale(1.1) rotate(5deg);
+    }
+    .plan-icon-landing img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .plan-icon-landing svg {
+      width: 35px;
+      height: 35px;
+      color: #3b82f6;
     }
     .membership-name {
       font-size: 1.6rem;
@@ -411,6 +442,13 @@ export class ViewLanding extends LitElement {
               ${this.membershipPlans.map(plan => html`
                 <div class="membership-card">
                   <div class="membership-header">
+                    <div class="plan-icon-landing">
+                      ${plan.imagePath ? html`
+                        <img src="http://api-multiservicios.local/storage/${plan.imagePath}" alt="${plan.nombre}">
+                      ` : html`
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      `}
+                    </div>
                     <h3 class="membership-name">${plan.nombre}</h3>
                     <div class="price-container">
                       <span class="price-symbol">$</span>

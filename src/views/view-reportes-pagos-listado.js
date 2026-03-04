@@ -2,6 +2,8 @@ import { LitElement, html, css } from 'lit';
 import { repeat } from 'lit/directives/repeat.js';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
+import { planesMembresiasService } from '../services/planes-membresias-service.js';
+import { authService } from '../services/auth-service.js';
 
 export class ViewReportesPagosListado extends LitElement {
   static properties = {
@@ -10,7 +12,9 @@ export class ViewReportesPagosListado extends LitElement {
     filters: { type: Object },
     loading: { type: Boolean },
     currentPage: { type: Number },
-    itemsPerPage: { type: Number }
+    itemsPerPage: { type: Number },
+    id_rol: { type: String },
+    planes: { type: Array }
   };
 
   static styles = css`
@@ -336,6 +340,22 @@ export class ViewReportesPagosListado extends LitElement {
       .btn-back { width: 100%; justify-content: center; }
       .pagination { flex-wrap: wrap; }
     }
+
+    .client-info-cell {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .plan-mini-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
   `;
 
   constructor() {
@@ -351,8 +371,11 @@ export class ViewReportesPagosListado extends LitElement {
       estado: '',
       fecha_inicio: '',
       fecha_fin: '',
-      metodo_pago: ''
+      metodo_pago: '',
+      active_plan_nombre: ''
     };
+    this.id_rol = '';
+    this.planes = [];
   }
 
   async connectedCallback() {
@@ -363,11 +386,23 @@ export class ViewReportesPagosListado extends LitElement {
   async loadReportes() {
     this.loading = true;
     try {
-      const reportes = await serviciosService.getReportesPagos();
-      if (reportes) {
-        this.reportes = Array.isArray(reportes) ? reportes : [];
+      const resp = await serviciosService.getReportesPagos();
+      // El backend devuelve {id_rol: '...', reportes: [...]} o solo el array si es una respuesta simple
+      // Dependiendo de cómo esté implementado el controlador. 
+      // Revisando ReportePagoController@index: return $this->successResponse($reportes_pagos, ...)
+      // Esto significa que devuelve directamente el array.
+      if (resp) {
+        this.reportes = Array.isArray(resp) ? resp : [];
         this.applyFilters();
       }
+
+      // Fetch id_rol from authService since the controller doesn't return it in this case
+      const user = await authService.getUser();
+      if (user) {
+        this.id_rol = user.id_rol;
+      }
+      this.planes = await planesMembresiasService.getPlanes() || [];
+      this.applyFilters();
     } catch (error) {
       console.error('Error loading reportes:', error);
     } finally {
@@ -399,7 +434,10 @@ export class ViewReportesPagosListado extends LitElement {
         (reporte.id_orden && reporte.id_orden.toString().includes(this.filters.id_orden));
 
       const matchPlan = !this.filters.plan_membresia_nombre ||
-        (reporte.plan_membresia_nombre && reporte.plan_membresia_nombre.toLowerCase().includes(this.filters.plan_membresia_nombre.toLowerCase()));
+        (reporte.plan_membresia_nombre && reporte.plan_membresia_nombre === this.filters.plan_membresia_nombre);
+
+      const matchActivePlan = !this.filters.active_plan_nombre ||
+        (reporte.active_plan_nombre && reporte.active_plan_nombre === this.filters.active_plan_nombre);
 
       const matchEstado = !this.filters.estado ||
         (reporte.estado && reporte.estado.toLowerCase() === this.filters.estado.toLowerCase());
@@ -413,7 +451,7 @@ export class ViewReportesPagosListado extends LitElement {
       const matchFin = !this.filters.fecha_fin ||
         reporte.fecha_emision <= this.filters.fecha_fin;
 
-      return matchOrden && matchPlan && matchEstado && matchMetodo && matchInicio && matchFin;
+      return matchOrden && matchPlan && matchActivePlan && matchEstado && matchMetodo && matchInicio && matchFin;
     });
   }
 
@@ -468,7 +506,10 @@ export class ViewReportesPagosListado extends LitElement {
 
         <div class="filter-group">
           <label for="filtro-plan-membresia-nombre">Plan / Membresía</label>
-          <input type="text" id="filtro-plan-membresia-nombre" placeholder="Nombre del plan..." @input=${this.handleFilterChange}>
+          <select id="filtro-plan-membresia-nombre" @change=${this.handleFilterChange}>
+            <option value="">Todos los planes</option>
+            ${this.planes.map(p => html`<option value="${p.nombre}">${p.nombre}</option>`)}
+          </select>
         </div>
 
         <div class="filter-group">
@@ -477,9 +518,18 @@ export class ViewReportesPagosListado extends LitElement {
             <option value="">Todos los estados</option>
             <option value="Pendiente">Pendiente</option>
             <option value="Aceptado">Aceptado</option>
-            <option value="Cancelado">Cancelado</option>
           </select>
         </div>
+
+        ${this.id_rol === '00003' ? html`
+          <div class="filter-group">
+            <label for="filtro-active-plan-nombre">Plan Membresía (Activo)</label>
+            <select id="filtro-active-plan-nombre" @change=${this.handleFilterChange}>
+              <option value="">Todos los planes</option>
+              ${this.planes.map(p => html`<option value="${p.nombre}">${p.nombre}</option>`)}
+            </select>
+          </div>
+        ` : ''}
 
         <div class="filter-group">
           <label for="filtro-fecha-inicio">Fecha Inicio</label>
@@ -523,8 +573,20 @@ export class ViewReportesPagosListado extends LitElement {
                   <div style="font-size: 0.8rem; color: var(--text-light);">${reporte.plan_membresia_nombre || 'N/A'}</div>
                 </td>
                 <td>
-                  <div style="font-weight: 600;">${reporte.cliente_nombre || 'N/A'}</div>
-                  <div style="font-size: 0.8rem; color: var(--text-light);">${reporte.cliente_cedula || 'N/A'}</div>
+                  <div class="client-info-cell">
+                    ${this.id_rol === '00003' && reporte.active_plan_image_path ? html`
+                      <img 
+                        src="http://api-multiservicios.local/storage/${reporte.active_plan_image_path}" 
+                        alt="Membresía" 
+                        class="plan-mini-icon"
+                        title="Cliente con Membresía Activa"
+                      >
+                    ` : ''}
+                    <div>
+                      <div style="font-weight: 600;">${reporte.cliente_nombre || 'N/A'}</div>
+                      <div style="font-size: 0.8rem; color: var(--text-light);">${reporte.cliente_cedula || 'N/A'}</div>
+                    </div>
+                  </div>
                 </td>
                 <td style="font-style: italic; font-size: 0.85rem; color: ${reporte.admin_nombre ? 'var(--text)' : 'var(--text-light)'};">
                   ${reporte.admin_nombre || 'Pendiente'}

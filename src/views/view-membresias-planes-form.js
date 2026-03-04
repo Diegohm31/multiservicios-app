@@ -10,7 +10,9 @@ export class ViewMembresiasPlanesForm extends LitElement {
     plan: { type: Object },
     tiposServicios: { type: Array },
     selectedTiposServicios: { type: Array },
-    loading: { type: Boolean }
+    loading: { type: Boolean },
+    previewUrl: { type: String },
+    selectedImage: { type: Object }
   };
 
   static styles = css`
@@ -299,6 +301,66 @@ export class ViewMembresiasPlanesForm extends LitElement {
       transform: translateY(-2px);
       box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
     }
+    .image-upload-wrapper {
+      grid-column: span 2;
+      margin-bottom: 2rem;
+    }
+
+    .image-upload-field {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.3s;
+      cursor: pointer;
+      background: #f8fafc;
+      position: relative;
+    }
+
+    .image-upload-field:hover {
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+
+    .image-upload-field input {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .preview-container {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 1.5rem;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 3px solid white;
+    }
+
+    .preview-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .upload-hint {
+      color: var(--text-light);
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .upload-hint span {
+      display: block;
+      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
   `;
 
   constructor() {
@@ -313,6 +375,8 @@ export class ViewMembresiasPlanesForm extends LitElement {
     this.tiposServicios = [];
     this.selectedTiposServicios = [];
     this.loading = false;
+    this.previewUrl = '';
+    this.selectedImage = null;
   }
 
   async connectedCallback() {
@@ -335,11 +399,14 @@ export class ViewMembresiasPlanesForm extends LitElement {
             duracion_meses: data.duracion_meses,
             precio: data.precio
           };
+          if (data.imagePath) {
+            this.previewUrl = `http://api-multiservicios.local/storage/${data.imagePath}`;
+          }
           // Cargar tipos de servicios asociados si existen
           if (data.array_tipos_servicios) {
             this.selectedTiposServicios = data.array_tipos_servicios.map(ts => ({
               id_tipo_servicio: ts.id_tipo_servicio,
-              porcentaje_descuento: ts.porcentaje_descuento || 100
+              porcentaje_descuento: ts.porcentaje_descuento || 1
             }));
           }
         }
@@ -356,13 +423,21 @@ export class ViewMembresiasPlanesForm extends LitElement {
     this.plan = { ...this.plan, [name]: value };
   }
 
+  handleImage(e) {
+    const file = e.target.files[0];
+    if (file) {
+      this.selectedImage = file;
+      this.previewUrl = URL.createObjectURL(file);
+    }
+  }
+
   toggleTipoServicio(id) {
     if (this.selectedTiposServicios.find(i => i.id_tipo_servicio === id)) {
       this.selectedTiposServicios = this.selectedTiposServicios.filter(i => i.id_tipo_servicio !== id);
     } else {
       this.selectedTiposServicios = [...this.selectedTiposServicios, {
         id_tipo_servicio: id,
-        porcentaje_descuento: 100 // Por defecto 100
+        porcentaje_descuento: 1 // Por defecto 1%
       }];
     }
   }
@@ -380,19 +455,27 @@ export class ViewMembresiasPlanesForm extends LitElement {
     e.preventDefault();
     this.loading = true;
 
-    const payload = {
-      ...this.plan,
-      duracion_meses: Number(this.plan.duracion_meses),
-      precio: Number(this.plan.precio),
-      array_tipos_servicios: this.selectedTiposServicios
-    };
+    const formData = new FormData();
+    formData.append('nombre', this.plan.nombre);
+    formData.append('duracion_meses', String(this.plan.duracion_meses));
+    formData.append('precio', String(this.plan.precio));
+    formData.append('descripcion', this.plan.descripcion);
+
+    if (this.selectedImage) {
+      formData.append('image', this.selectedImage);
+    }
+
+    this.selectedTiposServicios.forEach((item, index) => {
+      formData.append(`array_tipos_servicios[${index}][id_tipo_servicio]`, item.id_tipo_servicio);
+      formData.append(`array_tipos_servicios[${index}][porcentaje_descuento]`, String(item.porcentaje_descuento));
+    });
 
     try {
       if (this.planId) {
-        await planesMembresiasService.updatePlan(this.planId, payload);
+        await planesMembresiasService.updatePlan(this.planId, formData);
         popupService.success('Éxito', 'Plan actualizado con éxito');
       } else {
-        await planesMembresiasService.createPlan(payload);
+        await planesMembresiasService.createPlan(formData);
         popupService.success('Éxito', 'Plan creado con éxito');
       }
       navigator.goto('/membresias/planes/listado');
@@ -422,6 +505,26 @@ export class ViewMembresiasPlanesForm extends LitElement {
         <div class="card">
           <form @submit=${this.handleSubmit}>
             <div class="form-grid">
+              <div class="image-upload-wrapper">
+                <label>Icono del Plan</label>
+                <div class="image-upload-field">
+                  ${this.previewUrl ? html`
+                    <div class="preview-container">
+                      <img src="${this.previewUrl}" class="preview-image" alt="Preview">
+                    </div>
+                  ` : html`
+                    <div style="margin-bottom: 1.5rem; color: var(--primary);">
+                      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    </div>
+                  `}
+                  <div class="upload-hint">
+                    ${this.previewUrl ? 'Haga clic para cambiar el icono' : 'Haga clic para subir un icono representativo'}
+                    <span>Recomendado: 512x512px. PNG o JPG.</span>
+                  </div>
+                  <input type="file" accept="image/*" @change=${this.handleImage}>
+                </div>
+              </div>
+
               <div class="form-group full">
                 <label for="nombre">Nombre del Plan</label>
                 <input type="text" id="nombre" name="nombre" placeholder="Ej: Platinum Mensual" .value=${this.plan.nombre} @input=${this.handleInput} required>

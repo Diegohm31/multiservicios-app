@@ -113,9 +113,46 @@ export class ViewMembresiasPlanesListado extends LitElement {
     }
 
     .card-header {
-      padding: 2rem;
+      padding: 2.5rem 2rem;
       background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
       border-bottom: 1px solid var(--border);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .plan-icon-container {
+      width: 80px;
+      height: 80px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid white;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .plan-card:hover .plan-icon-container {
+      transform: scale(1.1) rotate(5deg);
+      box-shadow: 0 12px 20px rgba(59, 130, 246, 0.15);
+    }
+
+    .plan-icon-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .plan-icon-container svg {
+      width: 40px;
+      height: 40px;
+      color: var(--primary);
     }
 
     .plan-name {
@@ -439,6 +476,13 @@ export class ViewMembresiasPlanesListado extends LitElement {
               ${this.planes.map(plan => html`
                 <article class="plan-card">
                   <div class="card-header">
+                    <div class="plan-icon-container">
+                      ${plan.imagePath ? html`
+                        <img src="http://api-multiservicios.local/storage/${plan.imagePath}" alt="${plan.nombre}">
+                      ` : html`
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      `}
+                    </div>
                     <h2 class="plan-name">${plan.nombre}</h2>
                     <div class="plan-price">
                       <span class="price-currency">$</span>
@@ -485,9 +529,18 @@ export class ViewMembresiasPlanesListado extends LitElement {
                            <p style="font-size: 0.8rem; color: var(--text-light); text-align: center; margin: 0;">Ya tienes un plan activo</p>
                         `}
                       ` : html`
-                        <button class="btn-create" style="width: 100%; margin: 0; justify-content: center;" @click=${() => navigator.goto(`/membresias/planes/pago/${plan.id_plan_membresia}`)}>
-                          Comprar Plan
-                        </button>
+                        ${this.user.has_pending_membership_payment ? html`
+                           <button class="btn-create" style="width: 100%; margin: 0; justify-content: center; opacity: 0.5; cursor: not-allowed;" disabled>
+                             Comprar Plan
+                           </button>
+                           <p style="font-size: 0.8rem; color: #f59e0b; text-align: center; margin: 0.5rem 0 0; font-weight: 600;">
+                             Tienes un reporte de pago pendiente por verificar
+                           </p>
+                        ` : html`
+                           <button class="btn-create" style="width: 100%; margin: 0; justify-content: center;" @click=${() => navigator.goto(`/membresias/planes/pago/${plan.id_plan_membresia}`)}>
+                             Comprar Plan
+                           </button>
+                        `}
                       `}
                     ` : html`
                       <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">

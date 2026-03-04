@@ -116,13 +116,47 @@ export class ViewMembresiasPago extends LitElement {
 
     .summary-box {
       background: #eff6ff;
-      padding: 1.5rem;
+      padding: 1.5rem 2rem;
       border-radius: 12px;
       margin-bottom: 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border: 1px solid #dbeafe;
+      gap: 1.5rem;
+    }
+
+    .plan-info-summary {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex: 1;
+    }
+
+    .plan-icon-summary {
+      width: 60px;
+      height: 60px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      flex-shrink: 0;
+      border: 2px solid white;
+      overflow: hidden;
+    }
+
+    .plan-icon-summary img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .plan-icon-summary svg {
+      width: 32px;
+      height: 32px;
+      color: var(--primary);
     }
 
     .amount-display {
@@ -450,9 +484,18 @@ export class ViewMembresiasPago extends LitElement {
         </header>
 
         <section class="summary-box">
-          <div>
-            <div style="font-weight: 700; color: var(--text);">Información del Plan</div>
-            <div style="font-size: 0.9rem; color: var(--text-light);">${this.plan.duracion_meses} meses de beneficios exclusivos</div>
+          <div class="plan-info-summary">
+            <div class="plan-icon-summary">
+              ${this.plan.imagePath ? html`
+                <img src="http://api-multiservicios.local/storage/${this.plan.imagePath}" alt="${this.plan.nombre}">
+              ` : html`
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              `}
+            </div>
+            <div>
+              <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">${this.plan.nombre}</div>
+              <div style="font-size: 0.9rem; color: var(--text-light);">${this.plan.duracion_meses} ${this.plan.duracion_meses == 1 ? 'mes' : 'meses'} de beneficios exclusivos</div>
+            </div>
           </div>
           <div class="amount-display">
             <div class="amount-label">Monto a Pagar</div>
