@@ -17,6 +17,7 @@ export class ViewMembresiasPago extends LitElement {
     processing: { type: Boolean },
     formData: { type: Object },
     previewUrl: { type: String },
+    isDragging: { type: Boolean },
   };
 
   static styles = css`
@@ -241,7 +242,7 @@ export class ViewMembresiasPago extends LitElement {
       margin-top: 0.5rem;
     }
 
-    .upload-zone:hover {
+    .upload-zone:hover, .upload-zone.dragging {
       border-color: var(--primary);
       background: #f0f7ff;
       color: var(--primary);
@@ -357,6 +358,7 @@ export class ViewMembresiasPago extends LitElement {
       id_cuenta_bancaria: '',
       image: null
     };
+    this.isDragging = false;
   }
 
   async connectedCallback() {
@@ -400,11 +402,30 @@ export class ViewMembresiasPago extends LitElement {
   }
 
   handleFileChange(e) {
-    const file = e.target.files[0];
+    const file = e.target.files ? e.target.files[0] : (e.dataTransfer ? e.dataTransfer.files[0] : null);
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        popupService.warning('Error', 'Por favor, suba solo archivos de imagen.');
+        return;
+      }
       this.formData = { ...this.formData, image: file };
       this.previewUrl = URL.createObjectURL(file);
     }
+  }
+
+  handleDragOver(e) {
+    e.preventDefault();
+    this.isDragging = true;
+  }
+
+  handleDragLeave() {
+    this.isDragging = false;
+  }
+
+  handleDrop(e) {
+    e.preventDefault();
+    this.isDragging = false;
+    this.handleFileChange(e);
   }
 
   async handleSubmit(e) {
@@ -556,13 +577,19 @@ export class ViewMembresiasPago extends LitElement {
 
               <div class="form-group full-width">
                 <label>Comprobante de Pago (Imagen)</label>
-                <label class="upload-zone ${this.formData.image ? 'has-file' : ''}" for="image">
+                <label 
+                  class="upload-zone ${this.formData.image ? 'has-file' : ''} ${this.isDragging ? 'dragging' : ''}" 
+                  for="image"
+                  @dragover=${this.handleDragOver}
+                  @dragleave=${this.handleDragLeave}
+                  @drop=${this.handleDrop}
+                >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                   </svg>
-                  <span>${this.formData.image ? this.formData.image.name : 'Subir Comprobante / Capture'}</span>
+                  <span>${this.formData.image ? this.formData.image.name : 'Arrastrar o click para subir comprobante'}</span>
                 </label>
-                <input type="file" id="image" name="image" @change=${this.handleFileChange} accept="image/*" required>
+                <input type="file" id="image" name="image" @change=${this.handleFileChange} accept="image/*">
                 ${this.previewUrl ? html`
                   <div style="margin-top: 1rem; text-align: center;">
                     <img src="${this.previewUrl}" alt="Vista previa del comprobante" style="max-width: 100%; max-height: 300px; border-radius: 10px; border: 1px solid var(--border);">

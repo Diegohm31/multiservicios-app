@@ -419,9 +419,13 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
 
             if (orderData && orderData.orden) {
                 this.orden = orderData.orden;
-                this.materiales = m || [];
-                this.tiposEquipos = te || [];
-                this.especialidades = e || [];
+                this.materiales = (m || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
+                this.tiposEquipos = (te || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
+                this.especialidades = (e || []).sort((a, b) => {
+                    const nameCompare = a.nombre.localeCompare(b.nombre);
+                    if (nameCompare !== 0) return nameCompare;
+                    return a.nivel.localeCompare(b.nivel);
+                });
 
                 // Initialize editable services
                 const arrayServicios = this.orden.array_servicios || [];

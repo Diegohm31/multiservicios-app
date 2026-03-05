@@ -82,8 +82,8 @@ export class ViewAuthLogin extends LitElement {
       border-radius: 8px;
       box-sizing: border-box;
       font-size: 16px;
-      background-color: #ffffff;
-      color: #000000;
+      background-color: #ffffff !important;
+      color: #000000 !important;
       transition: all 0.2s;
       padding-left: 40px;
     }

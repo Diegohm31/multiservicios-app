@@ -10,7 +10,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     id_rol: { type: String },
     orden: { type: Object },
     loading: { type: Boolean },
-    currentUser: { type: Object }
+    currentUser: { type: Object },
+    isDragging: { type: Boolean }
   };
 
   static styles = css`
@@ -374,6 +375,18 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       text-transform: uppercase;
       border: 1px solid #c7d2fe;
     }
+
+    .drag-zone {
+      border: 2px dashed transparent;
+      border-radius: 12px;
+      transition: all 0.3s;
+      padding: 0.5rem;
+    }
+
+    .drag-zone.dragging {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.05);
+    }
   `;
 
   constructor() {
@@ -383,6 +396,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     this.orden = null;
     this.loading = true;
     this.currentUser = null;
+    this.isDragging = false;
   }
 
   async connectedCallback() {
@@ -525,6 +539,30 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
   }
 
+  handleDragOver(e) {
+    if (this.id_rol !== '00003') return;
+    e.preventDefault();
+    this.isDragging = true;
+  }
+
+  handleDragLeave() {
+    this.isDragging = false;
+  }
+
+  handleDrop(e) {
+    if (this.id_rol !== '00003') return;
+    e.preventDefault();
+    this.isDragging = false;
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        popupService.warning('Error', 'Por favor, suba solo archivos PDF.');
+        return;
+      }
+      this.handleFileUpload({ target: { files: [file] } });
+    }
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -566,28 +604,31 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             <div style="display: flex; gap: 1rem; align-items: center;">
               ${this.id_rol === '00003' ? html`
                 <!-- Admin -->
-                ${!this.orden.pdf_peritaje ? html`
-                  <button class="btn-outline-danger" @click=${this.triggerFileUpload}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    Subir Peritaje
-                  </button>
-                ` : html`
+                ${this.orden.pdf_peritaje ? html`
                   <button class="btn-outline-danger" @click=${this.viewPeritaje}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                     Visualizar Peritaje
                   </button>
+                ` : ''}
+
+                <div 
+                  class="drag-zone ${this.isDragging ? 'dragging' : ''}"
+                  @dragover=${this.handleDragOver}
+                  @dragleave=${this.handleDragLeave}
+                  @drop=${this.handleDrop}
+                >
                   <button class="btn-outline-danger" @click=${this.triggerFileUpload}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    Actualizar Peritaje
+                    ${!this.orden.pdf_peritaje ? (this.isDragging ? 'Soltar PDF aquí' : 'Subir Peritaje') : (this.isDragging ? 'Soltar nuevo PDF' : 'Actualizar Peritaje')}
                   </button>
-                `}
-                <input 
-                  type="file" 
-                  id="peritaje-input" 
-                  accept=".pdf" 
-                  style="display: none;" 
-                  @change=${this.handleFileUpload}
-                >
+                  <input 
+                    type="file" 
+                    id="peritaje-input" 
+                    accept=".pdf" 
+                    style="display: none;" 
+                    @change=${this.handleFileUpload}
+                  >
+                </div>
 
                 <!-- Botón de Factura/Presupuesto -->
                 ${(this.orden.presupuesto?.pdf_factura || this.orden.pdf_factura) ? html`

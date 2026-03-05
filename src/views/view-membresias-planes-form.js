@@ -12,7 +12,8 @@ export class ViewMembresiasPlanesForm extends LitElement {
     selectedTiposServicios: { type: Array },
     loading: { type: Boolean },
     previewUrl: { type: String },
-    selectedImage: { type: Object }
+    selectedImage: { type: Object },
+    isDragging: { type: Boolean }
   };
 
   static styles = css`
@@ -317,7 +318,7 @@ export class ViewMembresiasPlanesForm extends LitElement {
       position: relative;
     }
 
-    .image-upload-field:hover {
+    .image-upload-field:hover, .image-upload-field.dragging {
       border-color: var(--primary);
       background: #eff6ff;
     }
@@ -377,6 +378,7 @@ export class ViewMembresiasPlanesForm extends LitElement {
     this.loading = false;
     this.previewUrl = '';
     this.selectedImage = null;
+    this.isDragging = false;
   }
 
   async connectedCallback() {
@@ -424,11 +426,30 @@ export class ViewMembresiasPlanesForm extends LitElement {
   }
 
   handleImage(e) {
-    const file = e.target.files[0];
+    const file = e.target.files ? e.target.files[0] : (e.dataTransfer ? e.dataTransfer.files[0] : null);
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        popupService.warning('Error', 'Por favor, sube solo archivos de imagen.');
+        return;
+      }
       this.selectedImage = file;
       this.previewUrl = URL.createObjectURL(file);
     }
+  }
+
+  handleDragOver(e) {
+    e.preventDefault();
+    this.isDragging = true;
+  }
+
+  handleDragLeave() {
+    this.isDragging = false;
+  }
+
+  handleDrop(e) {
+    e.preventDefault();
+    this.isDragging = false;
+    this.handleImage(e);
   }
 
   toggleTipoServicio(id) {
@@ -507,7 +528,13 @@ export class ViewMembresiasPlanesForm extends LitElement {
             <div class="form-grid">
               <div class="image-upload-wrapper">
                 <label>Icono del Plan</label>
-                <div class="image-upload-field">
+                <div 
+                  class="image-upload-field ${this.isDragging ? 'dragging' : ''}" 
+                  @dragover=${this.handleDragOver}
+                  @dragleave=${this.handleDragLeave}
+                  @drop=${this.handleDrop}
+                  @click=${() => this.shadowRoot.querySelector('#imageInput').click()}
+                >
                   ${this.previewUrl ? html`
                     <div class="preview-container">
                       <img src="${this.previewUrl}" class="preview-image" alt="Preview">
@@ -518,10 +545,10 @@ export class ViewMembresiasPlanesForm extends LitElement {
                     </div>
                   `}
                   <div class="upload-hint">
-                    ${this.previewUrl ? 'Haga clic para cambiar el icono' : 'Haga clic para subir un icono representativo'}
+                    ${this.previewUrl ? 'Arrastrar archivo o click para cambiar icono' : 'Arrastrar archivo o click para subir un icono'}
                     <span>Recomendado: 512x512px. PNG o JPG.</span>
                   </div>
-                  <input type="file" accept="image/*" @change=${this.handleImage}>
+                  <input type="file" id="imageInput" accept="image/*" @change=${this.handleImage} style="display: none;">
                 </div>
               </div>
 

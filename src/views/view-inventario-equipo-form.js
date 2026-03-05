@@ -209,7 +209,7 @@ export class ViewInventarioEquipoForm extends LitElement {
   async loadTiposEquipo() {
     const data_tiposEquipos = await tiposEquiposService.getTiposEquipos();
     if (data_tiposEquipos) {
-      this.array_tiposEquipos = data_tiposEquipos;
+      this.array_tiposEquipos = data_tiposEquipos.sort((a, b) => a.nombre.localeCompare(b.nombre));
     }
   }
 

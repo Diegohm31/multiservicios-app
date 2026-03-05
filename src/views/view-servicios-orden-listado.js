@@ -505,7 +505,8 @@ export class ViewServiciosOrdenListado extends LitElement {
 
         // Fetch plans if admin
         if (this.id_rol === '00003') {
-          this.planes = await planesMembresiasService.getPlanes() || [];
+          const p = await planesMembresiasService.getPlanes() || [];
+          this.planes = p.sort((a, b) => a.nombre.localeCompare(b.nombre));
         }
 
         this.applyFilters();

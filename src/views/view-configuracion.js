@@ -13,7 +13,8 @@ export class ViewConfiguracion extends LitElement {
     saving: { type: Boolean },
     showCuentaModal: { type: Boolean },
     editingCuenta: { type: Object },
-    userRole: { type: String }
+    userRole: { type: String },
+    isDraggingLogo: { type: Boolean }
   };
 
   static styles = css`
@@ -400,9 +401,10 @@ export class ViewConfiguracion extends LitElement {
       transition: all 0.2s;
     }
 
-    .logo-upload-container:hover {
+    .logo-upload-container:hover, .logo-upload-container.dragging {
       border-color: var(--primary);
       background: #f0f9ff;
+      transform: translateY(-2px);
     }
 
     .logo-preview {
@@ -456,6 +458,7 @@ export class ViewConfiguracion extends LitElement {
     this.showCuentaModal = false;
     this.editingCuenta = this.resetCuenta();
     this.userRole = '';
+    this.isDraggingLogo = false;
   }
 
   async connectedCallback() {
@@ -513,6 +516,32 @@ export class ViewConfiguracion extends LitElement {
 
     const finalValue = type === 'number' ? Number(value) : value;
     this.empresa = { ...this.empresa, [field]: finalValue };
+  }
+
+  handleLogoDragOver(e) {
+    e.preventDefault();
+    this.isDraggingLogo = true;
+  }
+
+  handleLogoDragLeave() {
+    this.isDraggingLogo = false;
+  }
+
+  handleLogoDrop(e) {
+    if (e.preventDefault) e.preventDefault();
+    this.isDraggingLogo = false;
+    const file = e.dataTransfer ? e.dataTransfer.files[0] : (e.target ? e.target.files[0] : null);
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        popupService.warning('Error', 'Por favor, suba solo archivos de imagen.');
+        return;
+      }
+      this.empresa = {
+        ...this.empresa,
+        image: file,
+        _preview: URL.createObjectURL(file)
+      };
+    }
   }
 
   async saveEmpresa() {
@@ -641,7 +670,12 @@ export class ViewConfiguracion extends LitElement {
             </h2>
           </div>
 
-          <div class="logo-upload-container">
+          <div 
+            class="logo-upload-container ${this.isDraggingLogo ? 'dragging' : ''}"
+            @dragover=${this.handleLogoDragOver}
+            @dragleave=${this.handleLogoDragLeave}
+            @drop=${this.handleLogoDrop}
+          >
             <img 
               class="logo-preview" 
               src="${this.empresa._preview || (this.empresa.imagePath ? `${empresaService.baseUrl}/storage/${this.empresa.imagePath}` : 'https://ui-avatars.com/api/?name=Logo&background=e2e8f0&color=64748b&size=120')}" 

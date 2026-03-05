@@ -17,7 +17,8 @@ export class ViewServiciosOrdenAvances extends LitElement {
     selectedAvance: { type: Object },
     showModal: { type: Boolean },
     isEditing: { type: Boolean },
-    imagePreview: { type: String }
+    imagePreview: { type: String },
+    isDragging: { type: Boolean }
   };
 
   static styles = css`
@@ -442,7 +443,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
       text-align: center;
     }
 
-    .upload-zone:hover {
+    .upload-zone:hover, .upload-zone.dragging {
       border-color: var(--primary);
       background: #eff6ff;
       color: var(--primary);
@@ -577,6 +578,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
     this.showModal = false;
     this.isEditing = false;
     this.imagePreview = '';
+    this.isDragging = false;
   }
 
   async connectedCallback() {
@@ -703,14 +705,42 @@ export class ViewServiciosOrdenAvances extends LitElement {
   }
 
   handleFileChange(e) {
-    const file = e.target.files[0];
+    const file = e.type === 'drop' ? e.dataTransfer.files[0] : e.target.files[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        popupService.warning('Error', 'Por favor, suba solo archivos de imagen.');
+        return;
+      }
+
+      // If dropped, we manually update the input files so FormData can pick it up
+      if (e.type === 'drop') {
+        const input = this.shadowRoot.querySelector('input[type="file"]');
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        input.files = dataTransfer.files;
+      }
+
       const reader = new FileReader();
       reader.onload = (event) => {
         this.imagePreview = event.target.result;
       };
       reader.readAsDataURL(file);
     }
+  }
+
+  handleDragOver(e) {
+    e.preventDefault();
+    this.isDragging = true;
+  }
+
+  handleDragLeave() {
+    this.isDragging = false;
+  }
+
+  handleDrop(e) {
+    e.preventDefault();
+    this.isDragging = false;
+    this.handleFileChange(e);
   }
 
   removePreview() {
@@ -1006,11 +1036,15 @@ export class ViewServiciosOrdenAvances extends LitElement {
               <div class="form-group">
                 <label>Imagen de Evidencia (Opcional)</label>
                 <div class="file-upload-wrapper">
-                    <label for="imageInput" class="upload-zone ${this.imagePreview ? 'has-file' : ''}">
+                    <label for="imageInput" 
+                           class="upload-zone ${this.imagePreview ? 'has-file' : ''} ${this.isDragging ? 'dragging' : ''}"
+                           @dragover=${this.handleDragOver}
+                           @dragleave=${this.handleDragLeave}
+                           @drop=${this.handleDrop}>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                         </svg>
-                        <span>${this.imagePreview ? 'Cambiar imagen de evidencia' : 'Subir imagen o foto'}</span>
+                        <span>${this.imagePreview ? 'Cambiar imagen' : 'Arrastrar o click para subir evidencia'}</span>
                     </label>
                     <input type="file" name="image" id="imageInput" accept="image/*" @change=${this.handleFileChange}>
                 </div>

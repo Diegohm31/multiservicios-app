@@ -86,8 +86,8 @@ export class ViewAuthRegister extends LitElement {
       border-radius: 12px;
       box-sizing: border-box;
       font-size: 16px;
-      background-color: #f8fafc;
-      color: #1e293b;
+      background-color: #ffffff !important;
+      color: #000000 !important;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       font-family: inherit;
       resize: none;

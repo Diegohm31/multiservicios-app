@@ -7,7 +7,8 @@ export class ViewTiposServiciosForm extends LitElement {
   static properties = {
     tipo_servicioId: { type: String },
     tipo_servicio: { type: Object },
-    previewImage: { type: String }
+    previewImage: { type: String },
+    isDragging: { type: Boolean }
   };
 
   static styles = css`
@@ -94,7 +95,7 @@ export class ViewTiposServiciosForm extends LitElement {
       margin-top: 0.5rem;
     }
 
-    .upload-zone:hover {
+    .upload-zone:hover, .upload-zone.dragging {
       border-color: var(--primary);
       background: #eff6ff;
       color: var(--primary);
@@ -226,6 +227,7 @@ export class ViewTiposServiciosForm extends LitElement {
     };
     this.tipos_servicios = [];
     this.previewImage = '';
+    this.isDragging = false;
   }
 
   connectedCallback() {
@@ -251,14 +253,35 @@ export class ViewTiposServiciosForm extends LitElement {
   }
 
   handleInput(e) {
-    const field = e.target.name;
-    const value = e.target.type === 'file' ? e.target.files[0] : e.target.value;
+    const field = e.target.name || 'icono'; // Default to icono if dropping
+    const file = e.target.files ? e.target.files[0] : (e.dataTransfer ? e.dataTransfer.files[0] : null);
+    const value = file || e.target.value;
 
-    if (e.target.type === 'file' && value) {
-      this.previewImage = URL.createObjectURL(value);
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        popupService.warning('Error', 'Por favor, sube solo archivos de imagen.');
+        return;
+      }
+      this.previewImage = URL.createObjectURL(file);
+      this.tipo_servicio = { ...this.tipo_servicio, [field]: file };
+    } else {
+      this.tipo_servicio = { ...this.tipo_servicio, [field]: value };
     }
+  }
 
-    this.tipo_servicio = { ...this.tipo_servicio, [field]: value };
+  handleDragOver(e) {
+    e.preventDefault();
+    this.isDragging = true;
+  }
+
+  handleDragLeave() {
+    this.isDragging = false;
+  }
+
+  handleDrop(e) {
+    e.preventDefault();
+    this.isDragging = false;
+    this.handleInput(e);
   }
 
   async handleSubmit(e) {
@@ -307,12 +330,17 @@ export class ViewTiposServiciosForm extends LitElement {
           </div>
 
           <div class="form-group">
-            <label for="icono">Icono Representativo</label>
-            <label class="upload-zone" for="icono">
+            <label 
+              class="upload-zone ${this.isDragging ? 'dragging' : ''}" 
+              for="icono"
+              @dragover=${this.handleDragOver}
+              @dragleave=${this.handleDragLeave}
+              @drop=${this.handleDrop}
+            >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
-              <span>Subir Icono / Imagen</span>
+              <span>Arrastrar o click para subir icono</span>
             </label>
             <input type="file" id="icono" name="icono" @change=${this.handleInput} accept="image/*">
             

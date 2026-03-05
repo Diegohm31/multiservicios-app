@@ -422,7 +422,8 @@ export class ViewInventarioMovimientoForm extends LitElement {
     }
 
     async loadMateriales() {
-        this.materiales = await materialesService.getMateriales() || [];
+        const m = await materialesService.getMateriales() || [];
+        this.materiales = m.sort((a, b) => a.nombre.localeCompare(b.nombre));
     }
 
     seleccionarMaterial(material) {
@@ -617,7 +618,7 @@ export class ViewInventarioMovimientoForm extends LitElement {
                             @click=${this.guardarMovimientos}
                             ?disabled=${this.movimientosSeleccionados.length === 0 || this.cargando}
                         >
-                            ${this.cargando ? html`⏳ Procesando...` : html`✨ GUARDAR CAMBIOS`}
+                            ${this.cargando ? html`⏳ Procesando...` : html`GUARDAR CAMBIOS`}
                         </button>
                     </div>
                 </div>

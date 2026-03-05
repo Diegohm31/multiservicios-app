@@ -401,7 +401,8 @@ export class ViewReportesPagosListado extends LitElement {
       if (user) {
         this.id_rol = user.id_rol;
       }
-      this.planes = await planesMembresiasService.getPlanes() || [];
+      const p = await planesMembresiasService.getPlanes() || [];
+      this.planes = p.sort((a, b) => a.nombre.localeCompare(b.nombre));
       this.applyFilters();
     } catch (error) {
       console.error('Error loading reportes:', error);

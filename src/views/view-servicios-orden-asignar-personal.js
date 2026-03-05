@@ -413,7 +413,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 }))
                 .sort((a, b) => b.reputacion - a.reputacion);
 
-            this.equiposFull = eqs || [];
+            this.equiposFull = (eqs || []).sort((a, b) => a.modelo.localeCompare(b.modelo));
 
             const initAssignments = {};
             const initTabs = {};

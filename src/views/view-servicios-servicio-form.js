@@ -24,7 +24,8 @@ export class ViewServiciosServicioForm extends LitElement {
         selectedEquipos: { type: Array },
         selectedEspecialidades: { type: Array },
         previewUrl: { type: String },
-        hasNewImage: { type: Boolean }
+        hasNewImage: { type: Boolean },
+        isDragging: { type: Boolean }
     };
 
     static styles = css`
@@ -314,7 +315,7 @@ export class ViewServiciosServicioForm extends LitElement {
             margin-top: 0.5rem;
         }
 
-        .upload-zone:hover {
+        .upload-zone:hover, .upload-zone.dragging {
             border-color: #3182ce;
             background: #ebf8ff;
             color: #3182ce;
@@ -390,6 +391,7 @@ export class ViewServiciosServicioForm extends LitElement {
         this.duracionValor = 1;
         this.previewUrl = null;
         this.hasNewImage = false;
+        this.isDragging = false;
     }
 
     async connectedCallback() {
@@ -472,12 +474,31 @@ export class ViewServiciosServicioForm extends LitElement {
     }
 
     handleImage(e) {
-        const file = e.target.files[0];
+        const file = e.target.files ? e.target.files[0] : (e.dataTransfer ? e.dataTransfer.files[0] : null);
         if (file) {
+            if (!file.type.startsWith('image/')) {
+                popupService.warning('Error', 'Por favor, suba solo archivos de imagen.');
+                return;
+            }
             this.servicio = { ...this.servicio, image: file };
             this.previewUrl = URL.createObjectURL(file);
             this.hasNewImage = true; // Marca que hay una nueva imagen
         }
+    }
+
+    handleDragOver(e) {
+        e.preventDefault();
+        this.isDragging = true;
+    }
+
+    handleDragLeave() {
+        this.isDragging = false;
+    }
+
+    handleDrop(e) {
+        e.preventDefault();
+        this.isDragging = false;
+        this.handleImage(e);
     }
 
     validateItemsDuration() {
@@ -687,14 +708,19 @@ export class ViewServiciosServicioForm extends LitElement {
                             </div>
 
                             <div class="form-group">
-                                <label>Imagen del Servicio</label>
-                                <label class="upload-zone ${this.servicio.image || this.previewUrl ? 'has-file' : ''}" for="image">
+                                <label 
+                                    class="upload-zone ${this.servicio.image || this.previewUrl ? 'has-file' : ''} ${this.isDragging ? 'dragging' : ''}" 
+                                    for="image"
+                                    @dragover=${this.handleDragOver}
+                                    @dragleave=${this.handleDragLeave}
+                                    @drop=${this.handleDrop}
+                                >
                                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                                   </svg>
-                                  <span>${this.servicio.image ? this.servicio.image.name : (this.previewUrl ? 'Cambiar Imagen' : 'Subir Imagen del Servicio')}</span>
+                                  <span>${this.servicio.image ? this.servicio.image.name : (this.previewUrl ? 'Cambiar Imagen' : 'Arrastrar o click para subir imagen')}</span>
                                 </label>
-                                <input type="file" id="image" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage} ?required=${!this.previewUrl}>
+                                <input type="file" id="image" accept="image/jpeg,image/png,image/jpg,image/gif,image/svg+xml" @change=${this.handleImage}>
                                 <small style="display: block; margin-top: 6px; color: #718096; font-size: 0.75rem;">
                                     Formatos: jpeg, png, jpg, gif, svg. Máx: 5120KB
                                 </small>
