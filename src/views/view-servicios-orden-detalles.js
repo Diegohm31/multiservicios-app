@@ -447,12 +447,10 @@ export class ViewServiciosOrdenDetalles extends LitElement {
 
     if (myAssignments.length === 0) return null;
 
-    // De-duplicar nombres de especialidades (Set)
-    const uniqueRoles = [...new Set(myAssignments.map(op => op.nombre_especialidad))];
     const esJefe = myAssignments.some(op => Number(op.es_jefe) === 1);
 
     return {
-      roles: uniqueRoles.join(', '),
+      assignments: myAssignments,
       esJefe: esJefe
     };
   }
@@ -739,11 +737,22 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                         <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; display: flex; align-items: center; justify-content: flex-end;">
                           ${(() => {
             const info = this.getUserRolesInfo(servicio);
-            if (!info) return 'N/A';
+            if (!info) return html`<span>N/A</span>`;
             return html`
-                              ${info.roles}
-                              ${info.esJefe ? html`<span class="jefe-badge">Jefe de Obra</span>` : ''}
-                            `;
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                ${info.assignments.map(ass => html`
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="color: var(--text-light); font-size: 0.8rem; font-weight: 500;">
+                      ${ass.nombre_especialidad} (${ass.nivel})
+                    </span>
+                    <span style="color: var(--success); font-weight: 800; font-family: 'JetBrains Mono', monospace;">
+                      $${parseFloat(ass.ingreso || 0).toFixed(2)}
+                    </span>
+                  </div>
+                `)}
+                ${info.esJefe ? html`<span class="jefe-badge" style="margin-top: 2px;">Jefe de Obra</span>` : ''}
+              </div>
+            `;
           })()}
                         </div>
                       </div>

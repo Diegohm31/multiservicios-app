@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { planesMembresiasService } from '../services/planes-membresias-service.js';
+import { authService } from '../services/auth-service.js';
 import { popupService } from '../utils/popup-service.js';
 
 export class ViewServiciosOrdenListado extends LitElement {
@@ -17,7 +18,8 @@ export class ViewServiciosOrdenListado extends LitElement {
     ratingObservations: { type: String },
     currentPage: { type: Number },
     itemsPerPage: { type: Number },
-    loading: { type: Boolean }
+    loading: { type: Boolean },
+    currentUser: { type: Object }
   };
 
   static styles = css`
@@ -28,6 +30,7 @@ export class ViewServiciosOrdenListado extends LitElement {
       --text-light: #64748b;
       --border: #e2e8f0;
       --bg: #fff;
+      --success: #22c55e;
       --card-bg: #ffffff;
       --radius: 16px;
       --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
@@ -150,7 +153,57 @@ export class ViewServiciosOrdenListado extends LitElement {
       cursor: pointer;
     }
 
-    /* Table Styles */
+    /* Summary Card */
+    .total-card {
+      background: var(--card-bg);
+      padding: 1.5rem 2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      box-shadow: var(--shadow);
+      animation: fadeInUp 0.5s ease-out;
+      border-left: 6px solid var(--success);
+      width: fit-content;
+      min-width: 320px;
+    }
+
+    .total-icon {
+      width: 56px;
+      height: 56px;
+      background: #f0fdf4;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--success);
+      flex-shrink: 0;
+    }
+
+    .total-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .total-label {
+      font-size: 0.8rem;
+      font-weight: 750;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .total-value {
+      font-size: 2.25rem;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
     .table-container {
       background: var(--card-bg);
       border-radius: var(--radius);
@@ -407,7 +460,8 @@ export class ViewServiciosOrdenListado extends LitElement {
       font-family: inherit;
       resize: none;
       box-sizing: border-box;
-      background: #f8fafc;
+      background: white;
+      color: black;
     }
 
     .modal-actions {
@@ -488,6 +542,13 @@ export class ViewServiciosOrdenListado extends LitElement {
     this.itemsPerPage = 7;
     this.loading = true;
     this.planes = [];
+    this.currentUser = null;
+  }
+
+  // Determine income for an operative in an order
+  getOperativeIncome(orden) {
+    // Usamos el campo calculado enviado por el backend
+    return parseFloat(orden.ingreso_operativo || 0);
   }
 
   connectedCallback() {
@@ -507,6 +568,11 @@ export class ViewServiciosOrdenListado extends LitElement {
         if (this.id_rol === '00003') {
           const p = await planesMembresiasService.getPlanes() || [];
           this.planes = p.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        }
+
+        // Fetch current user if operative to calculate income
+        if (this.id_rol === '00002' && !this.currentUser) {
+          this.currentUser = await authService.getUser();
         }
 
         this.applyFilters();
@@ -725,6 +791,23 @@ export class ViewServiciosOrdenListado extends LitElement {
         </div>
       </div>
 
+      ${this.id_rol === '00002' ? html`
+        <div class="total-card">
+          <div class="total-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"></line>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+          </div>
+          <div class="total-content">
+            <span class="total-label">Total Ingresos</span>
+            <div class="total-value">
+              $${(this.filteredOrdenes || []).reduce((sum, o) => sum + this.getOperativeIncome(o), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
       <div class="filters-panel ${this.id_rol === '00001' ? 'filters-client' : ''}">
         <div class="filter-group">
           <label for="filtro-direccion">Dirección</label>
@@ -804,6 +887,7 @@ export class ViewServiciosOrdenListado extends LitElement {
               <th>Dirección de Entrega</th>
               <th>Fecha Emisión</th>
               <th>Estado Actual</th>
+              ${this.id_rol === '00002' ? html`<th>Ingreso</th>` : ''}
               <th>Acciones</th>
             </tr>
           </thead>
@@ -841,6 +925,11 @@ export class ViewServiciosOrdenListado extends LitElement {
                     ${orden.estado}
                   </span>
                 </td>
+                ${this.id_rol === '00002' ? html`
+                  <td style="font-weight: 800; color: var(--success); font-family: 'JetBrains Mono', monospace;">
+                    $${this.getOperativeIncome(orden).toFixed(2)}
+                  </td>
+                ` : ''}
                 <td>
                   <div class="actions-cell">
                     <button class="btn btn-info" @click=${() => this.verDetallesOrden(orden.id_orden)}>Detalles</button>
@@ -916,7 +1005,7 @@ export class ViewServiciosOrdenListado extends LitElement {
             ></textarea>
 
             <div class="modal-actions">
-              <button class="btn btn-info" @click=${this.closeRatingModal}>Ignorar</button>
+              <button class="btn btn-delete" @click=${this.closeRatingModal}>Ignorar</button>
               <button class="btn btn-primary" @click=${this.submitRating}>Enviar Opinión</button>
             </div>
           </div>
