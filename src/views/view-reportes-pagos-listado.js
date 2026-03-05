@@ -123,7 +123,7 @@ export class ViewReportesPagosListado extends LitElement {
       grid-column: 1 / -1;
     }
 
-    input[type="date"] {
+    input[type="date"], input[type="datetime-local"] {
       position: relative;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
       background-repeat: no-repeat;
@@ -131,7 +131,8 @@ export class ViewReportesPagosListado extends LitElement {
       padding-right: 2.5rem;
     }
 
-    input[type="date"]::-webkit-calendar-picker-indicator {
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
       position: absolute;
       top: 0;
       right: 0;
@@ -140,6 +141,56 @@ export class ViewReportesPagosListado extends LitElement {
       background: transparent;
       color: transparent;
       cursor: pointer;
+    }
+
+    .total-card {
+      background: #ffffff;
+      padding: 1.5rem 2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      box-shadow: var(--shadow);
+      animation: fadeInUp 0.5s ease-out;
+      border-left: 6px solid var(--success);
+      width: fit-content;
+      min-width: 320px;
+    }
+
+    .total-icon {
+      width: 56px;
+      height: 56px;
+      background: #f0fdf4;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--success);
+      flex-shrink: 0;
+    }
+
+    .total-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .total-label {
+      font-size: 0.8rem;
+      font-weight: 750;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .total-value {
+      font-size: 2.25rem;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1;
     }
 
     .table-container {
@@ -372,10 +423,17 @@ export class ViewReportesPagosListado extends LitElement {
       fecha_inicio: '',
       fecha_fin: '',
       metodo_pago: '',
-      active_plan_nombre: ''
+      active_plan_nombre: '',
+      cliente_nombre: '',
+      cliente_cedula: ''
     };
     this.id_rol = '';
     this.planes = [];
+  }
+
+  // Normalizar strings para comparaciones (quitar acentos y pasar a minúsculas)
+  normalize(str) {
+    return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   }
 
   async connectedCallback() {
@@ -421,7 +479,7 @@ export class ViewReportesPagosListado extends LitElement {
 
   isDateRangeInvalid() {
     if (!this.filters.fecha_inicio || !this.filters.fecha_fin) return false;
-    return new Date(this.filters.fecha_fin) < new Date(this.filters.fecha_inicio);
+    return this.filters.fecha_fin < this.filters.fecha_inicio;
   }
 
   applyFilters() {
@@ -446,13 +504,23 @@ export class ViewReportesPagosListado extends LitElement {
       const matchMetodo = !this.filters.metodo_pago ||
         (reporte.metodo_pago && reporte.metodo_pago.toLowerCase().includes(this.filters.metodo_pago.toLowerCase()));
 
-      const matchInicio = !this.filters.fecha_inicio ||
-        reporte.fecha_emision >= this.filters.fecha_inicio;
+      const matchNombre = !this.filters.cliente_nombre ||
+        this.normalize(reporte.cliente_nombre).includes(this.normalize(this.filters.cliente_nombre));
 
-      const matchFin = !this.filters.fecha_fin ||
-        reporte.fecha_emision <= this.filters.fecha_fin;
+      const matchCedula = !this.filters.cliente_cedula ||
+        this.normalize(reporte.cliente_cedula).includes(this.normalize(this.filters.cliente_cedula));
 
-      return matchOrden && matchPlan && matchActivePlan && matchEstado && matchMetodo && matchInicio && matchFin;
+      // Usamos comparación de cadenas para evitar problemas de zona horaria y desfases
+      // Normalizamos ambos a formato "YYYY-MM-DD HH:mm:ss"
+      const emision = (reporte.fecha_emision || '').replace('T', ' ').substring(0, 19);
+      const inicio = (this.filters.fecha_inicio || '').replace('T', ' ');
+      const fin = (this.filters.fecha_fin || '').replace('T', ' ');
+
+      // Si el filtro solo tiene minutos (YYYY-MM-DD HH:mm), completamos con segundos para la comparación
+      const matchInicio = !inicio || emision >= (inicio.length === 16 ? inicio + ':00' : inicio);
+      const matchFin = !fin || emision <= (fin.length === 16 ? fin + ':59' : fin);
+
+      return matchOrden && matchPlan && matchActivePlan && matchEstado && matchMetodo && matchInicio && matchFin && matchNombre && matchCedula;
     });
   }
 
@@ -483,6 +551,10 @@ export class ViewReportesPagosListado extends LitElement {
             `;
     }
 
+    const totalAceptado = this.filteredReportes
+      .filter(rep => (rep.estado || '').toUpperCase() === 'ACEPTADO')
+      .reduce((sum, rep) => sum + parseFloat(rep.monto || 0), 0);
+
     const totalPages = Math.ceil(this.filteredReportes.length / this.itemsPerPage);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const paginatedReportes = this.filteredReportes.slice(startIndex, startIndex + this.itemsPerPage);
@@ -497,6 +569,19 @@ export class ViewReportesPagosListado extends LitElement {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
           Volver
         </button>
+      </div>
+
+      <div class="total-card">
+        <div class="total-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <div class="total-content">
+          <span class="total-label">Total Aceptado</span>
+          <div class="total-value">$${totalAceptado.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </div>
       </div>
 
       <div class="filters-panel">
@@ -530,17 +615,27 @@ export class ViewReportesPagosListado extends LitElement {
               ${this.planes.map(p => html`<option value="${p.nombre}">${p.nombre}</option>`)}
             </select>
           </div>
+
+          <div class="filter-group">
+            <label for="filtro-cliente-nombre">Nombre Cliente</label>
+            <input type="text" id="filtro-cliente-nombre" placeholder="Nombre..." @input=${this.handleFilterChange}>
+          </div>
+
+          <div class="filter-group">
+            <label for="filtro-cliente-cedula">Cédula Cliente</label>
+            <input type="text" id="filtro-cliente-cedula" placeholder="Cédula..." @input=${this.handleFilterChange}>
+          </div>
         ` : ''}
 
         <div class="filter-group">
           <label for="filtro-fecha-inicio">Fecha Inicio</label>
-          <input type="date" id="filtro-fecha-inicio" @change=${this.handleFilterChange}>
+          <input type="datetime-local" id="filtro-fecha-inicio" @change=${this.handleFilterChange}>
         </div>
 
         <div class="filter-group">
           <label for="filtro-fecha-fin">Fecha Fin</label>
           <input 
-            type="date" 
+            type="datetime-local" 
             id="filtro-fecha-fin" 
             class="${this.isDateRangeInvalid() ? 'input-error' : ''}" 
             .min=${this.filters.fecha_inicio} 

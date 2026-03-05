@@ -637,7 +637,7 @@ export class ViewServiciosOrdenListado extends LitElement {
 
   isDateRangeInvalid() {
     if (!this.filters.fecha_inicio || !this.filters.fecha_fin) return false;
-    return new Date(this.filters.fecha_fin) < new Date(this.filters.fecha_inicio);
+    return this.filters.fecha_fin < this.filters.fecha_inicio;
   }
 
   applyFilters() {
@@ -655,11 +655,13 @@ export class ViewServiciosOrdenListado extends LitElement {
       const matchEstado = !this.filters.estado ||
         this.normalize(orden.estado) === this.normalize(this.filters.estado);
 
-      const matchInicio = !this.filters.fecha_inicio ||
-        orden.fecha_emision >= this.filters.fecha_inicio;
+      // Normalizamos el formato (espacio vs T) para una comparación de cadenas confiable
+      const emision = (orden.fecha_emision || '').replace('T', ' ').substring(0, 19);
+      const inicio = (this.filters.fecha_inicio || '').replace('T', ' ');
+      const fin = (this.filters.fecha_fin || '').replace('T', ' ');
 
-      const matchFin = !this.filters.fecha_fin ||
-        orden.fecha_emision <= this.filters.fecha_fin;
+      const matchInicio = !inicio || emision >= (inicio.length === 16 ? inicio + ':00' : inicio);
+      const matchFin = !fin || emision <= (fin.length === 16 ? fin + ':59' : fin);
 
       const matchNombre = !this.filters.nombre ||
         orden.nombre?.toLowerCase().includes(this.filters.nombre.toLowerCase());
