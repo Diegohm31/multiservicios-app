@@ -7,9 +7,11 @@ import { popupService } from '../utils/popup-service.js';
 export class ViewOperativosListado extends LitElement {
   static properties = {
     operativos: { type: Array },
+    especialidades: { type: Array },
     currentPage: { type: Number },
     itemsPerPage: { type: Number },
     loading: { type: Boolean },
+    filters: { type: Object },
   };
 
   static styles = css`
@@ -128,6 +130,56 @@ export class ViewOperativosListado extends LitElement {
       display: flex;
       align-items: center;
       gap: 1rem;
+    }
+
+    /* Filters Panel */
+    .filters-panel {
+      background: var(--card-bg);
+      padding: 1.5rem 2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      margin-bottom: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem 1.5rem;
+      align-items: end;
+      animation: fadeInUp 0.7s ease-out;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .filter-group label {
+      font-size: 0.7rem;
+      font-weight: 750;
+      text-transform: uppercase;
+      color: var(--text-light);
+      letter-spacing: 0.075em;
+      margin-left: 0.25rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      background: white;
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+      transform: translateY(-1px);
     }
 
     .avatar-placeholder {
@@ -287,6 +339,7 @@ export class ViewOperativosListado extends LitElement {
       .header-section { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
       .header-actions { width: 100%; flex-direction: column; }
       .btn-create, .btn-back { width: 100%; justify-content: center; }
+      .filters-panel { grid-template-columns: 1fr; }
     }
 
     /* Pagination Styles */
@@ -342,9 +395,17 @@ export class ViewOperativosListado extends LitElement {
   constructor() {
     super();
     this.operativos = [];
+    this.especialidades = [];
     this.currentPage = 1;
     this.itemsPerPage = 4;
     this.loading = true;
+    this.filters = {
+      nombre: '',
+      cedula: '',
+      telefono: '',
+      correo: '',
+      especialidad: ''
+    };
   }
 
   connectedCallback() {
@@ -355,9 +416,32 @@ export class ViewOperativosListado extends LitElement {
   async loadOperativos() {
     this.loading = true;
     try {
-      this.operativos = await operativosService.getAllOperativosWithDeleted();
+      // Necesitamos cargar especialidades para el filtro
+      const response = await fetch('http://api-multiservicios.local/api/especialidades', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      // Ordenar especialidades alfabéticamente por nombre y luego por nivel
+      this.especialidades = (data.data || []).sort((a, b) => {
+        const nameCmp = (a.nombre || '').localeCompare(b.nombre || '');
+        if (nameCmp !== 0) return nameCmp;
+        return (a.nivel || '').localeCompare(b.nivel || '');
+      });
+
+      const rawOperativos = await operativosService.getAllOperativosWithDeleted();
+      // Ordenar las especialidades internas de cada operativo
+      this.operativos = (rawOperativos || []).map(op => {
+        if (op.array_especialidades) {
+          op.array_especialidades.sort((a, b) => {
+            const nameCmp = (a.nombre || '').localeCompare(b.nombre || '');
+            if (nameCmp !== 0) return nameCmp;
+            return (a.nivel || '').localeCompare(b.nivel || '');
+          });
+        }
+        return op;
+      });
     } catch (error) {
-      console.error('Error loading operativos:', error);
+      console.error('Error loading data:', error);
     } finally {
       this.loading = false;
     }
@@ -386,6 +470,13 @@ export class ViewOperativosListado extends LitElement {
     );
   }
 
+  handleFilterChange(e) {
+    const { id, value } = e.target;
+    const filterKey = id.replace('filtro-', '');
+    this.filters = { ...this.filters, [filterKey]: value };
+    this.currentPage = 1;
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -396,9 +487,20 @@ export class ViewOperativosListado extends LitElement {
       `;
     }
 
-    const totalPages = Math.ceil(this.operativos.length / this.itemsPerPage);
+    const filteredOperativos = this.operativos.filter(op => {
+      const matchNombre = !this.filters.nombre || op.nombre?.toLowerCase().includes(this.filters.nombre.toLowerCase().trim());
+      const matchCedula = !this.filters.cedula || op.cedula?.toLowerCase().includes(this.filters.cedula.toLowerCase().trim());
+      const matchTelefono = !this.filters.telefono || op.telefono?.toLowerCase().includes(this.filters.telefono.toLowerCase().trim());
+      const matchCorreo = !this.filters.correo || op.correo?.toLowerCase().includes(this.filters.correo.toLowerCase().trim());
+      const matchEspecialidad = !this.filters.especialidad ||
+        op.array_especialidades?.some(e => String(e.id_especialidad) === String(this.filters.especialidad));
+
+      return matchNombre && matchCedula && matchTelefono && matchCorreo && matchEspecialidad;
+    });
+
+    const totalPages = Math.ceil(filteredOperativos.length / this.itemsPerPage);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const paginatedOperativos = this.operativos.slice(startIndex, startIndex + this.itemsPerPage);
+    const paginatedOperativos = filteredOperativos.slice(startIndex, startIndex + this.itemsPerPage);
 
     return html`
       <div class="header-section">
@@ -418,8 +520,36 @@ export class ViewOperativosListado extends LitElement {
         </div>
       </div>
       
+      <div class="filters-panel">
+        <div class="filter-group">
+          <label for="filtro-nombre">Nombre</label>
+          <input type="text" id="filtro-nombre" placeholder="Filtrar por nombre..." @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-cedula">Cédula</label>
+          <input type="text" id="filtro-cedula" placeholder="Filtrar por identificación..." @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-telefono">Teléfono</label>
+          <input type="text" id="filtro-telefono" placeholder="Filtrar por teléfono..." @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-correo">Correo</label>
+          <input type="text" id="filtro-correo" placeholder="Filtrar por correo..." @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-especialidad">Especialidad</label>
+          <select id="filtro-especialidad" @change=${this.handleFilterChange}>
+            <option value="">Todas las especialidades</option>
+            ${this.especialidades.map(e => html`
+              <option value="${e.id_especialidad}">${e.nombre} - Nivel ${e.nivel}</option>
+            `)}
+          </select>
+        </div>
+      </div>
+      
       <div class="grid">
-        ${this.operativos.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron operativos registrados.</p>` : ''}
+        ${filteredOperativos.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron operativos que coincidan con los filtros aplicados.</p>` : ''}
         ${paginatedOperativos.map(operativo => html`
           <div class="card">
             <span class="status-badge ${!operativo.is_deleted ? 'status-active' : 'status-inactive'}" style="position: absolute; top: 1.25rem; right: 1.25rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; background: ${!operativo.is_deleted ? '#dcfce7' : '#fee2e2'}; color: ${!operativo.is_deleted ? '#166534' : '#991b1b'};">
@@ -443,6 +573,10 @@ export class ViewOperativosListado extends LitElement {
               <div class="info-item">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                 ${operativo.telefono}
+              </div>
+              <div class="info-item">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                ${operativo.correo || 'S/C'}
               </div>
               
               <div class="specialties-container">
