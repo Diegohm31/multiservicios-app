@@ -6,7 +6,6 @@ import { popupService } from '../utils/popup-service.js';
 export class ViewAuthLogin extends LitElement {
 
   static properties = {
-    error: { type: String },
     showPassword: { type: Boolean }
   };
 
@@ -144,10 +143,10 @@ export class ViewAuthLogin extends LitElement {
         }));
         navigator.goto('/categoria/00007');
       } else {
-        this.error = 'Usuario o contraseña incorrectos';
+        popupService.warning('Acceso Denegado', 'Usuario o contraseña incorrectos. Por favor, verifique sus datos.');
       }
     } catch (error) {
-      popupService.warning('Error', 'Error al iniciar sesión');
+      popupService.error('Error del Sistema', 'Ocurrió un error inesperado al intentar iniciar sesión.');
     }
   }
 
@@ -185,12 +184,10 @@ export class ViewAuthLogin extends LitElement {
           <button type="submit">Entrar</button>
         </form>
         <div class="links">
-          ¿No tienes cuenta? <a href="#" @click = ${() => navigator.goto('/register')}>Regístrate aquí</a>
+          ¿No tienes cuenta? <a href="#" @click=${() => navigator.goto('/register')}>Regístrate aquí</a>
           <br><br>
-          <a href="#" @click = ${() => navigator.goto('/olvide_password')}>¿Olvidaste tu contraseña?</a>
-
+          <a href="#" @click=${() => navigator.goto('/olvide_password')}>¿Olvidaste tu contraseña?</a>
         </div>
-        ${this.error ? html`<p style="color: red;">${this.error}</p>` : ''}
       </div>
     `;
   }
