@@ -826,6 +826,7 @@ export class ViewServiciosOrdenListado extends LitElement {
               <option value="pendiente">Pendiente</option>
               <option value="aceptada">Aceptada</option>
               <option value="presupuestada">Presupuestada</option>
+              <option value="por pagar">Por pagar</option>
               <option value="en ejecucion">En ejecución</option>
               <option value="completada">Completada</option>
               <option value="cancelada">Cancelada</option>

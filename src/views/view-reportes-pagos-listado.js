@@ -604,6 +604,7 @@ export class ViewReportesPagosListado extends LitElement {
             <option value="">Todos los estados</option>
             <option value="Pendiente">Pendiente</option>
             <option value="Aceptado">Aceptado</option>
+            <option value="Cancelado">Cancelado</option>
           </select>
         </div>
 
