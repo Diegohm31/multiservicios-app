@@ -439,10 +439,10 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     for (let i = 0; i < count; i++) {
                         const existing = existingOps[i];
 
-                        // Si ya existe asignación en DB, usar sus datos; si no, calcular sugeridos
+                        // Si ya existe asignación en DB, usar sus datos; si no, calcular sugeridos (hora actual)
                         const start = existing
                             ? new Date(existing.fecha_inicio.replace(' ', 'T'))
-                            : new Date(`${suggestedDate}T08:00`);
+                            : new Date();
                         const end = existing
                             ? new Date(existing.fecha_fin.replace(' ', 'T'))
                             : new Date(start.getTime() + horas * 60 * 60 * 1000);
@@ -476,7 +476,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                         const existing = existingEqs[i];
                         const start = existing
                             ? new Date(existing.fecha_inicio.replace(' ', 'T'))
-                            : new Date(`${suggestedDate}T08:00`);
+                            : new Date();
                         const end = existing
                             ? new Date(existing.fecha_fin.replace(' ', 'T'))
                             : new Date(start.getTime() + horas * 60 * 60 * 1000);
@@ -580,6 +580,16 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         return null;
     }
 
+    getMinDateTime() {
+        // Returns the start of the current local day (YYYY-MM-DD)
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        // Setting time to 00:00 to only block past days
+        return `${year}-${month}-${day}T00:00`;
+    }
+
     updateAssignment(serviceId, type, index, field, value) {
         const tempAssigns = JSON.parse(JSON.stringify(this.assignments));
         const slot = tempAssigns[serviceId][type][index];
@@ -589,6 +599,22 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
             const resId = field === idField ? value : slot[idField];
             const start = field === 'fecha_inicio' ? value : slot.fecha_inicio;
             const end = field === 'fecha_fin' ? value : slot.fecha_fin;
+
+            if (field === 'fecha_inicio' || field === 'fecha_fin') {
+                if (value) {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0); // Start of today
+                    
+                    const inputDate = new Date(value);
+                    inputDate.setHours(0, 0, 0, 0); // Start of input day
+                    
+                    if (inputDate.getTime() < today.getTime()) {
+                        popupService.warning('Acción Bloqueada', 'No se permite ingresar fechas de días pasados.');
+                        this.requestUpdate();
+                        return;
+                    }
+                }
+            }
 
             if (resId) {
                 // 1. STRICT BLOCK: Same service, same resource duplication
@@ -801,8 +827,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                                     `)}
                                 </select>
                             </td>
-                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} @input=${e => this.updateAssignment(s.id_orden_servicio, 'operatives', idx, 'fecha_inicio', e.target.value)}></td>
-                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} @input=${e => this.updateAssignment(s.id_orden_servicio, 'operatives', idx, 'fecha_fin', e.target.value)}></td>
+                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'operatives', idx, 'fecha_inicio', e.target.value)}></td>
+                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'operatives', idx, 'fecha_fin', e.target.value)}></td>
                             <td style="text-align: center">
                                 <label class="checkbox-container">
                                     <input type="checkbox" 
@@ -859,8 +885,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                                     `)}
                                 </select>
                             </td>
-                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} @input=${e => this.updateAssignment(s.id_orden_servicio, 'equipos', idx, 'fecha_inicio', e.target.value)}></td>
-                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} @input=${e => this.updateAssignment(s.id_orden_servicio, 'equipos', idx, 'fecha_fin', e.target.value)}></td>
+                             <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'equipos', idx, 'fecha_inicio', e.target.value)}></td>
+                             <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'equipos', idx, 'fecha_fin', e.target.value)}></td>
                         </tr>
                     `;
         })}
@@ -963,7 +989,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
             }
         }
 
-        // Duration Validations
+        // Duration and Past DateTime Validations
+        const now = new Date();
         for (const s of this.orden.servicios) {
             const assign = this.assignments[s.id_orden_servicio];
 
@@ -971,14 +998,20 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 const start = new Date(o.fecha_inicio);
                 const end = new Date(o.fecha_fin);
 
+                // Final guard against past time at submission
+                if (start.getTime() < (now.getTime() - 60000)) {
+                    popupService.warning('Acción Bloqueada', `El inicio programado para "${o.nombre_especialidad}" en "${s.nombre}" no puede ser una hora del pasado.`);
+                    return;
+                }
+
                 if (end <= start) {
-                    popupService.warning('Error de Fechas', `Fin debe ser mayor a inicio para "${o.nombre_especialidad}\" en \"${s.nombre}\"`);
+                    popupService.warning('Error de Fechas', `Fin debe ser mayor a inicio para "${o.nombre_especialidad}" en "${s.nombre}"`);
                     return;
                 }
 
                 const diffHours = (end - start) / (1000 * 60 * 60);
                 if (Math.abs(diffHours - o.horas_req) > 0.01) {
-                    popupService.warning('Cálculo de Horas', `Duración de "${o.nombre_especialidad}\" en \"${s.nombre}\" debe ser de ${o.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
+                    popupService.warning('Cálculo de Horas', `Duración de "${o.nombre_especialidad}" en "${s.nombre}" debe ser de ${o.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
                     return;
                 }
             }
@@ -987,8 +1020,14 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 const start = new Date(e.fecha_inicio);
                 const end = new Date(e.fecha_fin);
 
+                // Final guard against past time at submission
+                if (start.getTime() < (now.getTime() - 60000)) {
+                    popupService.warning('Acción Bloqueada', `El inicio programado para el equipo "${e.nombre_equipo}" no puede ser una hora del pasado.`);
+                    return;
+                }
+
                 if (end <= start) {
-                    popupService.warning('Error de Fechas', `Fin debe ser mayor a inicio para equipo \"${e.nombre_equipo}\"`);
+                    popupService.warning('Error de Fechas', `Fin debe ser mayor a inicio para equipo "${e.nombre_equipo}"`);
                     return;
                 }
 
