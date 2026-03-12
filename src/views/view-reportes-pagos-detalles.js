@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { popupService } from '../utils/popup-service.js';
+import { formatDate, formatDateTime } from '../utils/date-utils.js';
 
 export class ViewReportesPagosDetalles extends LitElement {
     static properties = {
@@ -336,7 +337,7 @@ export class ViewReportesPagosDetalles extends LitElement {
                 <div class="card">
                     <div class="card-header">
                         <h2 class="card-title">Información General</h2>
-                        <p class="value" style="font-size: 0.9rem; color: var(--text-light);">Fecha de Emisión: ${this.reporte.fecha_emision}</p>
+                        <p class="value" style="font-size: 0.9rem; color: var(--text-light);">Fecha de Emisión: ${formatDateTime(this.reporte.fecha_emision)}</p>
                     </div>
                     <div class="card-body">
                         <div class="detail-group">

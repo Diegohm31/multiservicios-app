@@ -1,13 +1,15 @@
 import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { tiposEquiposService } from '../services/tipos-equipos-service.js';
+import { authService } from '../services/auth-service.js';
 import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioTipoEquipoListado extends LitElement {
   static properties = {
-    currentPage: { type: Number },
     itemsPerPage: { type: Number },
     loading: { type: Boolean },
+    user: { type: Object },
+    filters: { type: Object },
   };
 
   static styles = css`
@@ -127,6 +129,56 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
       font-weight: 700;
       margin: 0;
       color: var(--text);
+    }
+
+    /* Filters Panel */
+    .filters-panel {
+      background: var(--card-bg);
+      padding: 1.5rem 2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      margin-bottom: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem 1.5rem;
+      align-items: end;
+      animation: fadeInUp 0.7s ease-out;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .filter-group label {
+      font-size: 0.7rem;
+      font-weight: 750;
+      text-transform: uppercase;
+      color: var(--text-light);
+      letter-spacing: 0.075em;
+      margin-left: 0.25rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      background: white;
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+      transform: translateY(-1px);
     }
 
     .card-info {
@@ -316,8 +368,11 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
     super();
     this.tipos_equipos = [];
     this.currentPage = 1;
-    this.itemsPerPage = 4;
+    this.itemsPerPage = 8;
     this.loading = true;
+    this.filters = {
+      nombre: '',
+    };
   }
 
   connectedCallback() {
@@ -328,12 +383,24 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
   async loadTiposEquipos() {
     this.loading = true;
     try {
-      this.tipos_equipos = await tiposEquiposService.getTiposEquipos();
+      const [tipos, user] = await Promise.all([
+        tiposEquiposService.getTiposEquipos(),
+        authService.getUser()
+      ]);
+      this.tipos_equipos = tipos;
+      this.user = user;
     } catch (error) {
       console.error('Error loading equipo types:', error);
     } finally {
       this.loading = false;
     }
+  }
+
+  handleFilterChange(e) {
+    const { id, value } = e.target;
+    const filterKey = id.replace('filtro-', '');
+    this.filters = { ...this.filters, [filterKey]: value };
+    this.currentPage = 1;
   }
 
   changePage(page) {
@@ -367,9 +434,14 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
       `;
     }
 
-    const totalPages = Math.ceil(this.tipos_equipos.length / this.itemsPerPage);
+    const filtered = this.tipos_equipos.filter(t => {
+      const matchNombre = !this.filters.nombre || t.nombre?.toLowerCase().includes(this.filters.nombre.toLowerCase().trim());
+      return matchNombre;
+    });
+
+    const totalPages = Math.ceil(filtered.length / this.itemsPerPage);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const paginatedTiposEquipos = this.tipos_equipos.slice(startIndex, startIndex + this.itemsPerPage);
+    const paginatedTiposEquipos = filtered.slice(startIndex, startIndex + this.itemsPerPage);
 
     return html`
       <div class="header-section">
@@ -382,15 +454,24 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             Volver
           </button>
-          <button class="btn-create" @click=${() => navigator.goto('/inventario/register/tipo_equipo')}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
-            Nuevo Equipo
-          </button>
+          ${this.user?.id_rol !== '00002' ? html`
+            <button class="btn-create" @click=${() => navigator.goto('/inventario/register/tipo_equipo')}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+              Nuevo Equipo
+            </button>
+          ` : ''}
+        </div>
+      </div>
+
+      <div class="filters-panel">
+        <div class="filter-group">
+          <label for="filtro-nombre">Nombre de Tipo de Equipo</label>
+          <input type="text" id="filtro-nombre" placeholder="Filtrar por nombre..." @input=${this.handleFilterChange}>
         </div>
       </div>
       
       <div class="grid">
-        ${this.tipos_equipos.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron tipos de equipos.</p>` : ''}
+        ${filtered.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron tipos de equipos.</p>` : ''}
         ${paginatedTiposEquipos.map(tipo_equipo => html`
           <div class="card">
             <h2 class="card-title">${tipo_equipo.nombre}</h2>
@@ -406,6 +487,7 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
               </div>
             </div>
 
+            ${this.user?.id_rol !== '00002' ? html`
             <div class="card-actions">
               <button class="btn-action btn-edit" @click=${() => navigator.goto(`/inventario/edit/tipo_equipo/${tipo_equipo.id_tipo_equipo}`)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -416,6 +498,7 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
                 Eliminar
               </button>
             </div>
+            ` : ''}
           </div>
         `)}
       </div>

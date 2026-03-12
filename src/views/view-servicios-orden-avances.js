@@ -4,6 +4,7 @@ import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
 import { popupService } from '../utils/popup-service.js';
+import { formatDate, formatDateTime } from '../utils/date-utils.js';
 import confetti from 'canvas-confetti';
 
 export class ViewServiciosOrdenAvances extends LitElement {
@@ -948,15 +949,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
                 <h2 class="details-title" style="margin-bottom: 0;">
                     Fecha del avance: ${avance.created_at || avance.fecha_avance
-        ? new Date(avance.created_at || avance.fecha_avance).toLocaleString('es-VE', {
-          timeZone: 'America/Caracas',
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true,
-        })
+        ? formatDateTime(avance.created_at || avance.fecha_avance)
         : 'Detalle del Avance'}
                 </h2>
                 <div style="text-align: right;">

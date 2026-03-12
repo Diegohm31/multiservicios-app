@@ -56,18 +56,17 @@ export class AuthService {
     };
     try {
       const response = await fetch(url, requestOptions);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
       const response_json = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+      }
 
       localStorage.setItem('token', response_json.token);
-
       return true;
     } catch (error) {
       console.error('Error al iniciar sesion:', error);
-      // throw error; // para que el error se propague a quien lo llama
-      return false;
+      throw error;
     }
   }
 

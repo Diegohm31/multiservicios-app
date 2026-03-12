@@ -134,19 +134,19 @@ export class ViewAuthLogin extends LitElement {
     e.preventDefault();
     try {
       let response = await authService.login(this.email, this.password);
-      // Redirigir al CRUD
-      // AVISAR A LA APP que el usuario entró (Evento burbujeante)
       if (response == true) {
         this.dispatchEvent(new CustomEvent('user-logged-in', {
           bubbles: true,
           composed: true
         }));
         navigator.goto('/categoria/00007');
+      }
+    } catch (error) {
+      if (error.message.includes('inactiva')) {
+        popupService.warning('Acceso Restringido', error.message);
       } else {
         popupService.warning('Acceso Denegado', 'Usuario o contraseña incorrectos. Por favor, verifique sus datos.');
       }
-    } catch (error) {
-      popupService.error('Error del Sistema', 'Ocurrió un error inesperado al intentar iniciar sesión.');
     }
   }
 

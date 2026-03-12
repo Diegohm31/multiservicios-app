@@ -276,13 +276,24 @@ export class ViewOperativosListado extends LitElement {
       background: #e2e8f0;
     }
 
-    .btn-delete {
+    .btn-inactive {
       background: #fef2f2;
       color: #dc2626;
     }
 
-    .btn-delete:hover {
+    .btn-inactive:hover {
       background: #fee2e2;
+      transform: translateY(-2px);
+    }
+
+    .btn-active {
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .btn-active:hover {
+      background: #dcfce7;
+      transform: translateY(-2px);
     }
 
     .btn-back {
@@ -462,7 +473,7 @@ export class ViewOperativosListado extends LitElement {
         try {
           await usuariosService.toggleStatus(id_usuario, newActiveValue);
           this.loadOperativos();
-          popupService.success('Éxito', `Operativo ${action}ado correctamente`);
+          popupService.success('Éxito', `Operativo ${newActiveValue ? 'activado' : 'inactivado'} correctamente`);
         } catch (error) {
           popupService.warning('Error', 'Error al cambiar el estado del operativo');
         }
@@ -593,7 +604,7 @@ export class ViewOperativosListado extends LitElement {
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 Editar
               </button>
-              <button class="btn-action ${!operativo.is_deleted ? 'btn-delete' : 'btn-edit'}" style="background: ${!operativo.is_deleted ? '#fee2e2' : '#dcfce7'}; color: ${!operativo.is_deleted ? '#dc2626' : '#166534'};" @click=${() => this.handleToggleStatus(operativo.id_user, operativo.is_deleted)}>
+              <button class="btn-action ${!operativo.is_deleted ? 'btn-inactive' : 'btn-active'}" @click=${() => this.handleToggleStatus(operativo.id_user, operativo.is_deleted)}>
                 ${!operativo.is_deleted ? html`
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
                   Inactivar

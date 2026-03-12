@@ -4,6 +4,7 @@ import { serviciosService } from '../services/servicios-service.js';
 import { operativosService } from '../services/operativos-service.js';
 import { equiposService } from '../services/equipos-service.js';
 import { popupService } from '../utils/popup-service.js';
+import { formatDate } from '../utils/date-utils.js';
 
 export class ViewServiciosOrdenAsignarPersonal extends LitElement {
     static properties = {
@@ -696,13 +697,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
     }
 
     formatDate(date) {
-        if (!date) return 'Pendiente';
-        return date.toLocaleString('es-VE', {
-            timeZone: 'America/Caracas',
-            year: 'numeric', month: 'numeric', day: 'numeric',
-            hour: 'numeric', minute: 'numeric',
-            hour12: true
-        });
+        return formatDate(date);
     }
 
     render() {

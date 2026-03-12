@@ -9,6 +9,7 @@ export class ViewInventarioMaterialListado extends LitElement {
     itemsPerPage: { type: Number },
     loading: { type: Boolean },
     userRole: { type: String },
+    filters: { type: Object },
   };
 
   static styles = css`
@@ -112,6 +113,56 @@ export class ViewInventarioMaterialListado extends LitElement {
       font-weight: 700;
       margin: 0;
       color: var(--text);
+    }
+
+    /* Filters Panel */
+    .filters-panel {
+      background: var(--card-bg);
+      padding: 1.5rem 2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      margin-bottom: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem 1.5rem;
+      align-items: end;
+      animation: fadeInUp 0.7s ease-out;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .filter-group label {
+      font-size: 0.7rem;
+      font-weight: 750;
+      text-transform: uppercase;
+      color: var(--text-light);
+      letter-spacing: 0.075em;
+      margin-left: 0.25rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      background: white;
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+      transform: translateY(-1px);
     }
 
     .card-description {
@@ -317,9 +368,13 @@ export class ViewInventarioMaterialListado extends LitElement {
     super();
     this.materiales = [];
     this.currentPage = 1;
-    this.itemsPerPage = 4;
+    this.itemsPerPage = 8;
     this.loading = true;
     this.userRole = '';
+    this.filters = {
+      nombre: '',
+      unidad_medida: ''
+    };
   }
 
   connectedCallback() {
@@ -343,6 +398,13 @@ export class ViewInventarioMaterialListado extends LitElement {
     }
   }
 
+  handleFilterChange(e) {
+    const { id, value } = e.target;
+    const filterKey = id.replace('filtro-', '');
+    this.filters = { ...this.filters, [filterKey]: value };
+    this.currentPage = 1;
+  }
+
   changePage(page) {
     this.currentPage = page;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -358,9 +420,15 @@ export class ViewInventarioMaterialListado extends LitElement {
       `;
     }
 
-    const totalPages = Math.ceil(this.materiales.length / this.itemsPerPage);
+    const filtered = this.materiales.filter(m => {
+      const matchNombre = !this.filters.nombre || m.nombre?.toLowerCase().includes(this.filters.nombre.toLowerCase().trim());
+      const matchUnidad = !this.filters.unidad_medida || m.unidad_medida?.toLowerCase().includes(this.filters.unidad_medida.toLowerCase().trim());
+      return matchNombre && matchUnidad;
+    });
+
+    const totalPages = Math.ceil(filtered.length / this.itemsPerPage);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const paginatedMateriales = this.materiales.slice(startIndex, startIndex + this.itemsPerPage);
+    const paginatedMateriales = filtered.slice(startIndex, startIndex + this.itemsPerPage);
 
     return html`
       <div class="header-section">
@@ -381,9 +449,20 @@ export class ViewInventarioMaterialListado extends LitElement {
           ` : ''}
         </div>
       </div>
+
+      <div class="filters-panel">
+        <div class="filter-group">
+          <label for="filtro-nombre">Nombre de Material</label>
+          <input type="text" id="filtro-nombre" placeholder="Filtrar por nombre..." @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-unidad_medida">Unidad de Medida</label>
+          <input type="text" id="filtro-unidad_medida" placeholder="Filtrar por unidad (Kg, L, etc)..." @input=${this.handleFilterChange}>
+        </div>
+      </div>
       
       <div class="grid">
-        ${this.materiales.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron materiales.</p>` : ''}
+        ${filtered.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron materiales.</p>` : ''}
         ${paginatedMateriales.map(material => {
       const lowStock = parseFloat(material.stock_actual) <= parseFloat(material.stock_minimo);
       return html`

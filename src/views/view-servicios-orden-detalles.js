@@ -3,6 +3,7 @@ import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { authService } from '../services/auth-service.js';
 import { popupService } from '../utils/popup-service.js';
+import { formatDate, formatDateTime } from '../utils/date-utils.js';
 
 export class ViewServiciosOrdenDetalles extends LitElement {
   static properties = {
@@ -688,12 +689,12 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             <div class="details-grid">
               <div class="detail-item">
                 <span class="detail-label">Fecha de Emisión</span>
-                <span class="detail-value">${this.orden.fecha_emision}</span>
+                <span class="detail-value">${formatDateTime(this.orden.fecha_emision)}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Rango de Fechas</span>
                 ${this.orden.fecha_inicio && this.orden.fecha_fin ? html`
-                  <span class="detail-value">${this.orden.fecha_inicio} al ${this.orden.fecha_fin}</span>
+                  <span class="detail-value">${formatDate(this.orden.fecha_inicio)} al ${formatDate(this.orden.fecha_fin)}</span>
                 ` : html`
                   <span class="detail-value">Aún no definido</span>
                 `}

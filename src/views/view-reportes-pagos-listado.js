@@ -4,6 +4,7 @@ import { navigator } from '../utils/navigator.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { planesMembresiasService } from '../services/planes-membresias-service.js';
 import { authService } from '../services/auth-service.js';
+import { formatDate, formatDateTime, parseLocalDate, parseLocalDateTime, parseFilter } from '../utils/date-utils.js';
 
 export class ViewReportesPagosListado extends LitElement {
   static properties = {
@@ -510,15 +511,12 @@ export class ViewReportesPagosListado extends LitElement {
       const matchCedula = !this.filters.cliente_cedula ||
         this.normalize(reporte.cliente_cedula).includes(this.normalize(this.filters.cliente_cedula));
 
-      // Usamos comparación de cadenas para evitar problemas de zona horaria y desfases
-      // Normalizamos ambos a formato "YYYY-MM-DD HH:mm:ss"
-      const emision = (reporte.fecha_emision || '').replace('T', ' ').substring(0, 19);
-      const inicio = (this.filters.fecha_inicio || '').replace('T', ' ');
-      const fin = (this.filters.fecha_fin || '').replace('T', ' ');
+      const emision = parseLocalDateTime(reporte.fecha_emision);
+      const inicio = parseFilter(this.filters.fecha_inicio, false);
+      const fin = parseFilter(this.filters.fecha_fin, true);
 
-      // Si el filtro solo tiene minutos (YYYY-MM-DD HH:mm), completamos con segundos para la comparación
-      const matchInicio = !inicio || emision >= (inicio.length === 16 ? inicio + ':00' : inicio);
-      const matchFin = !fin || emision <= (fin.length === 16 ? fin + ':59' : fin);
+      const matchInicio = !inicio || (emision && emision >= inicio);
+      const matchFin = !fin || (emision && emision <= fin);
 
       return matchOrden && matchPlan && matchActivePlan && matchEstado && matchMetodo && matchInicio && matchFin && matchNombre && matchCedula;
     });
@@ -691,7 +689,7 @@ export class ViewReportesPagosListado extends LitElement {
                 <td style="font-weight: 800; color: var(--success); font-family: 'JetBrains Mono', monospace;">
                    $${parseFloat(reporte.monto).toFixed(2)}
                 </td>
-                <td style="font-size: 0.85rem; font-weight: 500;">${reporte.fecha_emision}</td>
+                <td style="font-size: 0.85rem; font-weight: 500;">${formatDateTime(reporte.fecha_emision)}</td>
                 <td>
                   <span class="status-badge ${this.getStatusClass(reporte.estado)}">
                     ${reporte.estado}

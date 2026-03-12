@@ -3,6 +3,7 @@ import { navigator } from '../utils/navigator.js';
 import { equiposService } from '../services/equipos-service.js';
 import { authService } from '../services/auth-service.js';
 import { popupService } from '../utils/popup-service.js';
+import { formatDate, parseLocalDate, parseLocalDateTime, parseFilter, getEndOfDay, getStartOfDay } from '../utils/date-utils.js';
 
 export class ViewInventarioEquipoListado extends LitElement {
   static properties = {
@@ -10,6 +11,7 @@ export class ViewInventarioEquipoListado extends LitElement {
     itemsPerPage: { type: Number },
     loading: { type: Boolean },
     userRole: { type: String },
+    filters: { type: Object },
   };
 
   static styles = css`
@@ -106,6 +108,75 @@ export class ViewInventarioEquipoListado extends LitElement {
       transform: translateY(-8px);
       box-shadow: var(--shadow);
       border-color: var(--primary);
+    }
+
+    /* Filters Panel */
+    .filters-panel {
+      background: var(--card-bg);
+      padding: 1.5rem 2rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      margin-bottom: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem 1.5rem;
+      align-items: end;
+      animation: fadeInUp 0.7s ease-out;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .filter-group label {
+      font-size: 0.7rem;
+      font-weight: 750;
+      text-transform: uppercase;
+      color: var(--text-light);
+      letter-spacing: 0.075em;
+      margin-left: 0.25rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 0.95rem;
+      background: white;
+      color: var(--text);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+      transform: translateY(-1px);
+    }
+
+    input[type="date"] {
+      position: relative;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: calc(100% - 12px) center;
+      padding-right: 2.5rem;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      color: transparent;
+      cursor: pointer;
     }
 
     .card-title {
@@ -311,9 +382,15 @@ export class ViewInventarioEquipoListado extends LitElement {
     super();
     this.equipos = [];
     this.currentPage = 1;
-    this.itemsPerPage = 4;
+    this.itemsPerPage = 8;
     this.loading = true;
     this.userRole = '';
+    this.filters = {
+      modelo: '',
+      codigo_interno: '',
+      fecha_inicio: '',
+      fecha_fin: ''
+    };
   }
 
   connectedCallback() {
@@ -335,6 +412,13 @@ export class ViewInventarioEquipoListado extends LitElement {
     } finally {
       this.loading = false;
     }
+  }
+
+  handleFilterChange(e) {
+    const { id, value } = e.target;
+    const filterKey = id.replace('filtro-', '');
+    this.filters = { ...this.filters, [filterKey]: value };
+    this.currentPage = 1;
   }
 
   changePage(page) {
@@ -368,9 +452,31 @@ export class ViewInventarioEquipoListado extends LitElement {
             `;
     }
 
-    const totalPages = Math.ceil(this.equipos.length / this.itemsPerPage);
+    const filtered = this.equipos.filter(e => {
+      const matchModelo = !this.filters.modelo || e.modelo?.toLowerCase().includes(this.filters.modelo.toLowerCase().trim());
+      const matchCodigo = !this.filters.codigo_interno || e.codigo_interno?.toLowerCase().includes(this.filters.codigo_interno.toLowerCase().trim());
+      
+      let matchFecha = true;
+      if (this.filters.fecha_inicio || this.filters.fecha_fin) {
+        const adqDate = parseLocalDateTime(e.fecha_adquisicion);
+        if (adqDate) {
+          if (this.filters.fecha_inicio) {
+            const startDate = parseFilter(this.filters.fecha_inicio, false);
+            matchFecha = matchFecha && adqDate >= startDate;
+          }
+          if (this.filters.fecha_fin) {
+            const endDate = parseFilter(this.filters.fecha_fin, true);
+            matchFecha = matchFecha && adqDate <= endDate;
+          }
+        }
+      }
+
+      return matchModelo && matchCodigo && matchFecha;
+    });
+
+    const totalPages = Math.ceil(filtered.length / this.itemsPerPage);
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const paginatedEquipos = this.equipos.slice(startIndex, startIndex + this.itemsPerPage);
+    const paginatedEquipos = filtered.slice(startIndex, startIndex + this.itemsPerPage);
 
     return html`
       <div class="header-section">
@@ -391,9 +497,28 @@ export class ViewInventarioEquipoListado extends LitElement {
           ` : ''}
         </div>
       </div>
+
+      <div class="filters-panel">
+        <div class="filter-group">
+          <label for="filtro-modelo">Modelo / Nombre</label>
+          <input type="text" id="filtro-modelo" placeholder="Filtrar por modelo..." @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-codigo_interno">Código Interno</label>
+          <input type="text" id="filtro-codigo_interno" placeholder="Filtrar por código..." @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-fecha_inicio">Adquisición Desde</label>
+          <input type="date" id="filtro-fecha_inicio" .max=${this.filters.fecha_fin} @input=${this.handleFilterChange}>
+        </div>
+        <div class="filter-group">
+          <label for="filtro-fecha_fin">Adquisición Hasta</label>
+          <input type="date" id="filtro-fecha_fin" .min=${this.filters.fecha_inicio} @input=${this.handleFilterChange}>
+        </div>
+      </div>
       
       <div class="grid">
-        ${this.equipos.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron equipos registrados.</p>` : ''}
+        ${filtered.length === 0 ? html`<p style="grid-column: 1/-1; text-align: center; color: var(--text-light); padding: 5rem;">No se encontraron equipos registrados.</p>` : ''}
         ${paginatedEquipos.map(equipo => html`
           <div class="card">
             <div class="card-title">
@@ -412,7 +537,7 @@ export class ViewInventarioEquipoListado extends LitElement {
               </div>
               <div class="info-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Adquirido: ${new Date(equipo.fecha_adquisicion).toLocaleDateString()}
+                Adquirido: ${formatDate(equipo.fecha_adquisicion)}
               </div>
             </div>
 

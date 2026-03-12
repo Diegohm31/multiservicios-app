@@ -4,6 +4,7 @@ import { serviciosService } from '../services/servicios-service.js';
 import { planesMembresiasService } from '../services/planes-membresias-service.js';
 import { authService } from '../services/auth-service.js';
 import { popupService } from '../utils/popup-service.js';
+import { formatDate, formatDateTime, parseLocalDate, parseLocalDateTime, parseFilter } from '../utils/date-utils.js';
 
 export class ViewServiciosOrdenListado extends LitElement {
   static properties = {
@@ -721,13 +722,13 @@ export class ViewServiciosOrdenListado extends LitElement {
       const matchEstado = !this.filters.estado ||
         this.normalize(orden.estado) === this.normalize(this.filters.estado);
 
-      // Normalizamos el formato (espacio vs T) para una comparación de cadenas confiable
-      const emision = (orden.fecha_emision || '').replace('T', ' ').substring(0, 19);
-      const inicio = (this.filters.fecha_inicio || '').replace('T', ' ');
-      const fin = (this.filters.fecha_fin || '').replace('T', ' ');
+      // Use local date parsing for reliable comparison
+      const emision = parseLocalDateTime(orden.fecha_emision);
+      const inicio = parseFilter(this.filters.fecha_inicio, false);
+      const fin = parseFilter(this.filters.fecha_fin, true);
 
-      const matchInicio = !inicio || emision >= (inicio.length === 16 ? inicio + ':00' : inicio);
-      const matchFin = !fin || emision <= (fin.length === 16 ? fin + ':59' : fin);
+      const matchInicio = !inicio || (emision && emision >= inicio);
+      const matchFin = !fin || (emision && emision <= fin);
 
       const matchNombre = !this.filters.nombre ||
         orden.nombre?.toLowerCase().includes(this.filters.nombre.toLowerCase());
@@ -920,7 +921,7 @@ export class ViewServiciosOrdenListado extends LitElement {
                   <td style="font-family: monospace;">${orden.cedula}</td>
                 ` : ''}
                 <td>${orden.direccion}</td>
-                <td style="color: var(--text-light); font-weight: 500;">${orden.fecha_emision}</td>
+                <td style="color: var(--text-light); font-weight: 500;">${formatDateTime(orden.fecha_emision)}</td>
                 <td>
                   <span class="status-badge ${this.getStatusClass(orden.estado)}">
                     ${orden.estado}

@@ -3,6 +3,7 @@ import { navigator } from '../utils/navigator.js';
 import { authService } from '../services/auth-service.js';
 import { serviciosService } from '../services/servicios-service.js';
 import { usuariosService } from '../services/usuarios-service.js';
+import { formatDate, formatDateTime } from '../utils/date-utils.js';
 import Chart from 'chart.js/auto';
 
 export class ViewDashboard extends LitElement {
@@ -733,7 +734,7 @@ export class ViewDashboard extends LitElement {
                                     <tr style="cursor: pointer;" @click=${() => navigator.goto(`/servicios/orden/detalles/${order.id_orden}`)}>
                                         <td style="font-weight: 800; color: var(--primary);">#${order.id_orden}</td>
                                         <td>${order.direccion.length > 40 ? order.direccion.substring(0, 40) + '...' : order.direccion}</td>
-                                        <td>${order.fecha_emision}</td>
+                                        <td>${formatDateTime(order.fecha_emision)}</td>
                                         <td>
                                             <span class="status-pill ${this.getStatusClass(order.estado)}">
                                                 ${order.estado}
