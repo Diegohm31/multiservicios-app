@@ -4,7 +4,7 @@ import { serviciosService } from '../services/servicios-service.js';
 import { operativosService } from '../services/operativos-service.js';
 import { equiposService } from '../services/equipos-service.js';
 import { popupService } from '../utils/popup-service.js';
-import { formatDate } from '../utils/date-utils.js';
+import { formatDateTime } from '../utils/date-utils.js';
 
 export class ViewServiciosOrdenAsignarPersonal extends LitElement {
     static properties = {
@@ -440,13 +440,17 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     for (let i = 0; i < count; i++) {
                         const existing = existingOps[i];
 
-                        // Si ya existe asignación en DB, usar sus datos; si no, calcular sugeridos (hora actual)
-                        const start = existing
-                            ? new Date(existing.fecha_inicio.replace(' ', 'T'))
-                            : new Date();
-                        const end = existing
-                            ? new Date(existing.fecha_fin.replace(' ', 'T'))
-                            : new Date(start.getTime() + horas * 60 * 60 * 1000);
+                        let start = existing ? new Date(existing.fecha_inicio.replace(' ', 'T')) : this.getSuggestedStartDate();
+                        
+                        // Si era una fecha cargada en DB que ya pasó, actualizarla inmediatamente a una sugerencia válida presente.
+                        if (existing && start.getTime() < Date.now()) {
+                            start = this.getSuggestedStartDate();
+                        }
+                        
+                        const end = existing ? new Date(existing.fecha_fin.replace(' ', 'T')) : this.calculateEndDate(start, horas);
+                        
+                        // Recalcular el final siempre por seguridad si ajustamos el inicio
+                        const verifiedEnd = (existing && start.getTime() >= Date.now()) ? end : this.calculateEndDate(start, horas);
 
                         sAssign.operatives.push({
                             id_especialidad: esp.id_especialidad,
@@ -455,7 +459,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                             horas_req: horas,
                             id_operativo: existing ? existing.id_operativo : '',
                             fecha_inicio: this.formatDateForInput(start),
-                            fecha_fin: this.formatDateForInput(end),
+                            fecha_fin: this.formatDateForInput(verifiedEnd),
                             es_jefe: existing ? parseInt(existing.es_jefe) : 0
                         });
                     }
@@ -475,12 +479,14 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
 
                     for (let i = 0; i < count; i++) {
                         const existing = existingEqs[i];
-                        const start = existing
-                            ? new Date(existing.fecha_inicio.replace(' ', 'T'))
-                            : new Date();
-                        const end = existing
-                            ? new Date(existing.fecha_fin.replace(' ', 'T'))
-                            : new Date(start.getTime() + horas * 60 * 60 * 1000);
+                        let start = existing ? new Date(existing.fecha_inicio.replace(' ', 'T')) : this.getSuggestedStartDate();
+
+                        if (existing && start.getTime() < Date.now()) {
+                            start = this.getSuggestedStartDate();
+                        }
+
+                        const end = existing ? new Date(existing.fecha_fin.replace(' ', 'T')) : this.calculateEndDate(start, horas);
+                        const verifiedEnd = (existing && start.getTime() >= Date.now()) ? end : this.calculateEndDate(start, horas);
 
                         sAssign.equipos.push({
                             id_tipo_equipo: te.id_tipo_equipo,
@@ -488,7 +494,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                             horas_req: horas,
                             id_unidad_equipo: existing ? existing.id_equipo : '',
                             fecha_inicio: this.formatDateForInput(start),
-                            fecha_fin: this.formatDateForInput(end)
+                            fecha_fin: this.formatDateForInput(verifiedEnd)
                         });
                     }
                 });
@@ -506,6 +512,61 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
             this.loading = false;
         }
     }
+
+    getSuggestedStartDate() {
+        let current = new Date();
+        let hour = current.getHours();
+
+        if (hour < 8) {
+            current.setHours(8, 0, 0, 0);
+        } else if (hour >= 16) {
+            current.setDate(current.getDate() + 1);
+            current.setHours(8, 0, 0, 0);
+        } else {
+            // "exactamente la hora actual + 1 hora"
+            current.setHours(hour + 1);
+            // "cuidado con la hora de almuerzo"
+            if (current.getHours() === 12) {
+                current.setHours(13);
+            }
+        }
+        return current;
+    }
+
+    calculateEndDate(start, durationInHours) {
+        let current = new Date(start.getTime());
+        let remaining = durationInHours;
+
+        while (remaining > 0) {
+            let hourStr = current.getHours() + current.getMinutes() / 60 + current.getSeconds() / 3600;
+
+            if (hourStr < 8) {
+                current.setHours(8, 0, 0, 0);
+                hourStr = 8;
+            } else if (hourStr >= 12 && hourStr < 13) {
+                current.setHours(13, 0, 0, 0);
+                hourStr = 13;
+            } else if (hourStr >= 17) {
+                current.setDate(current.getDate() + 1);
+                current.setHours(8, 0, 0, 0);
+                hourStr = 8;
+            }
+
+            let nextLimit = (hourStr < 12) ? 12 : 17;
+            let available = nextLimit - hourStr;
+
+            if (remaining <= available) {
+                current.setTime(current.getTime() + remaining * 3600000);
+                remaining = 0;
+            } else {
+                remaining -= available;
+                current.setHours(nextLimit, 0, 0, 0);
+            }
+        }
+
+        return current;
+    }
+
     formatDateForInput(date) {
         const pad = (n) => n.toString().padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -591,32 +652,58 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         return `${year}-${month}-${day}T00:00`;
     }
 
-    updateAssignment(serviceId, type, index, field, value) {
+    updateAssignment(serviceId, type, index, field, value, domElement = null) {
         const tempAssigns = JSON.parse(JSON.stringify(this.assignments));
         const slot = tempAssigns[serviceId][type][index];
         const idField = type === 'operatives' ? 'id_operativo' : 'id_unidad_equipo';
 
-        if (field === idField || field === 'fecha_inicio' || field === 'fecha_fin') {
-            const resId = field === idField ? value : slot[idField];
-            const start = field === 'fecha_inicio' ? value : slot.fecha_inicio;
-            const end = field === 'fecha_fin' ? value : slot.fecha_fin;
+        if (field === 'fecha_inicio' && value) {
+            let timeDate = new Date(value);
+            const now = new Date();
+            let wasAdjusted = false;
 
-            if (field === 'fecha_inicio' || field === 'fecha_fin') {
-                if (value) {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0); // Start of today
-                    
-                    const inputDate = new Date(value);
-                    inputDate.setHours(0, 0, 0, 0); // Start of input day
-                    
-                    if (inputDate.getTime() < today.getTime()) {
-                        popupService.warning('Acción Bloqueada', 'No se permite ingresar fechas de días pasados.');
-                        this.requestUpdate();
-                        return;
+            if (timeDate.getTime() < (now.getTime() - 60000)) {
+                // Auto-corrige a una fecha válida hacia el futuro en vez de solo mostrar alerta.
+                timeDate = this.getSuggestedStartDate();
+                value = this.formatDateForInput(timeDate);
+                wasAdjusted = true;
+            } else {
+                let hours = timeDate.getHours();
+                if (hours < 8 || hours >= 17 || (hours >= 12 && hours < 13)) {
+                    if (hours < 8) {
+                        timeDate.setHours(8, 0, 0, 0);
+                    } else if (hours >= 17) {
+                        timeDate.setDate(timeDate.getDate() + 1);
+                        timeDate.setHours(8, 0, 0, 0);
+                    } else if (hours >= 12 && hours < 13) {
+                        timeDate.setHours(13, 0, 0, 0);
                     }
+                    value = this.formatDateForInput(timeDate);
+                    wasAdjusted = true;
                 }
             }
 
+            slot.fecha_inicio = value;
+            const newEnd = this.calculateEndDate(new Date(value), slot.horas_req);
+            slot.fecha_fin = this.formatDateForInput(newEnd);
+
+            if (wasAdjusted) {
+                if (domElement) {
+                    domElement.value = value; // Fuerza al navegador a reflejar el overwrite
+                }
+                popupService.info('Horario Ajustado', 'La hora seleccionada era en el pasado o estaba fuera de turno. Se ajustó automáticamente hacia adelante.');
+            }
+        } else if (field === idField) {
+            slot[field] = value;
+        } else {
+            slot[field] = value;
+        }
+
+        const resId = slot[idField];
+        const start = slot.fecha_inicio;
+        const end = slot.fecha_fin;
+
+        if (field === idField || field === 'fecha_inicio') {
             if (resId) {
                 // 1. STRICT BLOCK: Same service, same resource duplication
                 const isDuplicate = tempAssigns[serviceId][type].some((item, i) =>
@@ -697,7 +784,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
     }
 
     formatDate(date) {
-        return formatDate(date);
+        return formatDateTime(date);
     }
 
     render() {
@@ -822,8 +909,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                                     `)}
                                 </select>
                             </td>
-                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'operatives', idx, 'fecha_inicio', e.target.value)}></td>
-                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'operatives', idx, 'fecha_fin', e.target.value)}></td>
+                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'operatives', idx, 'fecha_inicio', e.target.value, e.target)}></td>
+                            <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} readonly style="background-color: #f8fafc; cursor: not-allowed;"></td>
                             <td style="text-align: center">
                                 <label class="checkbox-container">
                                     <input type="checkbox" 
@@ -880,8 +967,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                                     `)}
                                 </select>
                             </td>
-                             <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'equipos', idx, 'fecha_inicio', e.target.value)}></td>
-                             <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'equipos', idx, 'fecha_fin', e.target.value)}></td>
+                             <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_inicio} .min=${this.getMinDateTime()} @input=${e => this.updateAssignment(s.id_orden_servicio, 'equipos', idx, 'fecha_inicio', e.target.value, e.target)}></td>
+                             <td><input type="datetime-local" class="input-dt" .value=${assign.fecha_fin} readonly style="background-color: #f8fafc; cursor: not-allowed;"></td>
                         </tr>
                     `;
         })}
@@ -1004,9 +1091,9 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     return;
                 }
 
-                const diffHours = (end - start) / (1000 * 60 * 60);
-                if (Math.abs(diffHours - o.horas_req) > 0.01) {
-                    popupService.warning('Cálculo de Horas', `Duración de "${o.nombre_especialidad}" en "${s.nombre}" debe ser de ${o.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
+                const expectedEnd = Math.abs(this.calculateEndDate(start, o.horas_req).getTime() - end.getTime());
+                if (expectedEnd > 60000) { // delta greater than 1 minute (should not happen mathematically if untempered)
+                    popupService.warning('Cálculo de Horas', `La fecha de fin de "${o.nombre_especialidad}" ha sido alterada o no concuerda con las ${o.horas_req}h del horario laboral.`);
                     return;
                 }
             }
@@ -1026,9 +1113,9 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     return;
                 }
 
-                const diffHours = (end - start) / (1000 * 60 * 60);
-                if (Math.abs(diffHours - e.horas_req) > 0.01) {
-                    popupService.warning('Cálculo de Horas', `Duración equipo "${e.nombre_equipo}" debe ser de ${e.horas_req}h. (Actual: ${diffHours.toFixed(1)}h)`);
+                const expectedEnd = Math.abs(this.calculateEndDate(start, e.horas_req).getTime() - end.getTime());
+                if (expectedEnd > 60000) {
+                    popupService.warning('Cálculo de Horas', `La fecha de fin de equipo "${e.nombre_equipo}" no concuerda con las ${e.horas_req}h del horario laboral.`);
                     return;
                 }
             }

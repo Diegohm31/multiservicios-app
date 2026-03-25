@@ -68,7 +68,8 @@ export class UsuariosService {
         try {
             const response = await fetch(url, requestOptions);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
             const response_json = await response.json();
             return response_json.data;

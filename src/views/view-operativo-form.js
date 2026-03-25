@@ -549,6 +549,8 @@ export class ViewOperativoForm extends LitElement {
         await operativosService.updateOperativo(this.operativoId, this.operativo);
         popupService.success('Operativo Actualizado', 'Operativo actualizado correctamente');
       } else {
+        // console.log(this.operativo);
+        // return;
         await operativosService.createOperativo(this.operativo);
         popupService.success('Operativo Creado', 'Operativo creado correctamente');
       }

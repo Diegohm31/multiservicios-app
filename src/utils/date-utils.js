@@ -52,8 +52,13 @@ export const formatDateTime = (dateInput) => {
 export const parseLocalDate = (dateStr, setToEnd = false) => {
   if (!dateStr) return null;
   
-  // Extract just the YYYY-MM-DD part if it contains time
-  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  let match;
+  if (dateStr instanceof Date) {
+      match = [null, dateStr.getFullYear(), dateStr.getMonth() + 1, dateStr.getDate()];
+  } else if (typeof dateStr === 'string') {
+      match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  }
+  
   if (!match) return null;
   
   const [ , year, month, day] = match.map(Number);
@@ -74,10 +79,11 @@ export const parseLocalDate = (dateStr, setToEnd = false) => {
  */
 export const parseLocalDateTime = (dateStr) => {
   if (!dateStr) return null;
+  if (dateStr instanceof Date) return dateStr;
   
   // If it has 'T' or space, it likely has time.
   // We want to parse it as a local date even if it looks like ISO but lacks Z
-  if (dateStr.includes('T') || dateStr.includes(' ')) {
+  if (typeof dateStr === 'string' && (dateStr.includes('T') || dateStr.includes(' '))) {
     // Replace space with T for standardized parsing if needed, 
     // but Date(YYYY-MM-DD HH:mm:ss) works in most browsers as local time.
     const date = new Date(dateStr.replace(' ', 'T'));

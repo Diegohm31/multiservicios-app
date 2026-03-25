@@ -694,7 +694,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               <div class="detail-item">
                 <span class="detail-label">Rango de Fechas</span>
                 ${this.orden.fecha_inicio && this.orden.fecha_fin ? html`
-                  <span class="detail-value">${formatDate(this.orden.fecha_inicio)} al ${formatDate(this.orden.fecha_fin)}</span>
+                  <span class="detail-value">${formatDateTime(this.orden.fecha_inicio)} al <br>${formatDateTime(this.orden.fecha_fin)}</span>
                 ` : html`
                   <span class="detail-value">Aún no definido</span>
                 `}
@@ -740,15 +740,22 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             const info = this.getUserRolesInfo(servicio);
             if (!info) return html`<span>N/A</span>`;
             return html`
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                 ${info.assignments.map(ass => html`
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="color: var(--text-light); font-size: 0.8rem; font-weight: 500;">
-                      ${ass.nombre_especialidad} (${ass.nivel})
-                    </span>
-                    <span style="color: var(--success); font-weight: 800; font-family: 'JetBrains Mono', monospace;">
-                      $${parseFloat(ass.ingreso || 0).toFixed(2)}
-                    </span>
+                  <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="color: var(--text-light); font-size: 0.8rem; font-weight: 500;">
+                        ${ass.nombre_especialidad} (${ass.nivel})
+                      </span>
+                      <span style="color: var(--success); font-weight: 800; font-family: 'JetBrains Mono', monospace;">
+                        $${parseFloat(ass.ingreso || 0).toFixed(2)}
+                      </span>
+                    </div>
+                    ${ass.fecha_inicio && ass.fecha_fin ? html`
+                      <div style="font-size: 0.7rem; color: var(--text-light); opacity: 0.85; font-weight: 500; font-style: italic;">
+                        ${formatDateTime(ass.fecha_inicio)} → ${formatDateTime(ass.fecha_fin)}
+                      </div>
+                    ` : ''}
                   </div>
                 `)}
                 ${info.esJefe ? html`<span class="jefe-badge" style="margin-top: 2px;">Jefe de Obra</span>` : ''}

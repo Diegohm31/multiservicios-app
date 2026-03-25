@@ -2,6 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { navigator } from '../utils/navigator.js';
 import { operativosService } from '../services/operativos-service.js';
 import { usuariosService } from '../services/usuarios-service.js';
+import { especialidadesService } from '../services/especialidades-service.js';
 import { popupService } from '../utils/popup-service.js';
 
 export class ViewOperativosListado extends LitElement {
@@ -427,11 +428,8 @@ export class ViewOperativosListado extends LitElement {
   async loadOperativos() {
     this.loading = true;
     try {
-      // Necesitamos cargar especialidades para el filtro
-      const response = await fetch('http://api-multiservicios.local/api/especialidades', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
+      // Necesitamos cargar especialidades para el filtro usando el Gestor
+      const data = { data: await especialidadesService.getEspecialidades() };
       // Ordenar especialidades alfabéticamente por nombre y luego por nivel
       this.especialidades = (data.data || []).sort((a, b) => {
         const nameCmp = (a.nombre || '').localeCompare(b.nombre || '');
@@ -475,7 +473,7 @@ export class ViewOperativosListado extends LitElement {
           this.loadOperativos();
           popupService.success('Éxito', `Operativo ${newActiveValue ? 'activado' : 'inactivado'} correctamente`);
         } catch (error) {
-          popupService.warning('Error', 'Error al cambiar el estado del operativo');
+          popupService.warning('Error', error.message || 'Error al cambiar el estado del operativo');
         }
       }
     );
