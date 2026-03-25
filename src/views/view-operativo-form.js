@@ -25,6 +25,7 @@ export class ViewOperativoForm extends LitElement {
       --card-bg: #ffffff;
       --radius: 16px;
       --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --danger: #ef4444;
 
       display: block;
       padding: 2.5rem 1rem;
@@ -129,6 +130,7 @@ export class ViewOperativoForm extends LitElement {
       color: var(--text);
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 0.75rem;
     }
 
@@ -229,6 +231,12 @@ export class ViewOperativoForm extends LitElement {
 
     .level-chip input {
       display: none;
+    }
+
+    .level-chip.disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      filter: grayscale(1);
     }
 
     .actions {
@@ -418,6 +426,11 @@ export class ViewOperativoForm extends LitElement {
       border-radius: 20px;
       font-size: 0.75rem;
       font-weight: 700;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: fit-content;
     }
 
     @keyframes fadeInUp {
@@ -522,14 +535,18 @@ export class ViewOperativoForm extends LitElement {
   }
 
   async handleEspecialidadToggle(e, id) {
+    if (this.operativo.tiene_asignaciones_activas) {
+      e.preventDefault();
+      popupService.warning('Acción Bloqueada', 'No se permite modificar las especialidades de un operativo con asignaciones en curso o próximas a ejecutarse.');
+      return;
+    }
+
     const checked = e.target.checked;
-    //console.log(`Antes ${this.selectedEspecialidades}`);
     if (checked) {
       this.selectedEspecialidades = [...this.selectedEspecialidades, id];
     } else {
       this.selectedEspecialidades = this.selectedEspecialidades.filter(item => item !== id);
     }
-    //console.log(`Despues ${this.selectedEspecialidades}`);
   }
 
   async handleSubmit(e) {
@@ -658,6 +675,9 @@ export class ViewOperativoForm extends LitElement {
                 ${this.selectedEspecialidades.length > 0 ? html`
                   <span class="badge">${this.selectedEspecialidades.length} seleccionadas</span>
                 ` : ''}
+                ${this.operativo.tiene_asignaciones_activas ? html`
+                  <span class="badge" style="background-color: var(--danger); font-size: 0.65rem; display: flex; align-items: center; gap: 4px;">Bloqueado por asignaciones en curso</span>
+                ` : ''}
               </h3>
               <div class="search-box">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -681,10 +701,17 @@ export class ViewOperativoForm extends LitElement {
                   </div>
                   <div class="levels-grid">
                     ${items.map(e => html`
-                      <label class="level-chip ${this.selectedEspecialidades.includes(e.id_especialidad) ? 'selected' : ''}">
+                      <label class="level-chip ${this.selectedEspecialidades.includes(e.id_especialidad) ? 'selected' : ''} ${this.operativo.tiene_asignaciones_activas ? 'disabled' : ''}">
                         <input type="checkbox" 
                                .checked=${this.selectedEspecialidades.includes(e.id_especialidad)} 
-                               @change=${(event) => this.handleEspecialidadToggle(event, e.id_especialidad)}>
+                               ?disabled=${this.operativo.tiene_asignaciones_activas}
+                               @change=${(event) => {
+                                 if (this.operativo.tiene_asignaciones_activas) {
+                                   event.preventDefault();
+                                   return;
+                                 }
+                                 this.handleEspecialidadToggle(event, e.id_especialidad);
+                               }}>
                         Nivel ${e.nivel}
                       </label>
                     `)}
