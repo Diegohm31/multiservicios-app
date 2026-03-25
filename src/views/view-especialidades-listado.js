@@ -351,7 +351,7 @@ export class ViewEspecialidadesListado extends LitElement {
           this.loadEspecialidades();
           popupService.success('Éxito', 'Especialidad eliminada correctamente');
         } catch (error) {
-          popupService.warning('Error', 'Error al eliminar especialidad');
+          popupService.warning('Acción Denegada', error.message || 'Error al eliminar especialidad');
         }
       }
     );

@@ -120,16 +120,16 @@ export class EspecialidadesService {
         };
         try {
             const response = await fetch(url, requestOptions);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const response_json = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
 
             return response_json.data;
         } catch (error) {
             console.error('Error al eliminar especialidad:', error);
-            // throw error; // para que el error se propague a quien lo llama
-            return false;
+            throw error; // Lanzar el error real para que la vista lo atrape
         }
     }
 }
