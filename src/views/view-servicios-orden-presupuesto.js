@@ -618,6 +618,12 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
 
 
     async handleSave() {
+        const sinEspecialidad = this.serviciosEditados.find(s => !s.selectedEspecialidades || s.selectedEspecialidades.length === 0);
+        if (sinEspecialidad) {
+            popupService.warning('Información Incompleta', `Debe asignar al menos una Mano de Obra (Especialidad) al servicio: ${sinEspecialidad.nombre}`);
+            return;
+        }
+
         popupService.confirm('Guardar Presupuesto', '¿Desea guardar este presupuesto?', async () => {
             this.loading = true;
 
