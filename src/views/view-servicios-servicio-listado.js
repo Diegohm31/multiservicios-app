@@ -326,7 +326,7 @@ export class ViewServiciosServicioListado extends LitElement {
           this.loadServicios();
           popupService.success('Éxito', 'Servicio eliminado correctamente');
         } catch (error) {
-          popupService.warning('Error', 'Error al eliminar: ' + error.message);
+          popupService.warning('Acción Denegada', error.message || 'Error al eliminar servicio');
         }
       }
     );

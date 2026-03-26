@@ -96,10 +96,23 @@ export class ViewServiciosServicioForm extends LitElement {
             box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
         }
 
-        .input-field:disabled {
+        .input-field:disabled, .select-field:disabled {
             background: #f7fafc;
             color: #a0aec0;
             cursor: not-allowed;
+            opacity: 0.8;
+        }
+
+        .lock-badge {
+            display: inline-block;
+            background: #fef2f2;
+            color: #ef4444;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 700;
+            margin-left: 0.5rem;
+            white-space: nowrap;
         }
 
         .textarea-field {
@@ -618,8 +631,18 @@ export class ViewServiciosServicioForm extends LitElement {
 
         // Construir FormData
         const formData = new FormData();
-        formData.append('id_tipo_servicio', this.servicio.id_tipo_servicio);
-        formData.append('nombre', this.servicio.nombre);
+        
+        let finalTipo = this.servicio.id_tipo_servicio;
+        let finalNombre = this.servicio.nombre;
+
+        // Si el servicio tiene asignaciones previas, el select o input no propagarán sus valores, reinyectarlos:
+        if (this.servicio?.tiene_asignaciones_previas && this.servicioId) {
+            finalTipo = this.servicio.id_tipo_servicio;
+            finalNombre = this.servicio.nombre;
+        }
+
+        formData.append('id_tipo_servicio', finalTipo);
+        formData.append('nombre', finalNombre);
         formData.append('descripcion', this.servicio.descripcion || '');
         formData.append('unidad_medida', this.servicio.unidad_medida);
         formData.append('servicio_tabulado', this.costoTipo === 'fijo' ? '1' : '0');
@@ -690,16 +713,22 @@ export class ViewServiciosServicioForm extends LitElement {
                     <div class="grid-main">
                         <div class="left-col">
                             <div class="form-group">
-                                <label>Tipo de Servicio</label>
-                                <select class="select-field" name="id_tipo_servicio" .value=${this.servicio.id_tipo_servicio} @change=${this.handleMainInput} required>
+                                <label>
+                                    Tipo de Servicio
+                                    ${this.servicio?.tiene_asignaciones_previas ? html`<span class="lock-badge">Bloqueado por uso previo</span>` : ''}
+                                </label>
+                                <select class="select-field" name="id_tipo_servicio" .value=${this.servicio.id_tipo_servicio} @change=${this.handleMainInput} ?disabled=${this.servicio?.tiene_asignaciones_previas} required>
                                     <option value="">Seleccione un tipo</option>
-                                    ${this.tiposServicios.map(ts => html`<option value=${ts.id_tipo_servicio}>${ts.nombre}</option>`)}
+                                    ${this.tiposServicios.map(ts => html`<option value=${ts.id_tipo_servicio} ?selected=${this.servicio.id_tipo_servicio === ts.id_tipo_servicio}>${ts.nombre}</option>`)}
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label>Servicio</label>
-                                <input type="text" class="input-field" name="nombre" .value=${this.servicio.nombre} @input=${this.handleMainInput} placeholder="Ingrese el nombre del servicio" required>
+                                <label>
+                                    Servicio
+                                    ${this.servicio?.tiene_asignaciones_previas ? html`<span class="lock-badge">Bloqueado por uso previo</span>` : ''}
+                                </label>
+                                <input type="text" class="input-field" name="nombre" .value=${this.servicio.nombre} @input=${this.handleMainInput} placeholder="Ingrese el nombre del servicio" ?disabled=${this.servicio?.tiene_asignaciones_previas} required>
                             </div>
 
                             <div class="form-group">

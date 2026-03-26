@@ -74,15 +74,16 @@ export class ServiciosService {
         };
         try {
             const response = await fetch(url, requestOptions);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const response_json = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
 
             return response_json.data;
         } catch (error) {
             console.error('Error al actualizar servicio:', error);
-            return false;
+            throw error;
         }
     }
 
@@ -126,15 +127,16 @@ export class ServiciosService {
         };
         try {
             const response = await fetch(url, requestOptions);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const response_json = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(response_json.message || `HTTP error! status: ${response.status}`);
+            }
 
             return response_json.data;
         } catch (error) {
             console.error('Error al eliminar servicio:', error);
-            return false;
+            throw error;
         }
     }
 
