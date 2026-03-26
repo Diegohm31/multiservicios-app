@@ -502,7 +502,7 @@ export class ViewMembresiasPlanesForm extends LitElement {
       navigator.goto('/membresias/planes/listado');
     } catch (error) {
       console.error('Error saving plan:', error);
-      popupService.error('Error', 'Hubo un error al guardar el plan');
+      popupService.warning('Atención', error.message || 'Hubo un error al guardar el plan');
     } finally {
       this.loading = false;
     }

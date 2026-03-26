@@ -418,7 +418,7 @@ export class ViewMembresiasPlanesListado extends LitElement {
           popupService.success('Éxito', 'Plan eliminado correctamente');
         } catch (error) {
           console.error('Error deleting plan:', error);
-          popupService.error('Error', 'Ocurrió un error al eliminar el plan');
+          popupService.warning('Acción Denegada', error.message || 'Ocurrió un error al eliminar el plan');
         }
       }
     );
