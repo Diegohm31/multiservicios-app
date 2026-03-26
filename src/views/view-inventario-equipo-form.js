@@ -95,10 +95,23 @@ export class ViewInventarioEquipoForm extends LitElement {
       box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
     }
 
-    input[readonly] {
+    input[readonly], select:disabled {
       background-color: #f8fafc;
       color: var(--text-light);
       cursor: not-allowed;
+      opacity: 0.8;
+    }
+
+    .lock-badge {
+      display: inline-block;
+      background: #fef2f2;
+      color: #ef4444;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 700;
+      margin-left: 0.5rem;
+      white-space: nowrap;
     }
 
     textarea {
@@ -242,7 +255,12 @@ export class ViewInventarioEquipoForm extends LitElement {
         return;
       }
       if (this.equipoId) {
-        await equiposService.updateEquipo(this.equipoId, this.equipo);
+        // En update, devolvemos el ID del tipo de equipo original si está deshabilitado
+        const equipoToSave = { ...this.equipo };
+        if (this.equipo.tiene_asignaciones_previas) {
+           equipoToSave.id_tipo_equipo = this.equipo.id_tipo_equipo;
+        }
+        await equiposService.updateEquipo(this.equipoId, equipoToSave);
         popupService.success('Éxito', 'Equipo actualizado correctamente');
       } else {
         await equiposService.createEquipo(this.equipo);
@@ -250,7 +268,7 @@ export class ViewInventarioEquipoForm extends LitElement {
       }
       navigator.goto('/inventario/listado/equipo');
     } catch (error) {
-      popupService.error('Error', 'Error al guardar el equipo');
+      popupService.warning('Acción Denegada', error.message || 'Error al guardar el equipo');
       console.error(error);
     }
   }
@@ -267,8 +285,11 @@ export class ViewInventarioEquipoForm extends LitElement {
         <form @submit=${this.handleSubmit}>
           <div class="form-grid">
             <div class="form-group full-width">
-              <label for="id_tipo_equipo">Categoría / Tipo de Equipo</label>
-              <select id="id_tipo_equipo" name="id_tipo_equipo" @input=${this.handleInput} required>
+              <label for="id_tipo_equipo">
+                Categoría / Tipo de Equipo
+                ${this.equipo?.tiene_asignaciones_previas ? html`<span class="lock-badge">Bloqueado por uso previo</span>` : ''}
+              </label>
+              <select id="id_tipo_equipo" name="id_tipo_equipo" @input=${this.handleInput} ?disabled=${this.equipo?.tiene_asignaciones_previas} required>
                 <option value="" disabled ?selected=${!this.equipo.id_tipo_equipo}>Seleccione el tipo de equipo...</option>
                 ${this.array_tiposEquipos.map(tipoEquipo => html`
                   <option value="${tipoEquipo.id_tipo_equipo}" ?selected=${this.equipo.id_tipo_equipo === tipoEquipo.id_tipo_equipo}>${tipoEquipo.nombre}</option>

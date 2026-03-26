@@ -436,7 +436,7 @@ export class ViewInventarioEquipoListado extends LitElement {
           this.loadEquipos();
           popupService.success('Éxito', 'Equipo eliminado correctamente');
         } catch (error) {
-          popupService.error('Error', 'Error al eliminar equipo');
+          popupService.warning('Acción Denegada', error.message || 'Error al eliminar equipo');
         }
       }
     );
