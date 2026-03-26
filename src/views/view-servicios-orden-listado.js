@@ -997,6 +997,7 @@ export class ViewServiciosOrdenListado extends LitElement {
                     ` : ''}
                     ${orden.estado?.toLowerCase().includes('espera') && this.id_rol === '00003' ? html`
                       <button class="btn btn-primary" @click=${() => this.ponerEnEjecucion(orden.id_orden)}>Ejecutar</button>
+                      <button class="btn btn-amber" @click=${() => this.asignarPersonal(orden.id_orden)}>Reasignar Personal</button>
                     ` : ''}
                     ${(this.normalize(orden.estado).includes('ejecucion') || this.normalize(orden.estado).includes('comp')) ? html`
                       <button class="btn btn-amber" @click=${() => this.verAvances(orden.id_orden)}>Avances</button>

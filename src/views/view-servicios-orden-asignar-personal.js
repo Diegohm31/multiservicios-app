@@ -693,6 +693,42 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 }
                 popupService.info('Horario Ajustado', 'La hora seleccionada era en el pasado o estaba fuera de turno. Se ajustó automáticamente hacia adelante.');
             }
+            // Validar que el equipo esté dentro del rango de los operativos
+            if (type === 'equipos' && value) {
+                const opRange = this.getOperativesRange(serviceId, tempAssigns);
+                if (opRange.start && opRange.end) {
+                    const eqStart = new Date(slot.fecha_inicio);
+                    const eqEnd = new Date(slot.fecha_fin);
+                    if (eqStart < opRange.start || eqEnd > opRange.end) {
+                        popupService.warning('Rango de Equipo Inválido', `El horario del equipo "${slot.nombre_equipo}" debe estar contenido dentro del rango del personal (${this.formatDate(opRange.start)} a ${this.formatDate(opRange.end)}).`);
+                        if (domElement) {
+                            domElement.value = this.assignments[serviceId][type][index].fecha_inicio || '';
+                        }
+                        return; // Evitar que se guarde el cambio en el estado local
+                    }
+                }
+            }
+
+            // Validar que si cambiamos el horario de un operativo, no dejemos a un equipo por fuera
+            if (type === 'operatives' && value) {
+                const newOpRange = this.getOperativesRange(serviceId, tempAssigns);
+                if (newOpRange.start && newOpRange.end) {
+                    const invalidEq = tempAssigns[serviceId].equipos.find(e => {
+                        if (!e.fecha_inicio || !e.fecha_fin) return false;
+                        const eqStart = new Date(e.fecha_inicio);
+                        const eqEnd = new Date(e.fecha_fin);
+                        return eqStart < newOpRange.start || eqEnd > newOpRange.end;
+                    });
+                    
+                    if (invalidEq) {
+                        popupService.warning('Rango de Equipo Inválido', `Si cambias este horario, el equipo "${invalidEq.nombre_equipo}" quedaría fuera del rango del personal. Ajusta primero el equipo.`);
+                        if (domElement) {
+                            domElement.value = this.assignments[serviceId][type][index].fecha_inicio || '';
+                        }
+                        return; // Evitar que se guarde el cambio
+                    }
+                }
+            }
         } else if (field === idField) {
             slot[field] = value;
         } else {
@@ -768,6 +804,37 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
 
         const minStart = allStarts.length ? new Date(Math.min(...allStarts.map(d => new Date(d)))) : null;
         const maxEnd = allEnds.length ? new Date(Math.max(...allEnds.map(d => new Date(d)))) : null;
+
+        return { start: minStart, end: maxEnd };
+    }
+
+    getOperativesRange(serviceId, sourceDict = null) {
+        const assigns = sourceDict || this.assignments;
+        const s = assigns[serviceId];
+        if (!s) return { start: null, end: null };
+
+        const starts = (s.operatives || []).map(o => o.fecha_inicio).filter(d => d);
+        const ends = (s.operatives || []).map(o => o.fecha_fin).filter(d => d);
+
+        if (starts.length === 0 || ends.length === 0) return { start: null, end: null };
+
+        const minStart = new Date(Math.min(...starts.map(d => new Date(d))));
+        const maxEnd = new Date(Math.max(...ends.map(d => new Date(d))));
+
+        return { start: minStart, end: maxEnd };
+    }
+
+    getOperativesRange(serviceId) {
+        const s = this.assignments[serviceId];
+        if (!s) return { start: null, end: null };
+
+        const starts = (s.operatives || []).map(o => o.fecha_inicio).filter(d => d);
+        const ends = (s.operatives || []).map(o => o.fecha_fin).filter(d => d);
+
+        if (starts.length === 0 || ends.length === 0) return { start: null, end: null };
+
+        const minStart = new Date(Math.min(...starts.map(d => new Date(d))));
+        const maxEnd = new Date(Math.max(...ends.map(d => new Date(d))));
 
         return { start: minStart, end: maxEnd };
     }
@@ -1117,6 +1184,15 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 if (expectedEnd > 60000) {
                     popupService.warning('Cálculo de Horas', `La fecha de fin de equipo "${e.nombre_equipo}" no concuerda con las ${e.horas_req}h del horario laboral.`);
                     return;
+                }
+
+                // VALIDACIÓN CRUCIAL: Rango de equipo contenido en rango de operativos
+                const opRange = this.getOperativesRange(s.id_orden_servicio);
+                if (opRange.start && opRange.end) {
+                    if (start < opRange.start || end > opRange.end) {
+                        popupService.warning('Rango de Equipo Inválido', `El equipo "${e.nombre_equipo}" está fuera del rango del personal para el servicio "${s.nombre}". Debe estar entre ${this.formatDate(opRange.start)} y ${this.formatDate(opRange.end)}.`);
+                        return;
+                    }
                 }
             }
         }
