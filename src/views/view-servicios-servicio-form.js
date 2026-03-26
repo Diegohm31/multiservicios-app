@@ -631,7 +631,7 @@ export class ViewServiciosServicioForm extends LitElement {
 
         // Construir FormData
         const formData = new FormData();
-        
+
         let finalTipo = this.servicio.id_tipo_servicio;
         let finalNombre = this.servicio.nombre;
 
@@ -648,12 +648,22 @@ export class ViewServiciosServicioForm extends LitElement {
         formData.append('servicio_tabulado', this.costoTipo === 'fijo' ? '1' : '0');
 
         // Agregar imagen si se seleccionó una nueva
-        if (this.servicio.image) {
+        if (this.servicio.image && this.servicio.image instanceof File) {
             formData.append('image', this.servicio.image);
         }
 
         // Si es costo fijo, agregamos todos los detalles
         if (this.costoTipo === 'fijo') {
+            if (this.selectedEquipos.length === 0) {
+                popupService.warning('Campos Requeridos', 'Un servicio tabulado debe tener al menos un Tipo de Equipo asociado.');
+                return;
+            }
+
+            if (this.selectedEspecialidades.length === 0) {
+                popupService.warning('Campos Requeridos', 'Un servicio tabulado debe tener al menos una Especialidad asociada.');
+                return;
+            }
+
             formData.append('precio_materiales', this.montoMateriales);
             formData.append('precio_tipos_equipos', this.montoEquipos);
             formData.append('precio_mano_obra', this.montoEspecialidades);
