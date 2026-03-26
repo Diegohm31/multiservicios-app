@@ -6,6 +6,8 @@ import { popupService } from '../utils/popup-service.js';
 
 export class ViewInventarioTipoEquipoListado extends LitElement {
   static properties = {
+    tipos_equipos: { type: Array },
+    currentPage: { type: Number },
     itemsPerPage: { type: Number },
     loading: { type: Boolean },
     user: { type: Object },
@@ -418,7 +420,7 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
           this.loadTiposEquipos();
           popupService.success('Éxito', 'Tipo de equipo eliminado correctamente');
         } catch (error) {
-          popupService.error('Error', 'Error al eliminar tipo de equipo');
+          popupService.warning('Acción Denegada', error.message || 'Error al eliminar tipo de equipo');
         }
       }
     );
