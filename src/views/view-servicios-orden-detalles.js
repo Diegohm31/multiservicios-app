@@ -12,7 +12,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     orden: { type: Object },
     loading: { type: Boolean },
     currentUser: { type: Object },
-    isDragging: { type: Boolean }
+    isDragging: { type: Boolean },
+    showServiceDetailsModal: { type: Boolean },
+    selectedServiceDetails: { type: Object }
   };
 
   static styles = css`
@@ -388,6 +390,26 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       border-color: var(--primary);
       background: rgba(59, 130, 246, 0.05);
     }
+
+    /* Scrollbar styles */
+    div::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    div::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    div::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+      transition: background 0.2s;
+    }
+
+    div::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
   `;
 
   constructor() {
@@ -398,6 +420,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     this.loading = true;
     this.currentUser = null;
     this.isDragging = false;
+    this.showServiceDetailsModal = false;
+    this.selectedServiceDetails = null;
   }
 
   async connectedCallback() {
@@ -438,6 +462,16 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     if (s.includes('verificando')) return 'status-verificando_pago';
     if (s.includes('asignando personal')) return 'status-asignando_personal';
     return '';
+  }
+
+  openServiceDetails(servicio) {
+    this.selectedServiceDetails = servicio;
+    this.showServiceDetailsModal = true;
+  }
+
+  closeServiceDetails() {
+    this.showServiceDetailsModal = false;
+    this.selectedServiceDetails = null;
   }
 
   getUserRolesInfo(servicio) {
@@ -562,6 +596,23 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
   }
 
+  renderTotal(total) {
+    const s = this.orden.estado?.toLowerCase() || '';
+    const isPreBudget = s.includes('pend') || s.includes('acept');
+    const servicios = this.orden.servicios || this.orden.array_servicios || [];
+
+    if (isPreBudget) {
+      return servicios.some(item => Number(item.servicio_tabulado) === 0)
+        ? html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Por Cotizar</div>`
+        : html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: $${total.toFixed(2)}</div>`;
+    }
+
+    if (s.includes('cancelada')) {
+      return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Orden Cancelada</div>`;
+    }
+    return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total: $${total.toFixed(2)}</div>`;
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -584,24 +635,24 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
 
     const servicios = this.orden.servicios || this.orden.array_servicios || [];
-    const subtotal = servicios.reduce((acc, s) => acc + parseFloat(s.pivot?.precio_a_pagar || s.precio_a_pagar || 0), 0);
-    const iva = parseFloat(this.orden.presupuesto?.iva || this.orden.iva || 0);
+    const subtotal = servicios.reduce((acc, s) => acc + parseFloat((s.pivot && s.pivot.precio_a_pagar) ? s.pivot.precio_a_pagar : (s.precio_a_pagar || 0)), 0);
+    const iva = parseFloat((this.orden.presupuesto && this.orden.presupuesto.iva) ? this.orden.presupuesto.iva : (this.orden.iva || 0));
     const total = subtotal + iva;
 
     return html`
       <div class="container">
         <header class="header">
-          <div class="header-title">
-            <div style="display: flex; align-items: center; gap: 1rem;">
-              <h1>Orden #${this.orden.id_orden}</h1>
-              <span class="status-badge ${this.getStatusClass(this.orden.estado)}">
-                ${this.orden.estado}
-              </span>
-            </div>
+      <div class="header-title">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <h1>Orden #${this.orden.id_orden}</h1>
+          <span class="status-badge ${this.getStatusClass(this.orden.estado)}">
+            ${this.orden.estado}
+          </span>
+        </div>
 
-            <!-- Botones de Peritaje -->
-            <div style="display: flex; gap: 1rem; align-items: center;">
-              ${this.id_rol === '00003' ? html`
+        <!-- Botones de Peritaje -->
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          ${this.id_rol === '00003' ? html`
                 <!-- Admin -->
                 ${this.orden.pdf_peritaje ? html`
                   <button class="btn-outline-danger" @click=${this.viewPeritaje}>
@@ -628,7 +679,6 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                     @change=${this.handleFileUpload}
                   >
                 </div>
-
                 <!-- Botón de Factura/Presupuesto -->
                 ${(this.orden.presupuesto?.pdf_factura || this.orden.pdf_factura) ? html`
                   <button class="btn-outline-danger" @click=${this.viewFactura}>
@@ -670,20 +720,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
           <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2 class="card-title">Información General</h2>
             <!-- Lógica de total inteligente para estados previos a ser presupuestada -->
-            ${this.id_rol !== '00002' ? (() => {
-        const s = this.orden.estado?.toLowerCase() || '';
-        const isPreBudget = s.includes('pend') || s.includes('acept');
-        if (isPreBudget) {
-          return servicios.some(item => Number(item.servicio_tabulado) === 0)
-            ? html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Por Cotizar</div>`
-            : html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: $${total.toFixed(2)}</div>`;
-        }
-
-        if (s.includes('cancelada')) {
-          return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Orden Cancelada</div>`;
-        }
-        return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total: $${total.toFixed(2)}</div>`;
-      })() : ''}
+            ${this.id_rol !== '00002' ? this.renderTotal(total) : ''}
           </div>
           <div class="card-body">
             <div class="details-grid">
@@ -725,6 +762,13 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                   <div class="service-info">
                     <div class="service-name">${servicio.nombre || 'Servicio'}</div>
                     ${servicio.descripcion ? html`<div class="service-description">"${servicio.descripcion}"</div>` : ''}
+                    
+                    ${(this.id_rol === '00003' && ['en espera', 'en ejecucion', 'completada'].includes(this.orden.estado?.toLowerCase())) ? html`
+                      <button class="btn-outline-primary" style="margin-top: 0.75rem; padding: 0.4rem 0.8rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; border: 2px solid var(--primary); background: transparent; color: var(--primary); font-weight: 700; border-radius: 8px; cursor: pointer;" @click=${() => this.openServiceDetails(servicio)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        Ver Detalle
+                      </button>
+                    ` : ''}
                   </div>
                   <div class="service-meta">
                     <div class="service-qty">Cantidad: ${servicio.pivot?.cantidad || servicio.cantidad || 0}</div>
@@ -737,9 +781,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                         <div class="detail-label" style="font-size: 0.65rem;">Mi Rol:</div>
                         <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; display: flex; align-items: center; justify-content: flex-end;">
                           ${(() => {
-            const info = this.getUserRolesInfo(servicio);
-            if (!info) return html`<span>N/A</span>`;
-            return html`
+          const info = this.getUserRolesInfo(servicio);
+          if (!info) return html`<span>N/A</span>`;
+          return html`
               <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                 ${info.assignments.map(ass => html`
                   <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
@@ -761,7 +805,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                 ${info.esJefe ? html`<span class="jefe-badge" style="margin-top: 2px;">Jefe de Obra</span>` : ''}
               </div>
             `;
-          })()}
+        })()}
                         </div>
                       </div>
                     `}
@@ -771,7 +815,6 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             </div>
           </div>
         </section>
-
         <!-- Si es admin mostrar botones para aceptar o cancelar orden -->
         ${this.id_rol === '00003' && this.orden.estado?.toLowerCase() === 'pendiente' ? html`
           <div class="card">
@@ -795,12 +838,10 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               </div>
             </div>
           </div>
-        ` : ''
-      }
+        ` : ''}
 
         <!-- Si es admin y el estado es Asignando personal -->
         ${this.id_rol === '00003' && this.orden.estado?.toLowerCase() === 'asignando personal' ? html`
-
           <div class="card">
             <div class="card-header">
               <h2 class="card-title">Acciones</h2>
@@ -812,12 +853,10 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               </button>
             </div>
           </div>
-        ` : ''
-      }
-
+        ` : ''}
 
         <!-- Si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto -->
-        ${this.id_rol === '00001' && (this.orden.estado?.toLowerCase() === 'presupuestada' || this.orden.estado?.toLowerCase() === 'presupuestada') ? html`
+        ${this.id_rol === '00001' && (this.orden.estado?.toLowerCase() === 'presupuestada') ? html`
           <div class="card">
             <div class="card-header">
               <h2 class="card-title">Acciones del Presupuesto</h2>
@@ -837,6 +876,82 @@ export class ViewServiciosOrdenDetalles extends LitElement {
             </div>
           </div>
         ` : ''}
+        
+        <!-- Modal Detalle Específico de Servicio -->
+        ${this.showServiceDetailsModal && this.selectedServiceDetails ? html`
+          <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+            <div style="background: white; border-radius: 16px; width: 90%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+              <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #fcfcfc;">
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--primary);">Ejecución de ${this.selectedServiceDetails.nombre || 'Servicio'}</h3>
+                <button @click=${this.closeServiceDetails} style="background: transparent; border: none; cursor: pointer; color: var(--text-light); padding: 0.5rem; border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+              <div style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; flex: 1;">
+                
+                <!-- Operativos -->
+                <div>
+                  <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-transform: uppercase; font-weight: 800;">Personal Asignado</h4>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${(this.selectedServiceDetails.operativos_asignados || []).length === 0 ? html`<p style="margin:0; color:var(--text-light); font-size: 0.9rem; font-style: italic;">No asociado...</p>` : ''}
+                    ${(this.selectedServiceDetails.operativos_asignados || []).map(op => html`
+                      <div style="padding: 0.75rem; background: #fff; border: 1px solid var(--border); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: column;">
+                          <div style="font-weight: 700; font-size: 0.95rem;">${op.nombre_operativo} ${Number(op.es_jefe) === 1 ? html`<span class="jefe-badge">Jefe</span>` : ''}</div>
+                          <div style="font-size: 0.8rem; color: var(--text-light);">${op.nombre_especialidad} (${op.nivel})</div>
+                        </div>
+                        ${op.fecha_inicio && op.fecha_fin ? html`
+                        <div style="font-size: 0.75rem; text-align: right; color: var(--text-light); line-height: 1.4;">
+                          <div><strong>Inicio:</strong> ${formatDateTime(op.fecha_inicio)}</div>
+                          <div><strong>Fin:</strong> ${formatDateTime(op.fecha_fin)}</div>
+                        </div>
+                        ` : ''}
+                      </div>
+                    `)}
+                  </div>
+                </div>
+
+                <!-- Equipos -->
+                <div>
+                  <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-transform: uppercase; font-weight: 800;">Equipos Utilizados</h4>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${(this.selectedServiceDetails.equipos_asignados || []).length === 0 ? html`<p style="margin:0; color:var(--text-light); font-size: 0.9rem; font-style: italic;">No asociado...</p>` : ''}
+                    ${(this.selectedServiceDetails.equipos_asignados || []).map(eq => html`
+                      <div style="padding: 0.75rem; background: #fff; border: 1px solid var(--border); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; flex-direction: column;">
+                          <div style="font-weight: 700; font-size: 0.95rem;">${eq.nombre_equipo}</div>
+                          <div style="font-size: 0.8rem; color: var(--text-light);">${eq.marca || ''} ${eq.modelo || ''}</div>
+                        </div>
+                        ${eq.fecha_inicio && eq.fecha_fin ? html`
+                        <div style="font-size: 0.75rem; text-align: right; color: var(--text-light); line-height: 1.4;">
+                          <div><strong>Inicio:</strong> ${formatDateTime(eq.fecha_inicio)}</div>
+                          <div><strong>Fin:</strong> ${formatDateTime(eq.fecha_fin)}</div>
+                        </div>
+                        ` : ''}
+                      </div>
+                    `)}
+                  </div>
+                </div>
+
+                <!-- Materiales -->
+                <div>
+                  <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: var(--text); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; text-transform: uppercase; font-weight: 800;">Materiales Consumidos</h4>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${(this.selectedServiceDetails.materiales_asignados || []).length === 0 ? html`<p style="margin:0; color:var(--text-light); font-size: 0.9rem; font-style: italic;">No asociado...</p>` : ''}
+                    ${(this.selectedServiceDetails.materiales_asignados || []).map(mat => html`
+                      <div style="padding: 0.75rem; background: #fff; border: 1px solid var(--border); border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-weight: 700; font-size: 0.95rem;">${mat.nombre_material}</div>
+                        <div style="font-weight: 800; color: var(--primary); background: #f0f7ff; padding: 0.2rem 0.6rem; border-radius: 4px;">x${mat.cantidad_usada}</div>
+                      </div>
+                    `)}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
       </div>
   `;
   }
