@@ -318,16 +318,28 @@ export class ViewUsuariosListado extends LitElement {
       padding: 10rem 0; 
       gap: 1.5rem; 
     }
+    .loading-container { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+      padding: 10rem 0; 
+      gap: 1.5rem; 
+    }
     .loader { 
       width: 48px; 
       height: 48px; 
       border: 5px solid #f1f5f9; 
-      border-top-color: var(--primary); 
+      border-bottom-color: var(--primary); 
       border-radius: 50%; 
-      animation: spin 1s linear infinite; 
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite; 
     }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
     @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 

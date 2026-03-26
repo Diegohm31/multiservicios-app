@@ -226,9 +226,47 @@ export class ViewReportesPagosDetalles extends LitElement {
 
     .loading-container {
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         min-height: 50vh;
+        gap: 1rem;
+    }
+
+    .loader {
+        width: 48px;
+        height: 48px;
+        border: 5px solid var(--border);
+        border-bottom-color: var(--primary);
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+    }
+
+    @keyframes rotation {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Scrollbar styles */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+      transition: background 0.2s;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
   `;
 
@@ -305,6 +343,7 @@ export class ViewReportesPagosDetalles extends LitElement {
         if (this.loading) {
             return html`
                 <div class="loading-container">
+                    <div class="loader"></div>
                     <p>Cargando detalles del reporte...</p>
                 </div>
             `;

@@ -352,7 +352,6 @@ export class ViewReportesPagosListado extends LitElement {
       width: auto;
     }
 
-    /* Loading State */
     .loading-container { 
       display: flex; 
       flex-direction: column; 
@@ -365,11 +364,16 @@ export class ViewReportesPagosListado extends LitElement {
       width: 48px; 
       height: 48px; 
       border: 5px solid #f1f5f9; 
-      border-top-color: var(--primary); 
+      border-bottom-color: var(--primary); 
       border-radius: 50%; 
-      animation: spin 1s linear infinite; 
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite; 
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
 
     @keyframes fadeInDown {
       from { opacity: 0; transform: translateY(-20px); }

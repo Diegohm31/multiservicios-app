@@ -171,25 +171,25 @@ export class ViewServiciosTipoServicioListado extends LitElement {
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .loader-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    .loading-container { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
       justify-content: center;
-      padding: 4rem;
+      padding: 10rem 0; 
+      gap: 1.5rem; 
     }
-
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #f3f3f3;
-      border-top: 4px solid var(--primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 1rem;
+    .loader { 
+      width: 48px; 
+      height: 48px; 
+      border: 5px solid #f1f5f9; 
+      border-bottom-color: var(--primary); 
+      border-radius: 50%; 
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite; 
     }
-
-    @keyframes spin {
+    @keyframes rotation {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
@@ -232,8 +232,8 @@ export class ViewServiciosTipoServicioListado extends LitElement {
       
       <div class="table-container">
         ${this.loading ? html`
-          <div class="loader-container">
-            <div class="spinner"></div>
+          <div class="loading-container">
+            <div class="loader"></div>
             <p>Cargando información...</p>
           </div>
         ` : html`

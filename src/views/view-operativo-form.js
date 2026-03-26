@@ -11,7 +11,8 @@ export class ViewOperativoForm extends LitElement {
     especialidades: { type: Array },
     selectedEspecialidades: { type: Array },
     searchTerm: { type: String },
-    showPassword: { type: Boolean }
+    showPassword: { type: Boolean },
+    loading: { type: Boolean }
   };
 
   static styles = css`
@@ -438,6 +439,29 @@ export class ViewOperativoForm extends LitElement {
       to { opacity: 1; transform: translateY(0); }
     }
 
+    .loading-container { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+      padding: 10rem 0; 
+      gap: 1.5rem; 
+    }
+    .loader { 
+      width: 48px; 
+      height: 48px; 
+      border: 5px solid #f1f5f9; 
+      border-bottom-color: var(--primary); 
+      border-radius: 50%; 
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite; 
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     @media (max-width: 640px) {
       .form-grid { grid-template-columns: 1fr; }
       .full-width { grid-column: auto; }
@@ -465,6 +489,7 @@ export class ViewOperativoForm extends LitElement {
     this.selectedEspecialidades = [];
     this.searchTerm = '';
     this.showPassword = false;
+    this.loading = false;
   }
 
   get groupedEspecialidades() {
@@ -506,25 +531,34 @@ export class ViewOperativoForm extends LitElement {
   }
 
   async loadEspecialidades() {
-    const data = await especialidadesService.getEspecialidades();
-    if (data) {
-      this.especialidades = data;
+    this.loading = true;
+    try {
+      const data = await especialidadesService.getEspecialidades();
+      if (data) {
+        this.especialidades = data;
+      }
+    } finally {
+      this.loading = false;
     }
   }
 
   async loadOperativo(id) {
-    const data = await operativosService.getOneOperativo(id);
-    if (data) {
-      this.operativo = data;
-      // data trae el campo nombre, pero el input espera name
-      this.operativo.name = data.nombre;
-      // eliminar propiedad password y nombre del objeto operativo
-      delete this.operativo.password;
-      delete this.operativo.nombre;
-      if (data.array_especialidades) {
-        this.selectedEspecialidades = data.array_especialidades.map(e => e.id_especialidad);
-
+    this.loading = true;
+    try {
+      const data = await operativosService.getOneOperativo(id);
+      if (data) {
+        this.operativo = data;
+        // data trae el campo nombre, pero el input espera name
+        this.operativo.name = data.nombre;
+        // eliminar propiedad password y nombre del objeto operativo
+        delete this.operativo.password;
+        delete this.operativo.nombre;
+        if (data.array_especialidades) {
+          this.selectedEspecialidades = data.array_especialidades.map(e => e.id_especialidad);
+        }
       }
+    } finally {
+      this.loading = false;
     }
   }
 
@@ -579,6 +613,15 @@ export class ViewOperativoForm extends LitElement {
   }
 
   render() {
+    if (this.loading) {
+      return html`
+        <div class="loading-container">
+          <div class="loader"></div>
+          <p>Cargando información...</p>
+        </div>
+      `;
+    }
+
     const title = this.operativoId ? 'Editar Operativo' : 'Registro de Nuevo Operativo';
     return html`
       <div class="form-card">

@@ -392,22 +392,22 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
 
     /* Scrollbar styles */
-    div::-webkit-scrollbar {
+    ::-webkit-scrollbar {
       width: 8px;
     }
 
-    div::-webkit-scrollbar-track {
+    ::-webkit-scrollbar-track {
       background: #f1f5f9;
       border-radius: 10px;
     }
 
-    div::-webkit-scrollbar-thumb {
+    ::-webkit-scrollbar-thumb {
       background: #cbd5e1;
       border-radius: 10px;
       transition: background 0.2s;
     }
 
-    div::-webkit-scrollbar-thumb:hover {
+    ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
   `;

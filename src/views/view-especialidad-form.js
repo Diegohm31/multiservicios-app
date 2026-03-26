@@ -6,7 +6,8 @@ import { popupService } from '../utils/popup-service.js';
 export class ViewEspecialidadForm extends LitElement {
   static properties = {
     especialidadId: { type: String },
-    especialidad: { type: Object }
+    especialidad: { type: Object },
+    loading: { type: Boolean }
   };
 
   static styles = css`
@@ -134,6 +135,29 @@ export class ViewEspecialidadForm extends LitElement {
       to { opacity: 1; transform: translateY(0); }
     }
 
+    .loading-container { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+      padding: 10rem 0; 
+      gap: 1.5rem; 
+    }
+    .loader { 
+      width: 48px; 
+      height: 48px; 
+      border: 5px solid #f1f5f9; 
+      border-bottom-color: var(--primary); 
+      border-radius: 50%; 
+      display: inline-block;
+      box-sizing: border-box;
+      animation: rotation 1s linear infinite; 
+    }
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
     @media (max-width: 640px) {
       .actions { flex-direction: column; }
       .btn-save, .btn-back { width: 100%; }
@@ -151,6 +175,7 @@ export class ViewEspecialidadForm extends LitElement {
       tarifa_hora: ''
     };
     this.especialidades = [];
+    this.loading = false;
   }
 
   connectedCallback() {
@@ -159,7 +184,12 @@ export class ViewEspecialidadForm extends LitElement {
   }
 
   async loadEspecialidades() {
-    this.especialidades = await especialidadesService.getEspecialidades();
+    this.loading = true;
+    try {
+      this.especialidades = await especialidadesService.getEspecialidades() || [];
+    } finally {
+      this.loading = false;
+    }
   }
 
   updated(changedProperties) {
@@ -169,9 +199,14 @@ export class ViewEspecialidadForm extends LitElement {
   }
 
   async loadEspecialidad(id) {
-    const data = await especialidadesService.getOneEspecialidad(id);
-    if (data) {
-      this.especialidad = data;
+    this.loading = true;
+    try {
+      const data = await especialidadesService.getOneEspecialidad(id);
+      if (data) {
+        this.especialidad = data;
+      }
+    } finally {
+      this.loading = false;
     }
   }
 
@@ -204,6 +239,15 @@ export class ViewEspecialidadForm extends LitElement {
   }
 
   render() {
+    if (this.loading) {
+      return html`
+        <div class="loading-container">
+          <div class="loader"></div>
+          <p>Cargando información...</p>
+        </div>
+      `;
+    }
+
     const title = this.especialidadId ? 'Editar Especialidad' : 'Registro de Nueva Especialidad';
     return html`
       <div class="form-card">
