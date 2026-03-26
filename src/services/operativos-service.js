@@ -67,11 +67,15 @@ export class OperativosService {
         };
         try {
             const response = await fetch(url, requestOptions);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const response_json = await response.json();
-
+            if (!response.ok) {
+                let errorMsg = response_json.message || `HTTP error! status: ${response.status}`;
+                if (response_json.errors) {
+                    const firstError = Object.values(response_json.errors)[0][0];
+                    if (firstError) errorMsg = firstError;
+                }
+                throw new Error(errorMsg);
+            }
             return response_json.data;
         } catch (error) {
             console.error('Error al crear operativo:', error);
