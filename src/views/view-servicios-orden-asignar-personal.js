@@ -373,6 +373,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         this.assignments = {};
         this.activeTabs = {};
         this.allAssignments = { operativos: [], equipos: [] };
+        this.findesLaborables = true;
     }
 
     async connectedCallback() {
@@ -398,6 +399,8 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
             };
 
             if (!orderData) throw new Error('No se pudo obtener la orden');
+
+            this.findesLaborables = orderData.findes_laborables ?? true;
 
             this.orden = {
                 ...orderData,
@@ -441,14 +444,14 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                         const existing = existingOps[i];
 
                         let start = existing ? new Date(existing.fecha_inicio.replace(' ', 'T')) : this.getSuggestedStartDate();
-                        
+
                         // Si era una fecha cargada en DB que ya pasó, actualizarla inmediatamente a una sugerencia válida presente.
                         if (existing && start.getTime() < Date.now()) {
                             start = this.getSuggestedStartDate();
                         }
-                        
+
                         const end = existing ? new Date(existing.fecha_fin.replace(' ', 'T')) : this.calculateEndDate(start, horas);
-                        
+
                         // Recalcular el final siempre por seguridad si ajustamos el inicio
                         const verifiedEnd = (existing && start.getTime() >= Date.now()) ? end : this.calculateEndDate(start, horas);
 
@@ -538,6 +541,14 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         let remaining = durationInHours;
 
         while (remaining > 0) {
+            // Saltarse fines de semana si la orden no es laborable esos días
+            if (!this.findesLaborables) {
+                while (current.getDay() === 0 || current.getDay() === 6) {
+                    current.setDate(current.getDate() + 1);
+                    current.setHours(8, 0, 0, 0);
+                }
+            }
+
             let hourStr = current.getHours() + current.getMinutes() / 60 + current.getSeconds() / 3600;
 
             if (hourStr < 8) {
@@ -550,6 +561,12 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 current.setDate(current.getDate() + 1);
                 current.setHours(8, 0, 0, 0);
                 hourStr = 8;
+                if (!this.findesLaborables) {
+                    while (current.getDay() === 0 || current.getDay() === 6) {
+                        current.setDate(current.getDate() + 1);
+                        current.setHours(8, 0, 0, 0);
+                    }
+                }
             }
 
             let nextLimit = (hourStr < 12) ? 12 : 17;
@@ -565,6 +582,35 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
         }
 
         return current;
+    }
+
+    toggleFindesLaborables(checked) {
+        this.findesLaborables = checked;
+        const tempAssigns = JSON.parse(JSON.stringify(this.assignments));
+
+        for (const sId in tempAssigns) {
+            ['operatives', 'equipos'].forEach(type => {
+                tempAssigns[sId][type].forEach(slot => {
+                    if (slot.fecha_inicio) {
+                        const start = new Date(slot.fecha_inicio);
+                        // Asegurar que si el inicio ya estaba en un fin de semana se pase al lunes (solo inicio hacia adelante)
+                        let adjustedStart = start;
+                        if (!this.findesLaborables) {
+                            while (adjustedStart.getDay() === 0 || adjustedStart.getDay() === 6) {
+                                adjustedStart.setDate(adjustedStart.getDate() + 1);
+                                adjustedStart.setHours(8, 0, 0, 0);
+                            }
+                            slot.fecha_inicio = this.formatDateForInput(adjustedStart);
+                        }
+
+                        const newEnd = this.calculateEndDate(adjustedStart, slot.horas_req);
+                        slot.fecha_fin = this.formatDateForInput(newEnd);
+                    }
+                });
+            });
+        }
+        this.assignments = tempAssigns;
+        this.requestUpdate();
     }
 
     formatDateForInput(date) {
@@ -681,6 +727,15 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                     value = this.formatDateForInput(timeDate);
                     wasAdjusted = true;
                 }
+
+                if (!this.findesLaborables && (timeDate.getDay() === 0 || timeDate.getDay() === 6)) {
+                    while (timeDate.getDay() === 0 || timeDate.getDay() === 6) {
+                        timeDate.setDate(timeDate.getDate() + 1);
+                        timeDate.setHours(8, 0, 0, 0);
+                    }
+                    value = this.formatDateForInput(timeDate);
+                    wasAdjusted = true;
+                }
             }
 
             slot.fecha_inicio = value;
@@ -719,7 +774,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                         const eqEnd = new Date(e.fecha_fin);
                         return eqStart < newOpRange.start || eqEnd > newOpRange.end;
                     });
-                    
+
                     if (invalidEq) {
                         popupService.warning('Rango de Equipo Inválido', `Si cambias este horario, el equipo "${invalidEq.nombre_equipo}" quedaría fuera del rango del personal. Ajusta primero el equipo.`);
                         if (domElement) {
@@ -873,6 +928,13 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                             <label>Fin:</label>
                             <span>${this.formatDate(orderDates.end)}</span>
                         </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.5rem; margin-right: auto; margin-left: 2rem;">
+                        <label class="checkbox-container">
+                            <input type="checkbox" .checked=${this.findesLaborables} @change=${(e) => this.toggleFindesLaborables(e.target.checked)}>
+                            <span class="checkmark"></span>
+                        </label>
+                        <span style="font-weight:600; color:var(--text); font-size:0.9rem">Fines de semana laborables</span>
                     </div>
                     <button class="btn-back" @click=${() => navigator.goto('/servicios/listado/orden')}>
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
@@ -1212,6 +1274,7 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 };
 
                 const payload = {
+                    findes_laborables: this.findesLaborables ? 1 : 0,
                     fecha_inicio: formatForDB(orderDates.start),
                     fecha_fin: formatForDB(orderDates.end),
                     servicios: this.orden.servicios.map(s => {
