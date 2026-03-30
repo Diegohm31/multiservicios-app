@@ -639,7 +639,7 @@ export class ServiciosService {
         }
     }
 
-    async ponerEnEjecucion(id) {
+    async ponerEnEjecucion(id, confirmConflicts = false) {
         let url = `${this.baseUrl}/api/ordenes/${id}/poner-en-ejecucion`;
         let token = localStorage.getItem('token');
         const requestOptions = {
@@ -648,7 +648,8 @@ export class ServiciosService {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-            }
+            },
+            body: JSON.stringify({ confirm_conflicts: confirmConflicts })
         };
         try {
             const response = await fetch(url, requestOptions);

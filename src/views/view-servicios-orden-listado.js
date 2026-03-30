@@ -681,18 +681,66 @@ export class ViewServiciosOrdenListado extends LitElement {
     navigator.goto(`/servicios/orden/avances/${id}`);
   }
 
-  async ponerEnEjecucion(id) {
-    popupService.confirm(
-      'Iniciar Ejecución',
-      '¿Desea poner esta orden en ejecución? Esto descontará los materiales del inventario.',
-      async () => {
-        try {
-          await serviciosService.ponerEnEjecucion(id);
-          popupService.success('Éxito', 'Orden puesta en ejecución correctamente.');
-          this.loadOrdenes();
-        } catch (error) {
-          popupService.warning('Error', 'Error: ' + error.message);
+  async ponerEnEjecucion(id, confirmConflicts = false) {
+    if (!confirmConflicts) {
+      popupService.confirm(
+        'Iniciar Ejecución',
+        '¿Desea poner esta orden en ejecución? Esto sincronizará el calendario y descontará los materiales del inventario.',
+        async () => {
+          this._executePonerEnEjecucion(id, false);
         }
+      );
+    } else {
+      this._executePonerEnEjecucion(id, true);
+    }
+  }
+
+  async _executePonerEnEjecucion(id, confirmConflicts) {
+    this.loading = true;
+    try {
+      const resp = await serviciosService.ponerEnEjecucion(id, confirmConflicts);
+      
+      // Si el backend devuelve requerimiento de confirmación por conflictos
+      if (resp && resp.requiere_confirmacion) {
+        this.loading = false;
+        this._showConflictWarning(id, resp.conflictos);
+        return;
+      }
+
+      popupService.success('Éxito', 'Orden puesta en ejecución correctamente.');
+      await this.loadOrdenes();
+    } catch (error) {
+      popupService.warning('Error', 'Error: ' + error.message);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  _showConflictWarning(id, conflictos) {
+    let msg = 'Se han detectado los siguientes conflictos de agenda para esta reprogramación:<br><br>';
+    
+    if (conflictos.operativos.length > 0) {
+      msg += '<b>PERSONAL:</b><br>';
+      conflictos.operativos.forEach(c => {
+        msg += `• ${c.nombre} ya tiene asignada la Orden #${c.id_orden_conflicto} (${formatDateTime(c.desde)} a ${formatDateTime(c.hasta)})<br>`;
+      });
+      msg += '<br>';
+    }
+    
+    if (conflictos.equipos.length > 0) {
+      msg += '<b>EQUIPOS:</b><br>';
+      conflictos.equipos.forEach(c => {
+        msg += `• ${c.nombre} ya está en uso en la Orden #${c.id_orden_conflicto} (${formatDateTime(c.desde)} a ${formatDateTime(c.hasta)})<br>`;
+      });
+    }
+
+    msg += '<br><b>¿Desea proceder con la ejecución a pesar de estos conflictos?</b>';
+
+    popupService.confirm(
+      'Conflictos Detectados',
+      msg,
+      () => {
+        this.ponerEnEjecucion(id, true);
       }
     );
   }

@@ -564,6 +564,61 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
   }
 
+  async ponerEnEjecucion(id, confirmConflicts = false) {
+    if (!confirmConflicts) {
+      popupService.confirm(
+        'Iniciar Ejecución',
+        '¿Desea poner esta orden en ejecución? Esto sincronizará el calendario y descontará los materiales del inventario.',
+        async () => {
+          this._executePonerEnEjecucion(id, false);
+        }
+      );
+    } else {
+      this._executePonerEnEjecucion(id, true);
+    }
+  }
+
+  async _executePonerEnEjecucion(id, confirmConflicts) {
+    this.loading = true;
+    try {
+      const resp = await serviciosService.ponerEnEjecucion(id, confirmConflicts);
+      
+      if (resp && resp.requiere_confirmacion) {
+        this.loading = false;
+        this._showConflictWarning(id, resp.conflictos);
+        return;
+      }
+
+      popupService.success('Éxito', 'Orden puesta en ejecución correctamente.');
+      await this.loadOrden();
+    } catch (error) {
+      popupService.warning('Error', 'Error: ' + error.message);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  _showConflictWarning(id, conflictos) {
+    let msg = 'Se han detectado los siguientes conflictos de agenda para esta reprogramación:<br><br>';
+    if (conflictos.operativos.length > 0) {
+      msg += '<b>PERSONAL:</b><br>';
+      conflictos.operativos.forEach(c => {
+        msg += `• ${c.nombre} ya tiene asignada la Orden #${c.id_orden_conflicto} (${formatDateTime(c.desde)} a ${formatDateTime(c.hasta)})<br>`;
+      });
+      msg += '<br>';
+    }
+    if (conflictos.equipos.length > 0) {
+      msg += '<b>EQUIPOS:</b><br>';
+      conflictos.equipos.forEach(c => {
+        msg += `• ${c.nombre} ya está en uso en la Orden #${c.id_orden_conflicto} (${formatDateTime(c.desde)} a ${formatDateTime(c.hasta)})<br>`;
+      });
+    }
+    msg += '<br><b>¿Desea proceder con la ejecución a pesar de estos conflictos?</b>';
+    popupService.confirm('Conflictos Detectados', msg, () => {
+      this.ponerEnEjecucion(id, true);
+    });
+  }
+
   viewFactura() {
     const pdfPath = this.orden.presupuesto?.pdf_factura || this.orden.pdf_factura;
     if (pdfPath) {
@@ -850,6 +905,22 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               <button class="btn-success" @click=${() => navigator.goto(`/servicios/orden/asignar-personal/${this.orden.id_orden}`)}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>
                 Asignar Personal y Fechas
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Si es admin y el estado es En espera -->
+        ${this.id_rol === '00003' && (this.orden.estado?.toLowerCase() === 'en espera' || this.orden.estado?.toLowerCase() === 'en_espera') ? html`
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Acciones de Ejecución</h2>
+            </div>
+            <div class="card-body">
+              <p style="margin-bottom: 1.5rem; color: var(--text-light);">La orden está lista para ser puesta en ejecución. El sistema sincronizará automáticamente las fechas con el momento actual.</p>
+              <button class="btn-primary" @click=${() => this.ponerEnEjecucion(this.orden.id_orden)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Poner en Ejecución
               </button>
             </div>
           </div>
