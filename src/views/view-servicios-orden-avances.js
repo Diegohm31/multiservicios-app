@@ -315,7 +315,27 @@ export class ViewServiciosOrdenAvances extends LitElement {
       border-radius: 20px;
       width: 100%;
       max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .modal::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .modal::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    .modal::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+
+    .modal::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
 
     .form-group {
@@ -565,6 +585,26 @@ export class ViewServiciosOrdenAvances extends LitElement {
     .jefe-badge svg {
       color: var(--primary);
     }
+
+    /* Scrollbar styles */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+      transition: background 0.2s;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
   `;
 
   constructor() {
@@ -633,8 +673,17 @@ export class ViewServiciosOrdenAvances extends LitElement {
   }
 
   get totalPercentage() {
+    return this.getUsedPercentage();
+  }
+
+  getUsedPercentage(excludeId = null) {
     if (!Array.isArray(this.avances)) return 0;
-    return this.avances.reduce((acc, a) => acc + parseFloat(a.porcentaje_avance || a.porcentaje || 0), 0);
+    return this.avances
+      .filter(a => excludeId === null || String(a.id_avance_orden) !== String(excludeId))
+      .reduce((acc, a) => {
+        const val = parseFloat(a.porcentaje_avance || a.porcentaje || 0);
+        return acc + (isNaN(val) ? 0 : val);
+      }, 0);
   }
 
   get myOperativoId() {
@@ -757,10 +806,8 @@ export class ViewServiciosOrdenAvances extends LitElement {
 
     const newPorcentaje = parseFloat(formData.get('porcentaje_avance'));
 
-    // Calcular suma de los OTROS avances
-    const otherAdvancesSum = this.avances
-      .filter(a => !this.isEditing || a.id_avance_orden !== this.selectedAvance?.id_avance_orden)
-      .reduce((acc, a) => acc + parseFloat(a.porcentaje_avance || a.porcentaje || 0), 0);
+    const excludeId = this.isEditing ? this.selectedAvance?.id_avance_orden : null;
+    const otherAdvancesSum = this.getUsedPercentage(excludeId);
 
     if (otherAdvancesSum + newPorcentaje > 100) {
       popupService.warning('Límite Excedido', `El porcentaje total no puede exceder el 100%. El máximo permitido para este avance es ${100 - otherAdvancesSum}%.`);
@@ -1017,11 +1064,10 @@ export class ViewServiciosOrdenAvances extends LitElement {
                 <input type="number" name="porcentaje_avance" min="0.01" max="100" step="0.01" required placeholder="Ej: 12.50" .value=${this.isEditing ? (this.selectedAvance.porcentaje_avance || this.selectedAvance.porcentaje) : ''}>
                 <small style="color: var(--text-light);">
                     ${(() => {
-          const otherSum = this.avances
-            .filter(a => !this.isEditing || a.id_avance_orden !== this.selectedAvance?.id_avance_orden)
-            .reduce((acc, a) => acc + parseFloat(a.porcentaje_avance || a.porcentaje || 0), 0);
-          return html`Máximo permitido: ${(100 - otherSum).toFixed(2)}%`;
-        })()}
+                        const excludeId = this.isEditing ? this.selectedAvance?.id_avance_orden : null;
+                        const otherSum = this.getUsedPercentage(excludeId);
+                        return html`Máximo permitido: ${(100 - otherSum).toFixed(2)}%`;
+                    })()}
                 </small>
               </div>
               <div class="form-group">
