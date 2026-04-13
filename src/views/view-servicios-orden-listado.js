@@ -598,7 +598,9 @@ export class ViewServiciosOrdenListado extends LitElement {
       'Cancelar Orden',
       '¿Está seguro de que desea cancelar la orden?',
       async () => {
+        popupService.sendingEmail();
         await serviciosService.cancelarOrden(id);
+        popupService.hide();
         this.loadOrdenes();
       }
     );
@@ -613,8 +615,10 @@ export class ViewServiciosOrdenListado extends LitElement {
       'Finalizar Orden',
       '¿Desea marcar esta orden como completada?',
       async () => {
+        popupService.sendingEmail();
         try {
           await serviciosService.completarOrden(id);
+          popupService.hide();
           popupService.success('Éxito', 'Orden completada correctamente.');
           this.loadOrdenes();
         } catch (error) {
@@ -698,8 +702,10 @@ export class ViewServiciosOrdenListado extends LitElement {
   async _executePonerEnEjecucion(id, confirmConflicts) {
     this.loading = true;
     try {
+      popupService.sendingEmail();
       const resp = await serviciosService.ponerEnEjecucion(id, confirmConflicts);
-      
+      popupService.hide();
+
       // Si el backend devuelve requerimiento de confirmación por conflictos
       if (resp && resp.requiere_confirmacion) {
         this.loading = false;
@@ -718,7 +724,7 @@ export class ViewServiciosOrdenListado extends LitElement {
 
   _showConflictWarning(id, conflictos) {
     let msg = 'Se han detectado los siguientes conflictos de agenda para esta reprogramación:<br><br>';
-    
+
     if (conflictos.operativos.length > 0) {
       msg += '<b>PERSONAL:</b><br>';
       conflictos.operativos.forEach(c => {
@@ -726,7 +732,7 @@ export class ViewServiciosOrdenListado extends LitElement {
       });
       msg += '<br>';
     }
-    
+
     if (conflictos.equipos.length > 0) {
       msg += '<b>EQUIPOS:</b><br>';
       conflictos.equipos.forEach(c => {

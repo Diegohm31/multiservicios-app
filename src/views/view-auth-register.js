@@ -170,7 +170,9 @@ export class ViewAuthRegister extends LitElement {
         direccion: this.direccion
       };
 
+      popupService.sendingEmail();
       let response = await authService.register($user);
+      popupService.hide();
 
       if (response) {
         popupService.success('Registro Exitoso', 'Registro exitoso. Por favor inicia sesión.');

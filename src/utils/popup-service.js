@@ -4,6 +4,9 @@ export const popupService = {
             detail: { title, message, type, onConfirm }
         }));
     },
+    hide() {
+        window.dispatchEvent(new CustomEvent('close-popup'));
+    },
     success(title, message) {
         this.show(title, message, 'success');
     },
@@ -18,5 +21,8 @@ export const popupService = {
     },
     confirm(title, message, onConfirm) {
         this.show(title, message, 'confirm', onConfirm);
+    },
+    sendingEmail(title = 'Enviando correo...', message = 'Por favor espera un momento.') {
+        this.show(title, message, 'email');
     }
 };

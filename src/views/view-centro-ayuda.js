@@ -283,10 +283,12 @@ export class ViewCentroAyuda extends LitElement {
 
     this.sending = true;
     try {
+      popupService.sendingEmail();
       await authService.enviarDuda({
         duda: this.customQuestion,
         email: this.user?.email
       });
+      popupService.hide();
 
       popupService.success('Consulta Enviada', 'Tu duda ha sido enviada exitosamente. Un administrador se pondrá en contacto contigo pronto.');
       this.customQuestion = '';

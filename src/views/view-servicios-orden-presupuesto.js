@@ -677,7 +677,9 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
             };
 
             try {
+                popupService.sendingEmail();
                 const res = await serviciosService.createPresupuesto(payload);
+                popupService.hide();
                 if (res) {
                     popupService.success('Éxito', 'Presupuesto generado correctamente');
                     navigator.goto('/servicios/listado/orden');

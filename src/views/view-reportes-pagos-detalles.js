@@ -313,12 +313,14 @@ export class ViewReportesPagosDetalles extends LitElement {
             };
 
             try {
-                this.loading = true;
+                popupService.sendingEmail();
                 if (action === 'aceptar') {
                     await serviciosService.aceptarReportePago(payload);
+                    popupService.hide();
                     popupService.success('Éxito', 'Reporte aceptado correctamente');
                 } else {
                     await serviciosService.cancelarReportePago(payload);
+                    popupService.hide();
                     popupService.success('Éxito', 'Reporte cancelado correctamente');
                 }
                 await this.loadReporte();

@@ -786,8 +786,6 @@ export class ViewServiciosOrdenAvances extends LitElement {
     }
 
     try {
-      this.loading = true;
-      const today = new Date().toLocaleString('sv-SE', { timeZone: 'America/Caracas' }).split(' ')[0];
       if (this.isEditing && this.selectedAvance) { // Original condition
         await serviciosService.updateAvance(this.selectedAvance.id_avance_orden, formData);
       } else {

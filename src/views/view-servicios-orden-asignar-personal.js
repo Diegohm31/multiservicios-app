@@ -1302,7 +1302,9 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 };
 
                 try {
+                    popupService.sendingEmail();
                     const result = await serviciosService.asignarPersonal(this.orden.id_orden, payload);
+                    popupService.hide();
 
                     if (result) {
                         popupService.success('Éxito', 'Asignación guardada con éxito. La orden está ahora "En espera".');

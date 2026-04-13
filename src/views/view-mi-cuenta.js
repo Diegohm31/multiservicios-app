@@ -449,7 +449,9 @@ export class ViewMiCuenta extends LitElement {
 
         this.saving = true;
         try {
+            popupService.sendingEmail();
             const response = await authService.verifyEmailChange(this.emailVerifyData);
+            popupService.hide();
             popupService.success('Éxito', response.message);
             if (response.logout) {
                 // Forzar logout y redirección
@@ -471,7 +473,9 @@ export class ViewMiCuenta extends LitElement {
 
         this.saving = true;
         try {
+            popupService.sendingEmail();
             await authService.updatePassword(this.passwordData);
+            popupService.hide();
             popupService.success('Éxito', 'Contraseña actualizada con éxito');
             this.closePasswordModal();
         } catch (error) {

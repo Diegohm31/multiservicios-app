@@ -96,7 +96,9 @@ export class ViewAuthOlvidePassword extends LitElement {
     this.loading = true;
     this.error = '';
     try {
+      popupService.sendingEmail();
       await authService.forgotPassword(this.email);
+      popupService.hide();
       popupService.success('Email Enviado', 'Se ha enviado un código de verificación a su correo electrónico.');
       navigator.goto(`/new_password/${this.email}`);
     } catch (error) {

@@ -163,7 +163,9 @@ export class ViewAuthNewPassword extends LitElement {
     this.resending = true; // Usar resending en lugar de loading
     this.error = '';
     try {
+      popupService.sendingEmail();
       await authService.forgotPassword(this.email);
+      popupService.hide();
       popupService.success('Código Enviado', 'Se ha enviado un nuevo código a su correo electrónico.');
     } catch (error) {
       this.error = error.message || 'Error al solicitar un nuevo código.';
@@ -177,7 +179,9 @@ export class ViewAuthNewPassword extends LitElement {
     this.loading = true;
     this.error = '';
     try {
+      popupService.sendingEmail();
       await authService.resetPassword(this.email, this.password);
+      popupService.hide();
       popupService.success('Éxito', '¡Contraseña actualizada con éxito!');
       navigator.goto('/login');
     } catch (error) {

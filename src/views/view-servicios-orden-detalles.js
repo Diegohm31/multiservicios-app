@@ -496,7 +496,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       'Cancelar Orden',
       '¿Está seguro de que desea cancelar la orden?',
       async () => {
+        popupService.sendingEmail();
         await serviciosService.cancelarOrden(id, observaciones);
+        popupService.hide();
         await this.loadOrden();
       }
     );
@@ -508,7 +510,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       'Aceptar Orden',
       '¿Está seguro de que desea aceptar la orden?',
       async () => {
+        popupService.sendingEmail();
         await serviciosService.aceptarOrden(id, observaciones);
+        popupService.hide();
         await this.loadOrden();
       }
     );
@@ -581,8 +585,10 @@ export class ViewServiciosOrdenDetalles extends LitElement {
   async _executePonerEnEjecucion(id, confirmConflicts) {
     this.loading = true;
     try {
+      popupService.sendingEmail();
       const resp = await serviciosService.ponerEnEjecucion(id, confirmConflicts);
-      
+      popupService.hide();
+
       if (resp && resp.requiere_confirmacion) {
         this.loading = false;
         this._showConflictWarning(id, resp.conflictos);

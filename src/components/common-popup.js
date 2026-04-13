@@ -15,6 +15,7 @@ export class CommonPopup extends LitElement {
       --warning: #ef4444;
       --info: #f59e0b;
       --confirm: #3b82f6;
+      --email: #6366f1;
       --text: #1e293b;
       --text-light: #64748b;
     }
@@ -60,6 +61,7 @@ export class CommonPopup extends LitElement {
     .popup.warning::before { background: var(--warning); }
     .popup.info::before { background: var(--info); }
     .popup.confirm::before { background: var(--confirm); }
+    .popup.email::before { background: var(--email); }
 
     .icon-wrapper {
       width: 80px;
@@ -76,6 +78,7 @@ export class CommonPopup extends LitElement {
     .warning .icon-wrapper { background: #fef2f2; color: var(--warning); }
     .info .icon-wrapper { background: #fffbeb; color: var(--info); }
     .confirm .icon-wrapper { background: #eff6ff; color: var(--confirm); }
+    .email .icon-wrapper { background: #e0e7ff; color: var(--email); animation: pulse-icon 1.5s infinite; }
 
     h2 {
       margin: 0 0 0.75rem;
@@ -139,6 +142,12 @@ export class CommonPopup extends LitElement {
       from { opacity: 0; transform: translateY(40px) scale(0.95); }
       to { opacity: 1; transform: translateY(0) scale(1); }
     }
+
+    @keyframes pulse-icon {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
   `;
 
   constructor() {
@@ -159,12 +168,15 @@ export class CommonPopup extends LitElement {
       this.onConfirm = e.detail.onConfirm;
       this.visible = true;
     };
+    this._closeHandler = () => this.close();
     window.addEventListener('show-popup', this._handler);
+    window.addEventListener('close-popup', this._closeHandler);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener('show-popup', this._handler);
+    window.removeEventListener('close-popup', this._closeHandler);
   }
 
   close() {
@@ -172,11 +184,21 @@ export class CommonPopup extends LitElement {
     this.onConfirm = null;
   }
 
-  handleConfirm() {
+  async handleConfirm() {
+    const originalTitle = this.title;
+    const originalType = this.type;
+
     if (typeof this.onConfirm === 'function') {
-      this.onConfirm();
+      // Execute the callback. If it's async, we wait for it.
+      await this.onConfirm();
     }
-    this.close();
+
+    // Only close if we are still showing the original confirmation.
+    // This prevents closing a new popup (like a success message or loading indicator) 
+    // that the callback might have triggered.
+    if (this.visible && this.title === originalTitle && this.type === originalType) {
+      this.close();
+    }
   }
 
   render() {
@@ -186,11 +208,12 @@ export class CommonPopup extends LitElement {
       success: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
       warning: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
       info: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line><circle cx="12" cy="12" r="10"></circle></svg>`,
-      confirm: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`
+      confirm: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`,
+      email: html`<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`
     };
 
     return html`
-      <div class="overlay" @click=${this.close}>
+      <div class="overlay" @click=${this.type === 'email' ? null : this.close}>
         <div class="popup ${this.type}" @click=${(e) => e.stopPropagation()}>
           <div class="icon-wrapper">
             ${icons[this.type]}
@@ -207,7 +230,7 @@ export class CommonPopup extends LitElement {
                     Confirmar
                 </button>
             </div>
-          ` : html`
+          ` : this.type === 'email' ? html`` : html`
             <button class="btn btn-${this.type}" @click=${this.close}>
                 Entendido
             </button>
