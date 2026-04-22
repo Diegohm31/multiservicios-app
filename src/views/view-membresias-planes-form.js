@@ -563,7 +563,7 @@ export class ViewMembresiasPlanesForm extends LitElement {
               </div>
 
               <div class="form-group">
-                <label for="precio">Precio (USD)</label>
+                <label for="precio">Precio (Bs.)</label>
                 <input type="number" id="precio" name="precio" step="0.01" placeholder="Ej: 49.99" .value=${this.plan.precio} @input=${this.handleInput} required>
               </div>
 
@@ -574,7 +574,6 @@ export class ViewMembresiasPlanesForm extends LitElement {
             </div>
 
             <div class="section-title">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
               Servicios Incluidos con Descuento
             </div>
 

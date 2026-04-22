@@ -485,7 +485,7 @@ export class ViewMembresiasPlanesListado extends LitElement {
                     </div>
                     <h2 class="plan-name">${plan.nombre}</h2>
                     <div class="plan-price">
-                      <span class="price-currency">$</span>
+                      <span class="price-currency">Bs.</span>
                       <span class="price-value">${Number(plan.precio).toFixed(2)}</span>
                       <span class="price-duration">/ ${plan.duracion_meses} ${plan.duracion_meses == 1 ? 'mes' : 'meses'}</span>
                     </div>

@@ -271,7 +271,7 @@ export class ViewEspecialidadForm extends LitElement {
           </div>
           
           <div class="form-group">
-            <label for="tarifa_hora">Tarifa Base por Hora ($)</label>
+            <label for="tarifa_hora">Tarifa Base por Hora (Bs.)</label>
             <input type="number" id="tarifa_hora" name="tarifa_hora" .value=${this.especialidad.tarifa_hora} @input=${this.handleInput} placeholder="0.00" required step="0.01">
           </div>
 

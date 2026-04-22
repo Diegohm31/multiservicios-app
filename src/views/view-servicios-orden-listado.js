@@ -852,15 +852,12 @@ export class ViewServiciosOrdenListado extends LitElement {
       ${this.id_rol === '00002' ? html`
         <div class="total-card">
           <div class="total-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"></line>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
+            <span style="font-weight: 800; font-size: 1.2rem;">Bs.</span>
           </div>
           <div class="total-content">
             <span class="total-label">Total Ingresos</span>
             <div class="total-value">
-              $${(this.filteredOrdenes || []).reduce((sum, o) => sum + this.getOperativeIncome(o), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ${(this.filteredOrdenes || []).reduce((sum, o) => sum + this.getOperativeIncome(o), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
         </div>
@@ -986,7 +983,7 @@ export class ViewServiciosOrdenListado extends LitElement {
                 </td>
                 ${this.id_rol === '00002' ? html`
                   <td style="font-weight: 800; color: var(--success); font-family: 'JetBrains Mono', monospace;">
-                    $${this.getOperativeIncome(orden).toFixed(2)}
+                    Bs. ${this.getOperativeIncome(orden).toFixed(2)}
                   </td>
                 ` : ''}
                 <td>

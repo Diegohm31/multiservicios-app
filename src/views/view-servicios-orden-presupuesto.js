@@ -741,7 +741,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                             </div>
                             <div class="service-total">
                                 <span>A Pagar</span>
-                                $${this.calculatePrecioAPagar(s).toFixed(2)}
+                                Bs.${this.calculatePrecioAPagar(s).toFixed(2)}
                             </div>
                         </div>
                         <div class="card-body">
@@ -770,23 +770,23 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         <div class="totals-bar">
                             <div style="display: flex; gap: 1.5rem; align-items: center;">
                                 <div style="display: flex; gap: 1.5rem; font-size: 0.85rem; color: var(--text-light);">
-                                    <span>Mat Unit: $${this.calculateUnitMat(s).toFixed(2)}</span>
-                                    <span>Equ Unit: $${this.calculateUnitEqu(s).toFixed(2)}</span>
-                                    <span>M.O Unit: $${this.calculateUnitMO(s).toFixed(2)}</span>
+                                    <span>Mat Unit: Bs.${this.calculateUnitMat(s).toFixed(2)}</span>
+                                    <span>Equ Unit: Bs.${this.calculateUnitEqu(s).toFixed(2)}</span>
+                                    <span>M.O Unit: Bs.${this.calculateUnitMO(s).toFixed(2)}</span>
                                 </div>
                             </div>
                             <div style="display: flex; gap: 2rem; align-items: center; text-align: right;">
                                 <div>
                                     <div style="font-size: 0.7rem; color: var(--text-light); text-transform: uppercase;">Precio Gral. Unit.</div>
-                                    <div style="font-weight: 600; font-size: 0.9rem;">$${this.calculatePrecioGeneralUnitario(s).toFixed(2)}</div>
+                                    <div style="font-weight: 600; font-size: 0.9rem;">Bs.${this.calculatePrecioGeneralUnitario(s).toFixed(2)}</div>
                                 </div>
                                 <div>
                                     <div style="font-size: 0.7rem; color: var(--danger); text-transform: uppercase;">Desc. Unit.</div>
-                                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--danger);">-$${this.calculateDescuentoUnitario(s).toFixed(2)}</div>
+                                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--danger);">Bs.${this.calculateDescuentoUnitario(s).toFixed(2)}</div>
                                 </div>
                                 <div>
                                     <div style="font-size: 0.7rem; color: var(--success); text-transform: uppercase;">Precio Neto Unit.</div>
-                                    <div style="font-weight: 800; font-size: 1.1rem; color: var(--success);">$${this.calculatePrecioNetoUnitario(s).toFixed(2)}</div>
+                                    <div style="font-weight: 800; font-size: 1.1rem; color: var(--success);">Bs.${this.calculatePrecioNetoUnitario(s).toFixed(2)}</div>
                                 </div>
                             </div>
                         </div>
@@ -797,23 +797,23 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                     <div style="display: flex; gap: 3rem; align-items: center;">
                         <div>
                             <div class="global-total-label">Total General</div>
-                            <div style="font-size: 1.1rem; font-weight: 600;">$${this.totalGeneral.toFixed(2)}</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">Bs.${this.totalGeneral.toFixed(2)}</div>
                         </div>
                         <div>
                             <div class="global-total-label">Descuento (-)</div>
-                            <div style="font-size: 1.1rem; font-weight: 600; color: #fda4af;">-$${this.totalDescuento.toFixed(2)}</div>
+                            <div style="font-size: 1.1rem; font-weight: 600; color: #fda4af;">Bs.${this.totalDescuento.toFixed(2)}</div>
                         </div>
                         <div>
                             <div class="global-total-label">Sub-Total</div>
-                            <div style="font-size: 1.1rem; font-weight: 600;">$${this.subTotal.toFixed(2)}</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">Bs.${this.subTotal.toFixed(2)}</div>
                         </div>
                         <div>
                             <div class="global-total-label">IVA (${this.porcentajeIva}%)</div>
-                            <div style="font-size: 1.1rem; font-weight: 600;">$${this.iva.toFixed(2)}</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">Bs.${this.iva.toFixed(2)}</div>
                         </div>
-                        <div style="border-left: 2px solid rgba(255,255,255,0.2); padding-left: 3rem;">
+                        <div style="border-left: 2px solid rgba(255,255,255,0.2); padding-left: 3rem; margin-right: 2rem;">
                             <div class="global-total-label" style="opacity: 1; font-weight: 800; color: var(--success);">TOTAL A PAGAR</div>
-                            <div class="global-total-value" style="color: var(--success);">$${this.totalGlobal.toFixed(2)}</div>
+                            <div class="global-total-value" style="color: var(--success);">Bs.${this.totalGlobal.toFixed(2)}</div>
                         </div>
                     </div>
                     <button class="btn-save" @click=${this.handleSave} ?disabled=${this.loading}>
@@ -833,7 +833,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         <option value="">Seleccionar material para agregar...</option>
                         ${this.materiales.map(m => html`
                             <option value=${m.id_material} ?disabled=${s.selectedMateriales.some(sm => sm.id_material === m.id_material)}>
-                                ${m.nombre} ($${m.precio_unitario}/${m.unidad_medida})
+                                ${m.nombre} Bs.${m.precio_unitario}/${m.unidad_medida}
                             </option>
                         `)}
                     </select>
@@ -854,8 +854,8 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                                 <tr>
                                     <td>${m.nombre}</td>
                                     <td><input type="number" step="0.1" .value=${m.cantidad} @input=${(e) => this.updateServiceItem(idx, 'selectedMateriales', 'id_material', m.id_material, 'cantidad', e.target.value)} style="width: 80px;"></td>
-                                    <td>$${Number(m.precio_unitario).toFixed(2)}</td>
-                                    <td>$${(m.cantidad * m.precio_unitario).toFixed(2)}</td>
+                                    <td>Bs.${Number(m.precio_unitario).toFixed(2)}</td>
+                                    <td>Bs.${(m.cantidad * m.precio_unitario).toFixed(2)}</td>
                                     <td><button class="btn-remove" @click=${() => this.removeItem(idx, 'selectedMateriales', 'id_material', m.id_material)}>×</button></td>
                                 </tr>
                             `)}
@@ -873,7 +873,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         <option value="">Seleccionar equipo para agregar...</option>
                         ${this.tiposEquipos.map(te => html`
                             <option value=${te.id_tipo_equipo} ?disabled=${s.selectedEquipos.some(se => se.id_tipo_equipo === te.id_tipo_equipo)}>
-                                ${te.nombre} ($${te.costo_hora}/h)
+                                ${te.nombre} Bs.${te.costo_hora}/h
                             </option>
                         `)}
                     </select>
@@ -904,8 +904,8 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                                             style="width: 60px;"
                                         >
                                     </td>
-                                    <td>$${Number(e.costo_hora).toFixed(2)}</td>
-                                    <td>$${(e.cantidad * e.horas_uso * e.costo_hora).toFixed(2)}</td>
+                                    <td>Bs.${Number(e.costo_hora).toFixed(2)}</td>
+                                    <td>Bs.${(e.cantidad * e.horas_uso * e.costo_hora).toFixed(2)}</td>
                                     <td><button class="btn-remove" @click=${() => this.removeItem(idx, 'selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo)}>×</button></td>
                                 </tr>
                             `)}
@@ -923,7 +923,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         <option value="">Seleccionar especialidad para agregar...</option>
                         ${this.especialidades.map(esp => html`
                             <option value=${esp.id_especialidad} ?disabled=${s.selectedEspecialidades.some(se => se.id_especialidad === esp.id_especialidad)}>
-                                ${esp.nombre} - ${esp.nivel} ($${esp.tarifa_hora}/h)
+                                ${esp.nombre} - ${esp.nivel} Bs.${esp.tarifa_hora}/h
                             </option>
                         `)}
                     </select>
@@ -956,8 +956,8 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                                             style="width: 60px;"
                                         >
                                     </td>
-                                    <td>$${Number(esp.tarifa_hora).toFixed(2)}</td>
-                                    <td>$${(esp.cantidad * esp.horas_hombre * esp.tarifa_hora).toFixed(2)}</td>
+                                    <td>Bs.${Number(esp.tarifa_hora).toFixed(2)}</td>
+                                    <td>Bs.${(esp.cantidad * esp.horas_hombre * esp.tarifa_hora).toFixed(2)}</td>
                                     <td><button class="btn-remove" @click=${() => this.removeItem(idx, 'selectedEspecialidades', 'id_especialidad', esp.id_especialidad)}>×</button></td>
                                 </tr>
                             `)}

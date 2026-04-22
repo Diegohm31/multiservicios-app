@@ -451,7 +451,7 @@ export class ViewLanding extends LitElement {
                     </div>
                     <h3 class="membership-name">${plan.nombre}</h3>
                     <div class="price-container">
-                      <span class="price-symbol">$</span>
+                      <span class="price-symbol">Bs.</span>
                       <span class="membership-price">${Number(plan.precio).toFixed(2)}</span>
                       <span class="membership-duration">/ ${plan.duracion_meses} ${plan.duracion_meses === 1 ? 'mes' : 'meses'}</span>
                     </div>

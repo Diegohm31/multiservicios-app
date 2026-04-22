@@ -392,7 +392,7 @@ export class ViewServiciosServicioListado extends LitElement {
                 </td>
                 <td>
                   ${servicio.precio_general ? html`
-                    <span class="price-value">$${parseFloat(servicio.precio_general).toFixed(2)}</span>
+                    <span class="price-value">Bs.${parseFloat(servicio.precio_general).toFixed(2)}</span>
                   ` : html`<span style="color: var(--text-light); font-style: italic;">Por cotizar</span>`}
                 </td>
                 <td style="text-align: center;">

@@ -479,7 +479,7 @@ export class ViewInventarioMaterialListado extends LitElement {
                   </div>
                   <div class="info-item">
                     <span class="info-label">Precio Unit.</span>
-                    <span class="info-value price-tag">$${parseFloat(material.precio_unitario).toFixed(2)}</span>
+                    <span class="info-value price-tag">Bs.${parseFloat(material.precio_unitario).toFixed(2)}</span>
                   </div>
                   <div class="info-item">
                     <span class="info-label">Stock Mín.</span>

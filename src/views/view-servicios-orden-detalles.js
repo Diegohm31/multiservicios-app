@@ -665,13 +665,13 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     if (isPreBudget) {
       return servicios.some(item => Number(item.servicio_tabulado) === 0)
         ? html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Por Cotizar</div>`
-        : html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: $${total.toFixed(2)}</div>`;
+        : html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total Estimado: Bs.${total.toFixed(2)}</div>`;
     }
 
     if (s.includes('cancelada')) {
       return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Orden Cancelada</div>`;
     }
-    return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total: $${total.toFixed(2)}</div>`;
+    return html`<div style="font-weight: 800; font-size: 1.25rem; color: var(--primary);">Total: Bs.${total.toFixed(2)}</div>`;
   }
 
   render() {
@@ -835,7 +835,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                     <div class="service-qty">Cantidad: ${servicio.pivot?.cantidad || servicio.cantidad || 0}</div>
                     ${this.id_rol !== '00002' ? html`
                       ${(servicio.pivot?.precio_a_pagar || servicio.precio_a_pagar) ? html`
-                        <div class="service-price">$${parseFloat(servicio.pivot?.precio_a_pagar || servicio.precio_a_pagar).toFixed(2)}</div>
+                        <div class="service-price">Bs.${parseFloat(servicio.pivot?.precio_a_pagar || servicio.precio_a_pagar).toFixed(2)}</div>
                       ` : html`<div class="service-price">Por Cotizar</div>`}
                     ` : html`
                       <div class="service-roles" style="margin-top: 0.5rem; text-align: right;">
@@ -853,7 +853,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                         ${ass.nombre_especialidad} (${ass.nivel})
                       </span>
                       <span style="color: var(--success); font-weight: 800; font-family: 'JetBrains Mono', monospace;">
-                        $${parseFloat(ass.ingreso || 0).toFixed(2)}
+                        Bs.${parseFloat(ass.ingreso || 0).toFixed(2)}
                       </span>
                     </div>
                     ${ass.fecha_inicio && ass.fecha_fin ? html`

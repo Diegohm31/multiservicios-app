@@ -349,11 +349,11 @@ export class ViewCatalogoServicios extends LitElement {
                     <div class="price-display ${service.servicio_tabulado === 0 ? 'quote' : ''}">
                       ${service.servicio_tabulado === 1
           ? html`
-              <div>$${this.getItemPrice(service, activeCatData?.tipo_servicio).toFixed(2)}</div>
+              <div>Bs.${this.getItemPrice(service, activeCatData?.tipo_servicio).toFixed(2)}</div>
               <div style="display: flex; align-items: center; justify-content: flex-end; gap: 0.4rem;">
                 ${this.getDiscountForCategory(activeCatData?.tipo_servicio) ? html`
                   <span style="font-size: 0.75rem; color: var(--text-light); text-decoration: line-through; font-weight: 500;">
-                    $${parseFloat(service.precio_general || 0).toFixed(2)}
+                    Bs.${parseFloat(service.precio_general || 0).toFixed(2)}
                   </span>
                 ` : ''}
                 <span>/ ${service.unidad_medida}</span>
@@ -404,7 +404,7 @@ export class ViewCatalogoServicios extends LitElement {
                       ${item.servicio_tabulado === 1
             ? html`
                           <span style="font-weight: 800; color: var(--primary); font-size: 0.95rem;">
-                            $${(item.qty * this.getItemPrice(item)).toFixed(2)}
+                            Bs.${(item.qty * this.getItemPrice(item)).toFixed(2)}
                           </span>
                         `
             : html`<span style="color: var(--text-light); font-size: 0.85rem; font-weight: 600;">Por Cotizar</span>`
@@ -437,7 +437,7 @@ export class ViewCatalogoServicios extends LitElement {
             <div class="total-display">
                 ${this.cart.some(item => item.servicio_tabulado === 0)
         ? html`<span>Por Cotizar</span>`
-        : html`Total Estimado: <span>$${this.getTotal().toFixed(2)}</span>`
+        : html`Total Estimado: <span>Bs.${this.getTotal().toFixed(2)}</span>`
       }
             </div>
             <button 

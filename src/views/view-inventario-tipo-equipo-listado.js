@@ -481,7 +481,7 @@ export class ViewInventarioTipoEquipoListado extends LitElement {
             <div class="card-info">
               <div class="info-row">
                 <span class="info-label">Costo Operativo</span>
-                <span class="info-value cost-badge">$${parseFloat(tipo_equipo.costo_hora).toFixed(2)}/h</span>
+                <span class="info-value cost-badge">Bs.${parseFloat(tipo_equipo.costo_hora).toFixed(2)}/h</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Stock Actual</span>

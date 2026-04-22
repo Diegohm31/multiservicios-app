@@ -394,7 +394,7 @@ export class ViewReportesPagosDetalles extends LitElement {
                         </div>
                         <div class="detail-group">
                             <span class="label">Monto Reportado</span>
-                            <span class="value amount">$${parseFloat(this.reporte.monto).toFixed(2)}</span>
+                            <span class="value amount">Bs.${parseFloat(this.reporte.monto).toFixed(2)}</span>
                         </div>
                         <div class="detail-group">
                             <span class="label">Método de Pago</span>

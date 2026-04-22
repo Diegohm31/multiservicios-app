@@ -237,7 +237,7 @@ export class ViewInventarioMaterialForm extends LitElement {
             </div>
 
             <div class="form-group full-width">
-              <label for="precio_unitario">Precio Unitario ($)</label>
+              <label for="precio_unitario">Precio Unitario (Bs.)</label>
               <input type="number" id="precio_unitario" name="precio_unitario" .value=${this.material.precio_unitario} @input=${this.handleInput} placeholder="0.00" required step="0.01">
             </div>
           </div>

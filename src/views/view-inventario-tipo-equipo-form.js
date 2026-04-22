@@ -205,7 +205,7 @@ export class ViewInventarioTipoEquipoForm extends LitElement {
           </div>
           
           <div class="form-group">
-            <label for="costo_hora">Costo Operativo por Hora ($)</label>
+            <label for="costo_hora">Costo Operativo por Hora (Bs.)</label>
             <input type="number" id="costo_hora" name="costo_hora" .value=${this.tipo_equipo.costo_hora} @input=${this.handleInput} placeholder="0.00" required step="0.01">
           </div>
 

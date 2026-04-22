@@ -825,19 +825,19 @@ export class ViewServiciosServicioForm extends LitElement {
                     <div class="totals-grid">
                         <div class="total-box">
                             <label>Materiales</label>
-                            <span>$${this.montoMateriales.toFixed(2)}</span>
+                            <span>Bs.${this.montoMateriales.toFixed(2)}</span>
                         </div>
                         <div class="total-box">
                             <label>Equipos</label>
-                            <span>$${this.montoEquipos.toFixed(2)}</span>
+                            <span>Bs.${this.montoEquipos.toFixed(2)}</span>
                         </div>
                         <div class="total-box">
                             <label>Mano de Obra</label>
-                            <span>$${this.montoEspecialidades.toFixed(2)}</span>
+                            <span>Bs.${this.montoEspecialidades.toFixed(2)}</span>
                         </div>
                         <div class="total-box" style="background: #ebf8ff; border-color: #bee3f8;">
                             <label>Total</label>
-                            <span style="color: #2b6cb0;">$${this.precioGeneral.toFixed(2)}</span>
+                            <span style="color: #2b6cb0;">Bs.${this.precioGeneral.toFixed(2)}</span>
                         </div>
                     </div>
                 </div>
@@ -867,7 +867,7 @@ export class ViewServiciosServicioForm extends LitElement {
                 <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Agregar Material</label>
                 <select class="select-field" @change=${this.addMaterial}>
                     <option value="">Seleccione para añadir...</option>
-                    ${this.materiales.map(m => html`<option value=${m.id_material} ?disabled=${this.selectedMateriales.some(sm => sm.id_material === m.id_material)}>${m.nombre} ($${m.precio_unitario}/${m.unidad_medida})</option>`)}
+                    ${this.materiales.map(m => html`<option value=${m.id_material} ?disabled=${this.selectedMateriales.some(sm => sm.id_material === m.id_material)}>${m.nombre} (Bs.${m.precio_unitario}/${m.unidad_medida})</option>`)}
                 </select>
             </div>
             
@@ -889,8 +889,8 @@ export class ViewServiciosServicioForm extends LitElement {
                                 <td>${m.nombre}</td>
                                 <td>${m.unidad_medida}</td>
                                 <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${m.cantidad} @input=${(e) => this.updateItem('selectedMateriales', 'id_material', m.id_material, 'cantidad', e.target.value)} min="0.01" step="0.01"></td>
-                                <td>$${Number(m.precio_unitario).toFixed(2)}</td>
-                                <td>$${(m.cantidad * m.precio_unitario).toFixed(2)}</td>
+                                <td>Bs.${Number(m.precio_unitario).toFixed(2)}</td>
+                                <td>Bs.${(m.cantidad * m.precio_unitario).toFixed(2)}</td>
                                 <td class="action-cell"><button type="button" class="btn-remove" @click=${() => this.removeItem('selectedMateriales', 'id_material', m.id_material)}>×</button></td>
                             </tr>
                         `)}
@@ -907,7 +907,7 @@ export class ViewServiciosServicioForm extends LitElement {
                 <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Agregar Equipo</label>
                 <select class="select-field" @change=${this.addEquipo}>
                     <option value="">Seleccione para añadir...</option>
-                    ${this.tiposEquipos.map(te => html`<option value=${te.id_tipo_equipo} ?disabled=${this.selectedEquipos.some(se => se.id_tipo_equipo === te.id_tipo_equipo)}>${te.nombre} ($${te.costo_hora}/h)</option>`)}
+                    ${this.tiposEquipos.map(te => html`<option value=${te.id_tipo_equipo} ?disabled=${this.selectedEquipos.some(se => se.id_tipo_equipo === te.id_tipo_equipo)}>${te.nombre} (Bs.${te.costo_hora}/h)</option>`)}
                 </select>
             </div>
 
@@ -929,8 +929,8 @@ export class ViewServiciosServicioForm extends LitElement {
                                 <td>${e.nombre}</td>
                                 <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${e.cantidad} @input=${(e_ev) => this.updateItem('selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo, 'cantidad', e_ev.target.value)} min="1"></td>
                                 <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${e.horas_uso} data-id=${e.id_tipo_equipo} data-field="horas_uso" @input=${(e_ev) => this.updateItem('selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo, 'horas_uso', e_ev.target.value)} min="0.01" step="0.01"></td>
-                                <td>$${Number(e.costo_hora).toFixed(2)}</td>
-                                <td>$${(e.cantidad * e.horas_uso * e.costo_hora).toFixed(2)}</td>
+                                <td>Bs.${Number(e.costo_hora).toFixed(2)}</td>
+                                <td>Bs.${(e.cantidad * e.horas_uso * e.costo_hora).toFixed(2)}</td>
                                 <td class="action-cell"><button type="button" class="btn-remove" @click=${() => this.removeItem('selectedEquipos', 'id_tipo_equipo', e.id_tipo_equipo)}>×</button></td>
                             </tr>
                         `)}
@@ -947,7 +947,7 @@ export class ViewServiciosServicioForm extends LitElement {
                 <label style="font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 8px; display: block;">Agregar Especialidad</label>
                 <select class="select-field" @change=${this.addEspecialidad}>
                     <option value="">Seleccione para añadir...</option>
-                    ${this.especialidades.map(esp => html`<option value=${esp.id_especialidad} ?disabled=${this.selectedEspecialidades.some(se => se.id_especialidad === esp.id_especialidad)}>${esp.nombre} ${esp.nivel} ($${esp.tarifa_hora}/h)</option>`)}
+                    ${this.especialidades.map(esp => html`<option value=${esp.id_especialidad} ?disabled=${this.selectedEspecialidades.some(se => se.id_especialidad === esp.id_especialidad)}>${esp.nombre} ${esp.nivel} (Bs.${esp.tarifa_hora}/h)</option>`)}
                 </select>
             </div>
 
@@ -971,8 +971,8 @@ export class ViewServiciosServicioForm extends LitElement {
                                 <td>${esp.nivel}</td>
                                 <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${esp.cantidad} @input=${(e_ev) => this.updateItem('selectedEspecialidades', 'id_especialidad', esp.id_especialidad, 'cantidad', e_ev.target.value)} min="1"></td>
                                 <td><input type="number" class="input-field" style="padding: 4px 8px;" .value=${esp.horas_hombre} data-id=${esp.id_especialidad} data-field="horas_hombre" @input=${(e_ev) => this.updateItem('selectedEspecialidades', 'id_especialidad', esp.id_especialidad, 'horas_hombre', e_ev.target.value)} min="0.01" step="0.01"></td>
-                                <td>$${Number(esp.tarifa_hora).toFixed(2)}</td>
-                                <td>$${(esp.cantidad * esp.horas_hombre * esp.tarifa_hora).toFixed(2)}</td>
+                                <td>Bs.${Number(esp.tarifa_hora).toFixed(2)}</td>
+                                <td>Bs.${(esp.cantidad * esp.horas_hombre * esp.tarifa_hora).toFixed(2)}</td>
                                 <td class="action-cell"><button type="button" class="btn-remove" @click=${() => this.removeItem('selectedEspecialidades', 'id_especialidad', esp.id_especialidad)}>×</button></td>
                             </tr>
                         `)}

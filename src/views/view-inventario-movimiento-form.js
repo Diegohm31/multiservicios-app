@@ -572,7 +572,7 @@ export class ViewInventarioMovimientoForm extends LitElement {
                                     </div>
 
                                     <div class="field-group" style="max-width: 140px;">
-                                        <label>Precio Unitario</label>
+                                        <label>Precio Unitario (Bs.)</label>
                                         ${mov.tipo_movimiento === 'entrada' ? html`
                                             <input 
                                                 type="number" 

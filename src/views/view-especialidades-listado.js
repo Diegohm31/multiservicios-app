@@ -406,7 +406,7 @@ export class ViewEspecialidadesListado extends LitElement {
               </div>
               <div class="info-row">
                 <span class="info-label">Tarifa por Hora</span>
-                <span class="info-value rate-highlight">$${parseFloat(especialidad.tarifa_hora).toFixed(2)}</span>
+                <span class="info-value rate-highlight">Bs.${parseFloat(especialidad.tarifa_hora).toFixed(2)}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Personal Asignado</span>

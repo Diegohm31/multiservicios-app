@@ -455,7 +455,7 @@ export class ViewServiciosOrdenPago extends LitElement {
           </div>
           <div class="amount-display">
             <div class="amount-label">Monto a Pagar</div>
-            <div class="amount-value">$${parseFloat(this.formData.monto).toFixed(2)}</div>
+            <div class="amount-value">Bs.${parseFloat(this.formData.monto).toFixed(2)}</div>
           </div>
         </section>
 
@@ -506,7 +506,7 @@ export class ViewServiciosOrdenPago extends LitElement {
               </div>
 
               <div class="form-group">
-                <label>Monto Reportado ($)</label>
+                <label>Monto Reportado (Bs.)</label>
                 <input type="number" step="0.01" name="monto" .value=${this.formData.monto} readonly style="background-color: #f1f5f9; cursor: not-allowed; color: var(--text-light);">
               </div>
 
