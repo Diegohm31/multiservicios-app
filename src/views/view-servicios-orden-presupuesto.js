@@ -267,6 +267,21 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
       align-items: center;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
       margin-top: 3rem;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-totals {
+      display: flex;
+      gap: 1.5rem 2.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .total-a-pagar-container {
+      border-left: 2px solid rgba(255,255,255,0.2);
+      padding-left: 2.5rem;
+      margin-right: 1.5rem;
     }
 
     .global-total-label {
@@ -385,6 +400,38 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+
+    @media (max-width: 768px) {
+      .global-footer {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .footer-totals {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+      .footer-totals > div {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        padding-bottom: 0.5rem;
+      }
+      .total-a-pagar-container {
+        border-left: none;
+        padding-left: 0;
+        margin-right: 0;
+        border-bottom: none !important;
+        padding-bottom: 0 !important;
+        margin-top: 0.5rem;
+      }
+      .btn-save {
+        width: 100%;
+        justify-content: center;
+        margin-top: 1rem;
+      }
+    }
   `;
 
     constructor() {
@@ -419,6 +466,13 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
 
             if (orderData && orderData.orden) {
                 this.orden = orderData.orden;
+
+                // Validar que la orden tenga un archivo de peritaje subido
+                if (!this.orden.pdf_peritaje) {
+                    popupService.warning('Peritaje Requerido', 'No se puede elaborar el presupuesto para esta orden hasta que se suba el archivo de peritaje correspondiente.');
+                    navigator.goto('/servicios/listado/orden');
+                    return;
+                }
                 this.materiales = (m || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
                 this.tiposEquipos = (te || []).sort((a, b) => a.nombre.localeCompare(b.nombre));
                 this.especialidades = (e || []).sort((a, b) => {
@@ -624,6 +678,46 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
             return;
         }
 
+        // Validación de existencias reales servicio a servicio (datos cargados en memoria)
+        const equipoErrors = [];
+        const especialidadErrors = [];
+
+        for (const s of this.serviciosEditados) {
+            // Validar Equipos
+            for (const e of s.selectedEquipos) {
+                const dbItem = this.tiposEquipos.find(item => item.id_tipo_equipo === e.id_tipo_equipo);
+                const dbQty = dbItem ? Number(dbItem.cantidad) : 0;
+                const reqQty = Number(e.cantidad) || 0;
+                if (reqQty > dbQty) {
+                    const name = dbItem ? dbItem.nombre : `Equipo ID ${e.id_tipo_equipo}`;
+                    equipoErrors.push(`Servicio "${s.nombre}": ${name} (Ingresado: ${reqQty}, Disponible: ${dbQty})`);
+                }
+            }
+
+            // Validar Especialidades
+            for (const esp of s.selectedEspecialidades) {
+                const dbItem = this.especialidades.find(item => item.id_especialidad === esp.id_especialidad);
+                const dbQty = dbItem ? Number(dbItem.cantidad) : 0;
+                const reqQty = Number(esp.cantidad) || 0;
+                if (reqQty > dbQty) {
+                    const name = dbItem ? `${dbItem.nombre} - ${dbItem.nivel}` : `Especialidad ID ${esp.id_especialidad}`;
+                    especialidadErrors.push(`Servicio "${s.nombre}": ${name} (Ingresado: ${reqQty}, Disponible: ${dbQty})`);
+                }
+            }
+        }
+
+        if (equipoErrors.length > 0 || especialidadErrors.length > 0) {
+            let errorMsg = 'Las siguientes cantidades superan las existencias:\n\n';
+            if (equipoErrors.length > 0) {
+                errorMsg += 'Equipos:\n' + equipoErrors.map(err => `- ${err}`).join('\n') + '\n\n';
+            }
+            if (especialidadErrors.length > 0) {
+                errorMsg += 'Personal/Especialidades:\n' + especialidadErrors.map(err => `- ${err}`).join('\n');
+            }
+            popupService.warning('Existencias Insuficientes', errorMsg);
+            return;
+        }
+
         popupService.confirm('Guardar Presupuesto', '¿Desea guardar este presupuesto?', async () => {
             this.loading = true;
 
@@ -794,7 +888,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                 `)}
 
                 <footer class="global-footer">
-                    <div style="display: flex; gap: 3rem; align-items: center;">
+                    <div class="footer-totals">
                         <div>
                             <div class="global-total-label">Total General</div>
                             <div style="font-size: 1.1rem; font-weight: 600;">Bs.${this.totalGeneral.toFixed(2)}</div>
@@ -811,7 +905,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                             <div class="global-total-label">IVA (${this.porcentajeIva}%)</div>
                             <div style="font-size: 1.1rem; font-weight: 600;">Bs.${this.iva.toFixed(2)}</div>
                         </div>
-                        <div style="border-left: 2px solid rgba(255,255,255,0.2); padding-left: 3rem; margin-right: 2rem;">
+                        <div class="total-a-pagar-container">
                             <div class="global-total-label" style="opacity: 1; font-weight: 800; color: var(--success);">TOTAL A PAGAR</div>
                             <div class="global-total-value" style="color: var(--success);">Bs.${this.totalGlobal.toFixed(2)}</div>
                         </div>

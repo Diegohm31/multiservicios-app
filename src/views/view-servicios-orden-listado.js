@@ -990,7 +990,11 @@ export class ViewServiciosOrdenListado extends LitElement {
                   <div class="actions-cell">
                     <button class="btn btn-info" @click=${() => this.verDetallesOrden(orden.id_orden)}>Detalles</button>
                     ${orden.estado?.toLowerCase() === 'aceptada' && this.id_rol === '00003' ? html`
-                      <button class="btn btn-purple" @click=${() => this.realizarPresupuesto(orden.id_orden)}>Presupuestar</button>
+                      ${orden.pdf_peritaje ? html`
+                        <button class="btn btn-purple" @click=${() => this.realizarPresupuesto(orden.id_orden)}>Presupuestar</button>
+                      ` : html`
+                        <button class="btn" style="background-color: #cbd5e1; color: #64748b; cursor: not-allowed;" @click=${() => popupService.warning('Peritaje Requerido', 'No se puede elaborar el presupuesto porque esta orden aún no cuenta con un archivo de peritaje subido.')} title="Requiere archivo de peritaje">Presupuestar</button>
+                      `}
                     ` : ''}
                     ${this.id_rol === '00001' && orden.estado?.toLowerCase().includes('pagar') ? html`
                       <button class="btn btn-success" @click=${() => this.pagarOrden(orden.id_orden)}>Pagar</button>

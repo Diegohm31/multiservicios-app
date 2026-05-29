@@ -93,6 +93,7 @@ export class CommonPopup extends LitElement {
       color: var(--text-light);
       line-height: 1.6;
       font-size: 1.1rem;
+      white-space: pre-wrap;
     }
 
     .btn-group {
