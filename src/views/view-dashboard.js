@@ -247,6 +247,9 @@ export class ViewDashboard extends LitElement {
     }
 
     .status-pill {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
       padding: 0.25rem 0.75rem;
       border-radius: 8px;
       font-size: 0.7rem;
@@ -263,7 +266,7 @@ export class ViewDashboard extends LitElement {
     .status-completada { background: #dcfce7; color: #15803d; }
     .status-cancelada { background: #fee2e2; color: #991b1b; }
     .status-en_espera { background: #e0f2fe; color: #075985; }
-    .status-por-pagar { background: #ffedd5; color: #c2410c; }
+    .status-por-pagar, .status-por_pagar { background: #ffedd5; color: #c2410c; }
     .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
     .status-asignando_personal { background: #dcfce7; color: #166534; }
 

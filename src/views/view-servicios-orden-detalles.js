@@ -75,6 +75,9 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
 
     .status-badge {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
       padding: 0.35rem 0.75rem;
       border-radius: 9999px;
       font-size: 0.75rem;
