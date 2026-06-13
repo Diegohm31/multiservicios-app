@@ -1,4 +1,5 @@
 import { LitElement, html, css } from 'lit';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 
 export class CommonPopup extends LitElement {
   static properties = {
@@ -220,7 +221,7 @@ export class CommonPopup extends LitElement {
             ${icons[this.type]}
           </div>
           <h2>${this.title}</h2>
-          <p>${this.message}</p>
+          <p>${unsafeHTML(this.message || '')}</p>
           
           ${this.type === 'confirm' ? html`
             <div class="btn-group">
