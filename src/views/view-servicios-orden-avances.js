@@ -19,7 +19,8 @@ export class ViewServiciosOrdenAvances extends LitElement {
     showModal: { type: Boolean },
     isEditing: { type: Boolean },
     imagePreview: { type: String },
-    isDragging: { type: Boolean }
+    isDragging: { type: Boolean },
+    activeServiceId: { type: String }
   };
 
   static styles = css`
@@ -620,6 +621,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
     this.isEditing = false;
     this.imagePreview = '';
     this.isDragging = false;
+    this.activeServiceId = '';
   }
 
   async connectedCallback() {
@@ -672,71 +674,57 @@ export class ViewServiciosOrdenAvances extends LitElement {
     }
   }
 
+
   get totalPercentage() {
-    return this.getUsedPercentage();
+    return parseFloat(this.orden?.porcentaje_avance_global || 0);
   }
 
-  getUsedPercentage(excludeId = null) {
+  getUsedPercentage(id_orden_servicio, excludeId = null) {
     if (!Array.isArray(this.avances)) return 0;
     return this.avances
-      .filter(a => excludeId === null || String(a.id_avance_orden) !== String(excludeId))
+      .filter(a => String(a.id_orden_servicio) === String(id_orden_servicio))
+      .filter(a => excludeId === null || String(a.id_avance_orden_servicio || a.id_avance_orden) !== String(excludeId))
       .reduce((acc, a) => {
         const val = parseFloat(a.porcentaje_avance || a.porcentaje || 0);
         return acc + (isNaN(val) ? 0 : val);
       }, 0);
   }
 
-  get myOperativoId() {
+  myOperativoIdForService(id_orden_servicio) {
     if (!this.currentUser || !this.orden) return null;
     const myId = String(this.currentUser.id);
     const servicios = this.orden.servicios || this.orden.array_servicios || [];
-    for (const s of servicios) {
-      const op = (s.operativos_asignados || []).find(o => String(o.id_user) === myId && Number(o.es_jefe) === 1);
-      if (op) return op.id_operativo;
-    }
-    return null;
+    const servicio = servicios.find(s => String(s.id_orden_servicio) === String(id_orden_servicio));
+    if (!servicio) return null;
+    const op = (servicio.operativos_asignados || []).find(o => String(o.id_user) === myId && Number(o.es_jefe) === 1);
+    return op ? op.id_operativo : null;
   }
 
-  get assignedJefes() {
+  assignedJefesForService(id_orden_servicio) {
     if (!this.orden) return [];
-    const jefes = new Map();
     const servicios = this.orden.servicios || this.orden.array_servicios || [];
-    servicios.forEach(s => {
-      (s.operativos_asignados || []).forEach(o => {
-        if (Number(o.es_jefe) === 1) {
-          jefes.set(o.id_operativo, {
-            nombre: o.nombre_operativo || o.nombre,
-            id: o.id_operativo
-          });
-        }
-      });
-    });
-    return Array.from(jefes.values());
+    const servicio = servicios.find(s => String(s.id_orden_servicio) === String(id_orden_servicio));
+    if (!servicio) return [];
+    return (servicio.operativos_asignados || [])
+      .filter(o => Number(o.es_jefe) === 1)
+      .map(o => ({ nombre: o.nombre_operativo || o.nombre, id: o.id_operativo }));
   }
 
-  get isJefeDeObra() {
-    if (!this.currentUser || !this.orden) return false;
-    const myId = String(this.currentUser.id);
-    const servicios = this.orden.servicios || this.orden.array_servicios || [];
-    return servicios.some(s =>
-      (s.operativos_asignados || []).some(op =>
-        String(op.id_user) === myId && Number(op.es_jefe) === 1
-      )
-    );
+  isJefeDeObraForService(id_orden_servicio) {
+    return this.myOperativoIdForService(id_orden_servicio) !== null;
   }
 
-  get canEdit() {
-    // No se puede editar ni eliminar si la orden ya está completada
+  canEditForService(id_orden_servicio) {
     if (this.orden?.estado?.toLowerCase().includes('comp')) return false;
-    // Solo el Jefe de Obra asignado puede realizar acciones de escritura
-    return this.isJefeDeObra;
+    return this.isJefeDeObraForService(id_orden_servicio);
   }
 
   selectAvance(avance) {
     this.selectedAvance = avance;
   }
 
-  openRegisterModal() {
+  openRegisterModal(id_orden_servicio) {
+    this.activeServiceId = id_orden_servicio;
     this.selectedAvance = null;
     this.isEditing = false;
     this.showModal = true;
@@ -744,6 +732,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
 
   openEditModal() {
     if (!this.selectedAvance) return;
+    this.activeServiceId = this.selectedAvance.id_orden_servicio;
     this.isEditing = true;
     this.showModal = true;
   }
@@ -752,6 +741,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
     this.showModal = false;
     this.isEditing = false;
     this.imagePreview = '';
+    this.activeServiceId = '';
   }
 
   handleFileChange(e) {
@@ -762,7 +752,6 @@ export class ViewServiciosOrdenAvances extends LitElement {
         return;
       }
 
-      // If dropped, we manually update the input files so FormData can pick it up
       if (e.type === 'drop') {
         const input = this.shadowRoot.querySelector('input[type="file"]');
         const dataTransfer = new DataTransfer();
@@ -806,19 +795,17 @@ export class ViewServiciosOrdenAvances extends LitElement {
 
     const newPorcentaje = parseFloat(formData.get('porcentaje_avance'));
 
-    const excludeId = this.isEditing ? this.selectedAvance?.id_avance_orden : null;
-    const otherAdvancesSum = this.getUsedPercentage(excludeId);
+    const excludeId = this.isEditing ? (this.selectedAvance?.id_avance_orden_servicio || this.selectedAvance?.id_avance_orden) : null;
+    const otherAdvancesSum = this.getUsedPercentage(this.activeServiceId, excludeId);
 
     if (otherAdvancesSum + newPorcentaje > 100) {
       popupService.warning('Límite Excedido', `El porcentaje total no puede exceder el 100%. El máximo permitido para este avance es ${100 - otherAdvancesSum}%.`);
       return;
     }
 
-    // Agregar campos requeridos por el backend
-    formData.append('id_orden', this.ordenId);
+    formData.append('id_orden_servicio', this.activeServiceId);
 
-    // Solo permitimos el envío si es Jefe de Obra
-    let opId = this.myOperativoId;
+    let opId = this.myOperativoIdForService(this.activeServiceId);
 
     if (!opId) {
       popupService.warning('Acceso Denegado', 'Solo los Jefes de Obra asignados pueden registrar o editar avances.');
@@ -826,15 +813,15 @@ export class ViewServiciosOrdenAvances extends LitElement {
     }
     formData.append('id_operativo', opId);
 
-    // Limpiar imagen si el input está vacío para evitar error en el backend
     const imageFile = formData.get('image');
     if (imageFile && imageFile instanceof File && imageFile.size === 0) {
       formData.delete('image');
     }
 
     try {
-      if (this.isEditing && this.selectedAvance) { // Original condition
-        await serviciosService.updateAvance(this.selectedAvance.id_avance_orden, formData);
+      this.loading = true;
+      if (this.isEditing && this.selectedAvance) {
+        await serviciosService.updateAvance(this.selectedAvance.id_avance_orden_servicio || this.selectedAvance.id_avance_orden, formData);
       } else {
         await serviciosService.createAvance(formData);
       }
@@ -842,7 +829,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
       this.isEditing = false;
       await this.loadData();
 
-      if (this.totalPercentage >= 100) {
+      if (this.getUsedPercentage(this.activeServiceId) >= 100) {
         this.triggerConfetti();
       }
     } catch (error) {
@@ -889,7 +876,7 @@ export class ViewServiciosOrdenAvances extends LitElement {
       async () => {
         try {
           this.loading = true;
-          await serviciosService.eliminarAvance(this.selectedAvance.id_avance_orden);
+          await serviciosService.eliminarAvance(this.selectedAvance.id_avance_orden_servicio || this.selectedAvance.id_avance_orden);
           this.selectedAvance = null;
           await this.loadData();
           popupService.success('Éxito', 'Avance eliminado correctamente.');
@@ -916,18 +903,13 @@ export class ViewServiciosOrdenAvances extends LitElement {
 
     const totalProgress = Math.min(this.totalPercentage, 100);
     const isCompleted = this.orden?.estado?.toLowerCase().includes('comp');
-    const showRegisterBtn = this.isJefeDeObra && totalProgress < 100 && !isCompleted;
+    const servicios = this.orden.servicios || this.orden.array_servicios || [];
 
     return html`
       <div class="container">
         <header class="header">
           <div style="display: flex; align-items: center; gap: 2rem;">
             <h1>ORDEN #${this.orden.id_orden}</h1>
-            ${showRegisterBtn ? html`
-              <button class="btn-register" @click=${this.openRegisterModal}>
-                Registrar Nuevo Avance
-              </button>
-            ` : ''}
           </div>
           <button class="btn-back" @click=${() => navigator.goto('/servicios/listado/orden')}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
@@ -935,118 +917,136 @@ export class ViewServiciosOrdenAvances extends LitElement {
           </button>
         </header>
 
-        ${this.assignedJefes.length > 0 ? html`
-          <div class="jefes-section">
-            <span class="jefes-label">Jefe(s) de Obra:</span>
-            ${this.assignedJefes.map(jefe => html`
-              <div class="jefe-badge">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                ${jefe.nombre}
-              </div>
-            `)}
-          </div>
-        ` : ''}
-
-        <section class="progress-container">
-          <div class="progress-track">
+        <h3 style="margin-bottom: 0;">Progreso Global de la Orden</h3>
+        <section class="progress-container" style="margin-top: 2rem;">
+          <div class="progress-track" style="height: 24px;">
             <div class="progress-fill" style="width: ${totalProgress}%"></div>
-            
-            ${this.avances.reduce((acc, avance, idx) => {
-      const currentSum = acc.sum + parseFloat(avance.porcentaje_avance || avance.porcentaje);
-      acc.elements.push(html`
-                <div class="flag ${this.selectedAvance?.id_avance_orden === avance.id_avance_orden ? 'selected' : ''}" 
-                     style="left: ${currentSum}%"
-                     @click=${() => this.selectAvance(avance)}>
-                  <span class="flag-percentage">${Number(avance.porcentaje_avance || avance.porcentaje).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</span>
-                  <div class="flag-icon"></div>
-                  <div class="flag-line"></div>
-                </div>
-              `);
-      return { sum: currentSum, elements: acc.elements };
-    }, { sum: 0, elements: [] }).elements}
           </div>
-          
           <div class="progress-labels">
             <span>0%</span>
-            <span>25%</span>
             <span>50%</span>
-            <span>75%</span>
             <span>100%</span>
           </div>
         </section>
 
-        ${this.avances.length === 0 ? html`
-          <div style="background: #f8fafc; border: 2px dashed var(--border); border-radius: 20px; padding: 3rem; text-align: center; margin-top: 2rem; animation: fadeIn 0.5s ease-out;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem; opacity: 0.5;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            <h3 style="margin: 0; color: var(--text); font-weight: 700;">Sin avances registrados</h3>
-            <p style="color: var(--text-light); margin-top: 0.5rem;">Esta orden aún no cuenta con reportes de progreso.</p>
-            ${showRegisterBtn ? html`
-              <p style="font-size: 0.9rem; font-weight: 600; color: var(--primary); margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                ¡Comienza registrando el primero!
-              </p>
-            ` : ''}
-          </div>
-        ` : ''}
+        ${servicios.map(servicio => {
+      const sumService = this.getUsedPercentage(servicio.id_orden_servicio);
+      const totalProgressSvc = Math.min(sumService, 100);
+      const isJefeSvc = this.isJefeDeObraForService(servicio.id_orden_servicio);
+      const jefesSvc = this.assignedJefesForService(servicio.id_orden_servicio);
+      const showRegisterBtnSvc = isJefeSvc && totalProgressSvc < 100 && !isCompleted;
+      const avancesSvc = this.avances.filter(a => String(a.id_orden_servicio) === String(servicio.id_orden_servicio));
 
-        ${this.selectedAvance ? repeat([this.selectedAvance], (a) => a.id_avance_orden, (avance) => html`
-          <article class="details-card">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
-                <h2 class="details-title" style="margin-bottom: 0;">
-                    Fecha del avance: ${avance.created_at || avance.fecha_avance
-        ? formatDateTime(avance.created_at || avance.fecha_avance)
-        : 'Detalle del Avance'}
-                </h2>
-                <div style="text-align: right;">
-                    <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">Registrado por:</div>
-                    <div style="font-weight: 700; color: var(--primary); font-size: 0.95rem;">${avance.nombre_operativo || 'N/A'}</div>
-                </div>
-            </div>
-            <div class="details-content">
-              <div class="form-group">
-                <label>Descripción del avance</label>
-                <textarea disabled style="background: white !important; color: black !important; border: none; padding-left: 0;">${avance.descripcion}</textarea>
-              </div>
-              <div style="display: flex; flex-wrap: wrap; gap: 2rem; margin-top: 1rem;">
-                <div>
-                    <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase;">Porcentaje aportado</label>
-                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">${Number(avance.porcentaje_avance || avance.porcentaje).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</div>
-                </div>
-                ${avance.imagePath ? html`
-                    <div style="flex: 1; min-width: 250px;">
-                        <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase;">Evidencia</label>
-                        <div class="evidence-preview-container">
-                            <img src="${serviciosService.baseUrl}/storage/${avance.imagePath}" class="evidence-large" alt="Evidencia de avance">
-                        </div>
+      return html`
+                <div style="background: white; border-radius: var(--radius); padding: 2rem; border: 1px solid var(--border); box-shadow: var(--shadow); margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2 style="margin: 0; color: var(--primary);">${servicio.nombre_servicio || servicio.nombre}</h2>
+                        ${showRegisterBtnSvc ? html`
+                            <button class="btn-register" @click=${() => this.openRegisterModal(servicio.id_orden_servicio)}>
+                                Registrar Avance
+                            </button>
+                        ` : ''}
                     </div>
-                ` : html`
-                    <div style="flex: 1; min-width: 250px;">
-                        <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase;">Evidencia</label>
-                        <div style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center; color: var(--text-light); border: 2px dashed #e2e8f0; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; box-sizing: border-box; margin-top: 1rem; max-width: 300px;">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="3" x2="21" y2="21"></line><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
-                            <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6;">Sin imagen adjunta</span>
+
+                    ${jefesSvc.length > 0 ? html`
+                        <div class="jefes-section" style="margin-bottom: 1rem; padding: 1rem;">
+                            <span class="jefes-label">Jefe de Obra:</span>
+                            ${jefesSvc.map(jefe => html`
+                            <div class="jefe-badge">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                ${jefe.nombre}
+                            </div>
+                            `)}
                         </div>
-                    </div>
-                `}
-              </div>
-            </div>
-            
-            ${this.canEdit ? html`
-              <div style="position: absolute; bottom: 2rem; right: 2.5rem; display: flex; gap: 1rem; align-items: center;">
-                <button class="btn-edit" @click=${this.openEditModal}>
-                  Editar
-                </button>
-                <button class="btn-delete" style="position: static;" @click=${this.handleDelete}>
-                  Eliminar
-                </button>
-              </div>
-            ` : ''}
-          </article>
-        `) : html`
-          <div style="text-align: center; padding: 4rem; color: var(--text-light);">
-            <p>Haga clic en una de las banderas para ver los detalles del avance.</p>
-          </div>
-        `}
+                    ` : ''}
+
+                    <section class="progress-container" style="margin-top: 5rem; margin-bottom: 2rem;">
+                        <div class="progress-track">
+                            <div class="progress-fill" style="width: ${totalProgressSvc}%"></div>
+                            ${avancesSvc.reduce((acc, avance) => {
+        const currentSum = acc.sum + parseFloat(avance.porcentaje_avance || avance.porcentaje);
+        acc.elements.push(html`
+                                    <div class="flag ${this.selectedAvance && (this.selectedAvance.id_avance_orden_servicio === avance.id_avance_orden_servicio) ? 'selected' : ''}" 
+                                        style="left: ${currentSum}%"
+                                        @click=${() => this.selectAvance(avance)}>
+                                    <span class="flag-percentage">${Number(avance.porcentaje_avance || avance.porcentaje).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</span>
+                                    <div class="flag-icon"></div>
+                                    <div class="flag-line"></div>
+                                    </div>
+                                `);
+        return { sum: currentSum, elements: acc.elements };
+      }, { sum: 0, elements: [] }).elements}
+                        </div>
+                        <div class="progress-labels">
+                            <span>0%</span>
+                            <span>25%</span>
+                            <span>50%</span>
+                            <span>75%</span>
+                            <span>100%</span>
+                        </div>
+                    </section>
+                    
+                    ${avancesSvc.length === 0 ? html`
+                        <div style="background: #f8fafc; border: 2px dashed var(--border); border-radius: 20px; padding: 2rem; text-align: center; margin-top: 1rem;">
+                            <h3 style="margin: 0; color: var(--text); font-weight: 700;">Sin avances en este servicio</h3>
+                            ${showRegisterBtnSvc ? html`
+                                <p style="font-size: 0.9rem; font-weight: 600; color: var(--primary); margin-top: 1rem; cursor:pointer;" @click=${() => this.openRegisterModal(servicio.id_orden_servicio)}>
+                                    ¡Comienza registrando el primero!
+                                </p>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+
+                    ${this.selectedAvance && String(this.selectedAvance.id_orden_servicio) === String(servicio.id_orden_servicio) ? repeat([this.selectedAvance], (a) => a.id_avance_orden_servicio || a.id_avance_orden, (avance) => html`
+                        <article class="details-card" style="margin-top: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                                <h2 class="details-title" style="margin-bottom: 0;">
+                                    Fecha del avance: ${avance.created_at || avance.fecha_avance ? formatDateTime(avance.created_at || avance.fecha_avance) : 'Detalle del Avance'}
+                                </h2>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em;">Registrado por:</div>
+                                    <div style="font-weight: 700; color: var(--primary); font-size: 0.95rem;">${avance.nombre_operativo || 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="details-content">
+                                <div class="form-group">
+                                    <label>Descripción del avance</label>
+                                    <textarea disabled style="background: white !important; color: black !important; border: none; padding-left: 0;">${avance.descripcion}</textarea>
+                                </div>
+                                <div style="display: flex; flex-wrap: wrap; gap: 2rem; margin-top: 1rem;">
+                                    <div>
+                                        <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase;">Porcentaje aportado</label>
+                                        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">${Number(avance.porcentaje_avance || avance.porcentaje).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%</div>
+                                    </div>
+                                    ${avance.imagePath ? html`
+                                        <div style="flex: 1; min-width: 250px;">
+                                            <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase;">Evidencia</label>
+                                            <div class="evidence-preview-container">
+                                                <img src="${serviciosService.baseUrl}/storage/${avance.imagePath}" class="evidence-large" alt="Evidencia de avance">
+                                            </div>
+                                        </div>
+                                    ` : html`
+                                        <div style="flex: 1; min-width: 250px;">
+                                            <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-light); text-transform:uppercase;">Evidencia</label>
+                                            <div style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center; color: var(--text-light); border: 2px dashed #e2e8f0; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; box-sizing: border-box; margin-top: 1rem; max-width: 300px;">
+                                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="3" x2="21" y2="21"></line><circle cx="8.5" cy="8.5" r="1.5"></circle></svg>
+                                                <span style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.6;">Sin imagen adjunta</span>
+                                            </div>
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                            ${this.canEditForService(servicio.id_orden_servicio) ? html`
+                                <div style="position: absolute; bottom: 2rem; right: 2.5rem; display: flex; gap: 1rem; align-items: center;">
+                                    <button class="btn-edit" @click=${this.openEditModal}>Editar</button>
+                                    <button class="btn-delete" style="position: static;" @click=${this.handleDelete}>Eliminar</button>
+                                </div>
+                            ` : ''}
+                        </article>
+                    `) : ''}
+                </div>
+            `;
+    })}
       </div>
 
       <!-- Modal para registrar/editar avance -->
@@ -1064,10 +1064,10 @@ export class ViewServiciosOrdenAvances extends LitElement {
                 <input type="number" name="porcentaje_avance" min="0.01" max="100" step="0.01" required placeholder="Ej: 12.50" .value=${this.isEditing ? (this.selectedAvance.porcentaje_avance || this.selectedAvance.porcentaje) : ''}>
                 <small style="color: var(--text-light);">
                     ${(() => {
-                        const excludeId = this.isEditing ? this.selectedAvance?.id_avance_orden : null;
-                        const otherSum = this.getUsedPercentage(excludeId);
-                        return html`Máximo permitido: ${(100 - otherSum).toFixed(2)}%`;
-                    })()}
+          const excludeId = this.isEditing ? (this.selectedAvance?.id_avance_orden_servicio || this.selectedAvance?.id_avance_orden) : null;
+          const otherSum = this.getUsedPercentage(this.activeServiceId, excludeId);
+          return html`Máximo permitido: ${(100 - otherSum).toFixed(2)}%`;
+        })()}
                 </small>
               </div>
               <div class="form-group">

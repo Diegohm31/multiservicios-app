@@ -689,7 +689,7 @@ export class ServiciosService {
     }
 
     async updateAvance(id, data) {
-        let url = `${this.baseUrl}/api/avances-ordenes/${id}`;
+        let url = `${this.baseUrl}/api/avances-ordenes-servicios/${id}`;
         let token = localStorage.getItem('token');
         const isFormData = data instanceof FormData;
 
@@ -722,7 +722,7 @@ export class ServiciosService {
     }
 
     async createAvance(data) {
-        let url = `${this.baseUrl}/api/avances-ordenes`;
+        let url = `${this.baseUrl}/api/avances-ordenes-servicios`;
         let token = localStorage.getItem('token');
         const isFormData = data instanceof FormData;
         const requestOptions = {
@@ -749,7 +749,7 @@ export class ServiciosService {
     }
 
     async eliminarAvance(id) {
-        let url = `${this.baseUrl}/api/avances-ordenes/${id}`;
+        let url = `${this.baseUrl}/api/avances-ordenes-servicios/${id}`;
         let token = localStorage.getItem('token');
         const requestOptions = {
             method: 'DELETE',
