@@ -140,15 +140,55 @@ export class CommonPopup extends LitElement {
       to { opacity: 1; }
     }
 
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(40px) scale(0.95); }
-      to { opacity: 1; transform: translateY(0) scale(1); }
+    .overlay.email-overlay {
+      background: transparent;
+      backdrop-filter: none;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 1.5rem;
+      pointer-events: none;
     }
 
-    @keyframes pulse-icon {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.15); }
-      100% { transform: scale(1); }
+    .popup.email {
+      background: #2563eb;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      width: auto;
+      max-width: 350px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      text-align: left;
+      animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transform: none; /* override slideUp */
+    }
+
+    .popup.email::before { display: none; }
+
+    .popup.email h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: white;
+    }
+
+    .popup.email p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+    }
+
+    .email .icon-wrapper {
+      width: 40px;
+      height: 40px;
+      margin: 0;
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      flex-shrink: 0;
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
     }
   `;
 
@@ -159,6 +199,7 @@ export class CommonPopup extends LitElement {
     this.message = '';
     this.type = 'info';
     this.onConfirm = null;
+    this.isProcessingConfirm = false;
   }
 
   connectedCallback() {
@@ -184,9 +225,13 @@ export class CommonPopup extends LitElement {
   close() {
     this.visible = false;
     this.onConfirm = null;
+    this.isProcessingConfirm = false;
   }
 
   async handleConfirm() {
+    if (this.isProcessingConfirm) return;
+    this.isProcessingConfirm = true;
+
     const originalTitle = this.title;
     const originalType = this.type;
 
@@ -201,6 +246,8 @@ export class CommonPopup extends LitElement {
     if (this.visible && this.title === originalTitle && this.type === originalType) {
       this.close();
     }
+    
+    this.isProcessingConfirm = false;
   }
 
   render() {
@@ -215,13 +262,15 @@ export class CommonPopup extends LitElement {
     };
 
     return html`
-      <div class="overlay" @click=${this.type === 'email' ? null : this.close}>
+      <div class="overlay ${this.type === 'email' ? 'email-overlay' : ''}" @click=${this.type === 'email' ? null : this.close}>
         <div class="popup ${this.type}" @click=${(e) => e.stopPropagation()}>
           <div class="icon-wrapper">
             ${icons[this.type]}
           </div>
-          <h2>${this.title}</h2>
-          <p>${unsafeHTML(this.message || '')}</p>
+          <div>
+            <h2>${this.title}</h2>
+            <p>${unsafeHTML(this.message || '')}</p>
+          </div>
           
           ${this.type === 'confirm' ? html`
             <div class="btn-group">

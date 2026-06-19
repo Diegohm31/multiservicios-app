@@ -502,6 +502,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
         popupService.sendingEmail();
         await serviciosService.cancelarOrden(id, observaciones);
         popupService.hide();
+        popupService.success('Éxito', 'Orden cancelada correctamente.');
         await this.loadOrden();
       }
     );
@@ -516,6 +517,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
         popupService.sendingEmail();
         await serviciosService.aceptarOrden(id, observaciones);
         popupService.hide();
+        popupService.success('Éxito', 'Orden aceptada correctamente.');
         await this.loadOrden();
       }
     );

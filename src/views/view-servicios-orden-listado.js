@@ -602,6 +602,7 @@ export class ViewServiciosOrdenListado extends LitElement {
         popupService.sendingEmail();
         await serviciosService.cancelarOrden(id);
         popupService.hide();
+        popupService.success('Éxito', 'Orden cancelada correctamente.');
         this.loadOrdenes();
       }
     );

@@ -146,6 +146,7 @@ export class ViewAuthRegister extends LitElement {
     this.telefono = '';
     this.direccion = '';
     this.showPassword = false;
+    this.isSending = false;
   }
 
   handleInput(e) {
@@ -160,6 +161,9 @@ export class ViewAuthRegister extends LitElement {
         popupService.info('Campo Falante', 'Por favor, completa todos los campos.');
         return;
       }
+
+      if (this.isSending) return;
+      this.isSending = true;
 
       let $user = {
         name: this.name,
@@ -180,6 +184,8 @@ export class ViewAuthRegister extends LitElement {
       }
     } catch (error) {
       popupService.warning('Error', 'Error en el registro');
+    } finally {
+      this.isSending = false;
     }
   }
 
@@ -250,7 +256,7 @@ export class ViewAuthRegister extends LitElement {
               </button>
             </div>
           </div>
-          <button type="submit">Registrarse</button>
+          <button type="submit" ?disabled=${this.isSending}>${this.isSending ? 'Registrando...' : 'Registrarse'}</button>
         </form>
         <div class="links">
           ¿Ya tienes cuenta? <a href="/login">Inicia Sesión</a>
