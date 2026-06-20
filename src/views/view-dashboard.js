@@ -12,7 +12,10 @@ export class ViewDashboard extends LitElement {
     metrics: { type: Object },
     recentOrders: { type: Array },
     shortcuts: { type: Array },
-    loading: { type: Boolean }
+    loading: { type: Boolean },
+    currentMonth: { type: Number },
+    currentYear: { type: Number },
+    waitOrders: { type: Array }
   };
 
   static styles = css`
@@ -270,6 +273,106 @@ export class ViewDashboard extends LitElement {
     .status-verificando_pago { background: #e0e7ff; color: #3730a3; }
     .status-asignando_personal { background: #dcfce7; color: #166534; }
 
+    /* Calendar Styles */
+    .calendar-container {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid #e2e8f0;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      margin-top: 1.5rem;
+    }
+    
+    .calendar-header {
+      background: #bae6fd;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #0c4a6e;
+    }
+    
+    .calendar-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .calendar-nav-btn {
+      background: transparent;
+      border: none;
+      color: #0c4a6e;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s;
+      padding: 0;
+    }
+    
+    .calendar-nav-btn:hover {
+      transform: scale(1.1);
+    }
+    
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+    }
+    
+    .calendar-day-header {
+      padding: 0.75rem 0;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--text);
+      border-bottom: 1px solid #e2e8f0;
+      text-transform: uppercase;
+    }
+    
+    .calendar-day {
+      padding: 0.5rem;
+      min-height: 60px;
+      border-right: 1px solid #f1f5f9;
+      border-bottom: 1px solid #f1f5f9;
+      position: relative;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      background: #fff;
+    }
+    
+    .calendar-day.empty {
+      background: #fafafa;
+    }
+    
+    .calendar-day.highlight {
+      background: #fef08a; /* Amarillo */
+      color: #854d0e;
+    }
+    
+    .calendar-day:nth-child(7n) {
+      border-right: none;
+    }
+    
+    .order-badge {
+      margin-top: 0.25rem;
+      background: #ca8a04;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 0.15rem 0.4rem;
+      border-radius: 10px;
+      line-height: 1;
+    }
+
     /* Shortcuts */
     .shortcuts-list {
       display: flex;
@@ -364,6 +467,11 @@ export class ViewDashboard extends LitElement {
     this.loading = true;
     this.chartInstances = {};
     this.barStats = { mean: 0, max: { val: 0, label: '' }, min: { val: 0, label: '' } };
+
+    const today = new Date();
+    this.currentMonth = today.getMonth();
+    this.currentYear = today.getFullYear();
+    this.waitOrders = [];
   }
 
   async connectedCallback() {
@@ -387,6 +495,7 @@ export class ViewDashboard extends LitElement {
 
       const allOrders = ordenesData?.ordenes || [];
       this.recentOrders = [...allOrders].sort((a, b) => b.id_orden - a.id_orden).slice(0, 5);
+      this.waitOrders = allOrders.filter(o => o.estado === 'En espera' && o.fecha_inicio);
 
       this.calculateMetrics(allOrders, clientsData);
       this.loadShortcuts();
@@ -598,6 +707,72 @@ export class ViewDashboard extends LitElement {
     return { bg: '#dcfce7', color: '#166534', icon: '🛡️', label: 'Membresía al día' };
   }
 
+  changeMonth(offset) {
+    let newMonth = this.currentMonth + offset;
+    let newYear = this.currentYear;
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    } else if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+    this.currentMonth = newMonth;
+    this.currentYear = newYear;
+  }
+
+  renderCalendar() {
+    const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+    const startingDay = firstDay === 0 ? 6 : firstDay - 1; // Adjust so Monday is 0
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    let days = [];
+    for (let i = 0; i < startingDay; i++) {
+      days.push(html`<div class="calendar-day empty"></div>`);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      // Create local date string YYYY-MM-DD
+      const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+      const ordersOnThisDay = this.waitOrders.filter(o => o.fecha_inicio && o.fecha_inicio.startsWith(dateStr));
+      const hasOrders = ordersOnThisDay.length > 0;
+      const tooltipText = hasOrders ? `Órdenes en espera: ${ordersOnThisDay.map(o => '#' + o.id_orden).join(', ')}` : '';
+
+      days.push(html`
+        <div class="calendar-day ${hasOrders ? 'highlight' : ''}" title="${tooltipText}">
+          <span>${i}</span>
+          ${hasOrders ? html`<span class="order-badge">${ordersOnThisDay.length}</span>` : ''}
+        </div>
+      `);
+    }
+
+    return html`
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" @click=${() => this.changeMonth(-1)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <h2>${monthNames[this.currentMonth]} ${this.currentYear}</h2>
+          <button class="calendar-nav-btn" @click=${() => this.changeMonth(1)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-day-header">L</div>
+          <div class="calendar-day-header">M</div>
+          <div class="calendar-day-header">M</div>
+          <div class="calendar-day-header">J</div>
+          <div class="calendar-day-header">V</div>
+          <div class="calendar-day-header">S</div>
+          <div class="calendar-day-header">D</div>
+          ${days}
+        </div>
+      </div>
+    `;
+  }
+
   render() {
     if (this.loading) {
       return html`
@@ -713,6 +888,13 @@ export class ViewDashboard extends LitElement {
                     </div>
                 </div>
             </div>
+
+            ${this.user?.id_rol === '00003' ? html`
+            <div style="margin-bottom: 2.5rem; animation: fadeInUp 0.8s ease-out;">
+                <h2 style="font-size: 1.1rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; color: var(--text);">Calendario de Órdenes en Espera de Ejecución</h2>
+                ${this.renderCalendar()}
+            </div>
+            ` : ''}
 
             <div class="dashboard-layout">
                 <div class="content-card">
