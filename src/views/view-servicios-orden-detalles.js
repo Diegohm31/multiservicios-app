@@ -703,7 +703,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     const servicios = this.orden.servicios || this.orden.array_servicios || [];
     const subtotal = servicios.reduce((acc, s) => acc + parseFloat((s.pivot && s.pivot.precio_a_pagar) ? s.pivot.precio_a_pagar : (s.precio_a_pagar || 0)), 0);
     const iva = parseFloat((this.orden.presupuesto && this.orden.presupuesto.iva) ? this.orden.presupuesto.iva : (this.orden.iva || 0));
-    const total = subtotal + iva;
+    const costo_traslado = parseFloat((this.orden.presupuesto && this.orden.presupuesto.costo_traslado) ? this.orden.presupuesto.costo_traslado : (this.orden.costo_traslado || 0));
+    const total = subtotal + iva + costo_traslado;
 
     return html`
       <div class="container">

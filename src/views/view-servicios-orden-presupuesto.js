@@ -16,7 +16,8 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         especialidades: { type: Array },
         loading: { type: Boolean },
         serviciosEditados: { type: Array },
-        porcentajeIva: { type: Number }
+        porcentajeIva: { type: Number },
+        costoTraslado: { type: Number }
     };
 
     static styles = css`
@@ -444,6 +445,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
         this.loading = true;
         this.serviciosEditados = [];
         this.porcentajeIva = 15; // Default fallback
+        this.costoTraslado = 0;
     }
 
     async connectedCallback() {
@@ -667,7 +669,7 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
     }
 
     get totalGlobal() {
-        return this.subTotal + this.iva;
+        return this.subTotal + this.iva + this.costoTraslado;
     }
 
 
@@ -739,7 +741,8 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                 sub_total: subTotal,
                 porcentaje_iva: this.porcentajeIva,
                 iva: ivaValue,
-                total_a_pagar: subTotal + ivaValue,
+                costo_traslado: this.costoTraslado,
+                total_a_pagar: subTotal + ivaValue + this.costoTraslado,
                 array_servicios: this.serviciosEditados.map(s => ({
                     id_orden_servicio: s.id_orden_servicio,
                     precio_materiales_unitario: this.calculateUnitMat(s),
@@ -887,6 +890,18 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                     </div>
                 `)}
 
+                <div style="display: flex; justify-content: flex-start; align-items: center; gap: 0.5rem; margin-bottom: 1rem; margin-top: 1rem; margin-left: 0.5rem;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="8" rx="2" ry="2"></rect>
+                        <circle cx="7" cy="19" r="2"></circle>
+                        <circle cx="17" cy="19" r="2"></circle>
+                        <path d="M4 11V7a2 2 0 0 1 2-2h8l4 6"></path>
+                    </svg>
+                    <span style="font-weight: 600; color: var(--text);">Costo de Traslado:</span>
+                    <span style="color: #000; font-weight: 600;">Bs.</span>
+                    <input type="number" min="0" step="0.01" style="width: 100px; font-size: 1rem; text-align: center; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; color: #000; padding: 0.4rem 0.5rem; outline: none;" .value=${this.costoTraslado} @input=${(e) => { this.costoTraslado = Number(e.target.value) || 0; }}>
+                </div>
+
                 <footer class="global-footer">
                     <div class="footer-totals">
                         <div>
@@ -904,6 +919,10 @@ export class ViewServiciosOrdenPresupuesto extends LitElement {
                         <div>
                             <div class="global-total-label">IVA (${this.porcentajeIva}%)</div>
                             <div style="font-size: 1.1rem; font-weight: 600;">Bs.${this.iva.toFixed(2)}</div>
+                        </div>
+                        <div>
+                            <div class="global-total-label">Costo Traslado (+)</div>
+                            <div style="font-size: 1.1rem; font-weight: 600;">Bs.${this.costoTraslado.toFixed(2)}</div>
                         </div>
                         <div class="total-a-pagar-container">
                             <div class="global-total-label" style="opacity: 1; font-weight: 800; color: var(--success);">TOTAL A PAGAR</div>
