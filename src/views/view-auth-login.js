@@ -6,7 +6,8 @@ import { popupService } from '../utils/popup-service.js';
 export class ViewAuthLogin extends LitElement {
 
   static properties = {
-    showPassword: { type: Boolean }
+    showPassword: { type: Boolean },
+    isLoading: { type: Boolean }
   };
 
   static styles = css`
@@ -105,8 +106,12 @@ export class ViewAuthLogin extends LitElement {
       cursor: pointer;
       font-weight: bold;
     }
-    button[type="submit"]:hover {
+    button[type="submit"]:hover:not(:disabled) {
       background: #0056b3;
+    }
+    button[type="submit"]:disabled {
+      background: #a0c4ff;
+      cursor: not-allowed;
     }
     .links {
       margin-top: 20px;
@@ -124,6 +129,7 @@ export class ViewAuthLogin extends LitElement {
     this.email = '';
     this.password = '';
     this.showPassword = false;
+    this.isLoading = false;
   }
 
   handleInput(e) {
@@ -132,6 +138,7 @@ export class ViewAuthLogin extends LitElement {
 
   async handleSubmit(e) {
     e.preventDefault();
+    this.isLoading = true;
     try {
       let response = await authService.login(this.email, this.password);
       if (response == true) {
@@ -147,6 +154,8 @@ export class ViewAuthLogin extends LitElement {
       } else {
         popupService.warning('Acceso Denegado', 'Usuario o contraseña incorrectos. Por favor, verifique sus datos.');
       }
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -181,7 +190,9 @@ export class ViewAuthLogin extends LitElement {
               </button>
             </div>
           </div>
-          <button type="submit">Entrar</button>
+          <button type="submit" ?disabled=${this.isLoading}>
+            ${this.isLoading ? 'Validando credenciales...' : 'Entrar'}
+          </button>
         </form>
         <div class="links">
           ¿No tienes cuenta? <a href="#" @click=${() => navigator.goto('/register')}>Regístrate aquí</a>
