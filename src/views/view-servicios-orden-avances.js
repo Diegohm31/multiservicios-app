@@ -727,6 +727,9 @@ export class ViewServiciosOrdenAvances extends LitElement {
     this.activeServiceId = id_orden_servicio;
     this.selectedAvance = null;
     this.isEditing = false;
+    this.imagePreview = '';
+    const fileInput = this.shadowRoot?.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
     this.showModal = true;
   }
 
@@ -734,6 +737,9 @@ export class ViewServiciosOrdenAvances extends LitElement {
     if (!this.selectedAvance) return;
     this.activeServiceId = this.selectedAvance.id_orden_servicio;
     this.isEditing = true;
+    this.imagePreview = '';
+    const fileInput = this.shadowRoot?.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
     this.showModal = true;
   }
 
@@ -742,6 +748,8 @@ export class ViewServiciosOrdenAvances extends LitElement {
     this.isEditing = false;
     this.imagePreview = '';
     this.activeServiceId = '';
+    const fileInput = this.shadowRoot?.querySelector('input[type="file"]');
+    if (fileInput) fileInput.value = '';
   }
 
   handleFileChange(e) {
@@ -825,11 +833,10 @@ export class ViewServiciosOrdenAvances extends LitElement {
       } else {
         await serviciosService.createAvance(formData);
       }
-      this.showModal = false;
-      this.isEditing = false;
+      this.closeModal();
       await this.loadData();
 
-      if (this.getUsedPercentage(this.activeServiceId) >= 100) {
+      if (this.totalPercentage >= 100) {
         this.triggerConfetti();
       }
     } catch (error) {

@@ -349,6 +349,46 @@ export class ViewServiciosOrdenDetalles extends LitElement {
       transform: translateY(-4px);
     }
 
+    .btn-purple {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: #8b5cf6;
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-purple:hover {
+      background: #7c3aed;
+      transform: translateY(-4px);
+    }
+
+    .btn-amber {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: #f59e0b;
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-amber:hover {
+      background: #d97706;
+      transform: translateY(-4px);
+    }
+
     textarea {
       width: 100%;
       min-height: 100px;
@@ -543,6 +583,22 @@ export class ViewServiciosOrdenDetalles extends LitElement {
         await this.loadOrden();
       }
     );
+  }
+
+  realizarPresupuesto(id) {
+    navigator.goto(`/servicios/orden/presupuesto/${id}`);
+  }
+
+  pagarOrden(id) {
+    navigator.goto(`/servicios/orden/pago/${id}`);
+  }
+
+  normalize(str) {
+    return (str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  verAvances(id) {
+    navigator.goto(`/servicios/orden/avances/${id}`);
   }
 
   async triggerFileUpload() {
@@ -938,6 +994,29 @@ export class ViewServiciosOrdenDetalles extends LitElement {
           </div>
         ` : ''}
 
+        <!-- Si es admin y la orden está aceptada -->
+        ${this.id_rol === '00003' && this.orden.estado?.toLowerCase() === 'aceptada' ? html`
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Acciones de Presupuesto</h2>
+            </div>
+            <div class="card-body">
+              <p style="margin-bottom: 1.5rem; color: var(--text-light);">La orden ha sido aceptada. Puede proceder a elaborar el presupuesto una vez que haya subido el archivo de peritaje.</p>
+              ${this.orden.pdf_peritaje ? html`
+                <button class="btn-purple" @click=${() => this.realizarPresupuesto(this.orden.id_orden)}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  Presupuestar
+                </button>
+              ` : html`
+                <button class="btn-primary" style="background-color: #cbd5e1; color: #64748b; cursor: not-allowed;" @click=${() => popupService.warning('Peritaje Requerido', 'No se puede elaborar el presupuesto porque esta orden aún no cuenta con un archivo de peritaje subido.')} title="Requiere archivo de peritaje">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                  Presupuestar
+                </button>
+              `}
+            </div>
+          </div>
+        ` : ''}
+
         <!-- Si es cliente y el estado de esa orden es Presupuestada mostrar botones para aceptar o cancelar presupuesto -->
         ${this.id_rol === '00001' && (this.orden.estado?.toLowerCase() === 'presupuestada') ? html`
           <div class="card">
@@ -956,6 +1035,37 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                   Rechazar Presupuesto
                 </button>
               </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Si es cliente y el estado de la orden es Por pagar mostrar boton para Pagar -->
+        ${this.id_rol === '00001' && this.orden.estado?.toLowerCase().includes('pagar') ? html`
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Acciones de Pago</h2>
+            </div>
+            <div class="card-body">
+              <p style="margin-bottom: 1.5rem; color: var(--text-light);">La orden está pendiente de pago. Por favor, realice el pago para continuar con el proceso.</p>
+              <button class="btn-success" @click=${() => this.pagarOrden(this.orden.id_orden)}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" ry="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                Pagar
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Botón de Avances cuando está en ejecución -->
+        ${this.normalize(this.orden.estado).includes('ejecucion') ? html`
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Avances del Servicio</h2>
+            </div>
+            <div class="card-body">
+              <p style="margin-bottom: 1.5rem; color: var(--text-light);">La orden se encuentra actualmente en ejecución. Puede revisar los avances y actualizaciones registrados para esta orden.</p>
+              <button class="btn-amber" @click=${() => this.verAvances(this.orden.id_orden)}>
+                Avances
+              </button>
             </div>
           </div>
         ` : ''}

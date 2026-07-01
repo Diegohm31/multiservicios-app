@@ -287,7 +287,18 @@ export class ViewServiciosOrdenListado extends LitElement {
       display: flex;
       justify-content: center;
       gap: 0.6rem;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
+      min-width: 150px;
+    }
+
+    .address-cell {
+      max-width: 250px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0 auto;
     }
 
     .btn {
@@ -942,7 +953,7 @@ export class ViewServiciosOrdenListado extends LitElement {
                 <th>Cliente</th>
                 <th>Cédula</th>
               ` : ''}
-              <th>Dirección de Entrega</th>
+              <th>Dirección</th>
               <th>Fecha Emisión</th>
               <th>Estado Actual</th>
               ${this.id_rol === '00002' ? html`<th>Ingreso</th>` : ''}
@@ -976,7 +987,7 @@ export class ViewServiciosOrdenListado extends LitElement {
                   </td>
                   <td style="font-family: monospace;">${orden.cedula}</td>
                 ` : ''}
-                <td>${orden.direccion}</td>
+                <td><div class="address-cell" title="${orden.direccion}">${orden.direccion}</div></td>
                 <td style="color: var(--text-light); font-weight: 500;">${formatDateTime(orden.fecha_emision)}</td>
                 <td>
                   <span class="status-badge ${this.getStatusClass(orden.estado)}">
