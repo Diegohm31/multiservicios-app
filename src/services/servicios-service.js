@@ -303,7 +303,7 @@ export class ServiciosService {
         }
     }
 
-    async aceptarOrden(id, observaciones = null) {
+    async aceptarOrden(id, observaciones = null, fecha_peritaje = null) {
         let url = `${this.baseUrl}/api/ordenes/${id}/aceptar`;
         let token = localStorage.getItem('token');
         const requestOptions = {
@@ -313,7 +313,7 @@ export class ServiciosService {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ observaciones })
+            body: JSON.stringify({ observaciones, fecha_peritaje })
         };
         try {
             const response = await fetch(url, requestOptions);
@@ -432,20 +432,18 @@ export class ServiciosService {
         }
     }
 
-    async subirPeritaje(id, file) {
-        let url = `${this.baseUrl}/api/ordenes/${id}/subir-peritaje`;
+    async generarPeritaje(id, payload) {
+        let url = `${this.baseUrl}/api/ordenes/${id}/peritaje`;
         let token = localStorage.getItem('token');
-
-        const formData = new FormData();
-        formData.append('pdf_peritaje', file);
 
         const requestOptions = {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: formData
+            body: JSON.stringify(payload)
         };
         try {
             const response = await fetch(url, requestOptions);
@@ -453,10 +451,9 @@ export class ServiciosService {
                 const errorData = await response.json();
                 throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
-            const response_json = await response.json();
-            return response_json.data;
+            return await response.json();
         } catch (error) {
-            console.error('Error al subir peritaje:', error);
+            console.error('Error al generar peritaje:', error);
             throw error;
         }
     }

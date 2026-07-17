@@ -14,7 +14,8 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     currentUser: { type: Object },
     isDragging: { type: Boolean },
     showServiceDetailsModal: { type: Boolean },
-    selectedServiceDetails: { type: Object }
+    selectedServiceDetails: { type: Object },
+    isEditingFechaPeritaje: { type: Boolean }
   };
 
   static styles = css`
@@ -465,6 +466,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     this.isDragging = false;
     this.showServiceDetailsModal = false;
     this.selectedServiceDetails = null;
+    this.isEditingFechaPeritaje = false;
   }
 
   async connectedCallback() {
@@ -548,14 +550,46 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     );
   }
 
+  toggleEditFechaPeritaje() {
+    this.isEditingFechaPeritaje = !this.isEditingFechaPeritaje;
+  }
+
+  async saveFechaPeritaje() {
+    const newFecha = this.shadowRoot.getElementById('edit-fecha-peritaje-input')?.value;
+    if (!newFecha) {
+      popupService.warning('Aviso', 'Seleccione una fecha válida.');
+      return;
+    }
+
+    popupService.confirm(
+      'Actualizar Fecha',
+      '¿Está seguro de que desea actualizar la fecha de peritaje?',
+      async () => {
+        popupService.sendingEmail('Actualizando...', 'Se actualizará la fecha y se notificará al cliente por correo.');
+        await serviciosService.updateOrden(this.orden.id_orden, { fecha_peritaje: newFecha });
+        popupService.hide();
+        popupService.success('Éxito', 'Fecha de peritaje actualizada correctamente.');
+        this.isEditingFechaPeritaje = false;
+        await this.loadOrden();
+      }
+    );
+  }
+
   async aceptarOrden(id) {
     const observaciones = this.shadowRoot.getElementById('observaciones-admin')?.value;
+    const fechaPeritaje = this.shadowRoot.getElementById('fecha-peritaje-admin')?.value;
+
+    if (!fechaPeritaje) {
+      popupService.warning('Campos incompletos', 'Debe ingresar una fecha para el peritaje antes de aceptar la orden.');
+      return;
+    }
+
     popupService.confirm(
       'Aceptar Orden',
-      '¿Está seguro de que desea aceptar la orden?',
+      '¿Está seguro de que desea aceptar la orden? Se asignará la fecha de peritaje seleccionada.',
       async () => {
         popupService.sendingEmail();
-        await serviciosService.aceptarOrden(id, observaciones);
+        await serviciosService.aceptarOrden(id, observaciones, fechaPeritaje);
         popupService.hide();
         popupService.success('Éxito', 'Orden aceptada correctamente.');
         await this.loadOrden();
@@ -601,26 +635,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     navigator.goto(`/servicios/orden/avances/${id}`);
   }
 
-  async triggerFileUpload() {
-    this.shadowRoot.getElementById('peritaje-input').click();
-  }
 
-  async handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      this.loading = true;
-      await serviciosService.subirPeritaje(this.orden.id_orden, file);
-      await this.loadOrden();
-      popupService.success('Éxito', 'Archivo de peritaje subido correctamente');
-    } catch (error) {
-      console.error('Error uploading peritaje:', error);
-      popupService.warning('Error', 'Error al subir el archivo: ' + error.message);
-    } finally {
-      this.loading = false;
-    }
-  }
 
   viewPeritaje() {
     if (this.orden.pdf_peritaje) {
@@ -694,29 +709,7 @@ export class ViewServiciosOrdenDetalles extends LitElement {
     }
   }
 
-  handleDragOver(e) {
-    if (this.id_rol !== '00003') return;
-    e.preventDefault();
-    this.isDragging = true;
-  }
 
-  handleDragLeave() {
-    this.isDragging = false;
-  }
-
-  handleDrop(e) {
-    if (this.id_rol !== '00003') return;
-    e.preventDefault();
-    this.isDragging = false;
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      if (file.type !== 'application/pdf') {
-        popupService.warning('Error', 'Por favor, suba solo archivos PDF.');
-        return;
-      }
-      this.handleFileUpload({ target: { files: [file] } });
-    }
-  }
 
   renderTotal(total) {
     const s = this.orden.estado?.toLowerCase() || '';
@@ -784,24 +777,12 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                   </button>
                 ` : ''}
 
-                <div 
-                  class="drag-zone ${this.isDragging ? 'dragging' : ''}"
-                  @dragover=${this.handleDragOver}
-                  @dragleave=${this.handleDragLeave}
-                  @drop=${this.handleDrop}
-                >
-                  <button class="btn-outline-danger" @click=${this.triggerFileUpload}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                    ${!this.orden.pdf_peritaje ? (this.isDragging ? 'Soltar PDF aquí' : 'Subir Peritaje') : (this.isDragging ? 'Soltar nuevo PDF' : 'Actualizar Peritaje')}
+                ${!this.orden.pdf_peritaje && this.orden.estado?.toLowerCase() === 'aceptada' ? html`
+                  <button class="btn-outline-danger" @click=${() => navigator.goto(`/servicios/orden/peritaje/${this.orden.id_orden}`)}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    Realizar Peritaje
                   </button>
-                  <input 
-                    type="file" 
-                    id="peritaje-input" 
-                    accept=".pdf" 
-                    style="display: none;" 
-                    @change=${this.handleFileUpload}
-                  >
-                </div>
+                ` : ''}
                 <!-- Botón de Factura/Presupuesto -->
                 ${(this.orden.presupuesto?.pdf_factura || this.orden.pdf_factura) ? html`
                   <button class="btn-outline-danger" @click=${this.viewFactura}>
@@ -851,6 +832,28 @@ export class ViewServiciosOrdenDetalles extends LitElement {
                 <span class="detail-label">Fecha de Emisión</span>
                 <span class="detail-value">${formatDateTime(this.orden.fecha_emision)}</span>
               </div>
+              
+              ${this.orden.fecha_peritaje ? html`
+                <div class="detail-item" style="${this.isEditingFechaPeritaje ? 'grid-column: 1 / -1;' : ''}">
+                  <span class="detail-label">Fecha de Peritaje</span>
+                  ${this.isEditingFechaPeritaje ? html`
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem; flex-wrap: wrap;">
+                      <input type="datetime-local" id="edit-fecha-peritaje-input" .value=${this.orden.fecha_peritaje.replace(' ', 'T').slice(0, 16)} min=${new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} style="padding: 0.25rem; border: 1px solid var(--border); border-radius: 4px; font-family: inherit; font-size: 0.9rem; color: #1e293b; background-color: #ffffff; color-scheme: light; min-width: 210px;">
+                      <button class="btn-success" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" @click=${this.saveFechaPeritaje}>Guardar</button>
+                      <button class="btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" @click=${this.toggleEditFechaPeritaje}>Cancelar</button>
+                    </div>
+                  ` : html`
+                    <span class="detail-value" style="display: flex; align-items: center; gap: 0.5rem;">
+                      ${formatDateTime(this.orden.fecha_peritaje)}
+                      ${this.id_rol === '00003' && !this.orden.pdf_peritaje ? html`
+                        <button style="background: none; border: none; cursor: pointer; color: var(--primary); display: flex; align-items: center;" @click=${this.toggleEditFechaPeritaje} title="Editar fecha">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                      ` : ''}
+                    </span>
+                  `}
+                </div>
+              ` : ''}
               <div class="detail-item">
                 <span class="detail-label">Rango de Fechas</span>
                 ${this.orden.fecha_inicio && this.orden.fecha_fin ? html`
@@ -945,6 +948,10 @@ export class ViewServiciosOrdenDetalles extends LitElement {
               <h2 class="card-title">Acciones</h2>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 1rem;">
+                <label class="detail-label" style="display: block; margin-bottom: 0.5rem;">Fecha de Peritaje *</label>
+                <input type="datetime-local" id="fecha-peritaje-admin" min=${new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.95rem; color: #1e293b; background-color: #ffffff; color-scheme: light; margin-bottom: 1rem; box-sizing: border-box;">
+              </div>
               <div style="margin-bottom: 1rem;">
                 <label class="detail-label" style="display: block; margin-bottom: 0.5rem;">Observaciones del Administrador</label>
                 <textarea id="observaciones-admin" placeholder="Ingrese observaciones adicionales si es necesario..."></textarea>

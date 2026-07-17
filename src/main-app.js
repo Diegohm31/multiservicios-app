@@ -25,6 +25,7 @@ import './views/view-servicios-servicio-form.js';
 import './views/view-catalogo-servicios.js';
 import './views/view-servicios-orden-listado.js';
 import './views/view-servicios-orden-detalles.js';
+import './views/view-servicios-orden-peritaje.js';
 import './views/view-servicios-orden-presupuesto.js';
 import './views/view-servicios-orden-pago.js';
 import './views/view-reportes-pagos-listado.js';
@@ -438,6 +439,17 @@ export class MainApp extends LitElement {
         return true;
       },
       render: (params) => html`<view-servicios-orden-detalles .ordenId=${params.id}></view-servicios-orden-detalles>`
+    },
+    {
+      path: '/servicios/orden/peritaje/:id',
+      enter: async () => {
+        if (!authService.isLoggedIn()) {
+          navigator.goto('/login');
+          return false;
+        }
+        return true;
+      },
+      render: (params) => html`<view-servicios-orden-peritaje .ordenId=${params.id}></view-servicios-orden-peritaje>`
     },
     {
       path: '/servicios/orden/presupuesto/:id',

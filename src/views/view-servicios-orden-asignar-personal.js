@@ -1077,10 +1077,22 @@ export class ViewServiciosOrdenAsignarPersonal extends LitElement {
                 .map(f => f.id_unidad_equipo)
                 .filter(id => id);
 
-            const units = (this.equiposFull || []).filter(u =>
+            let units = (this.equiposFull || []).filter(u =>
                 u.id_tipo_equipo === assign.id_tipo_equipo &&
                 (u.id_equipo === assign.id_unidad_equipo || !forbiddenIds.includes(u.id_equipo))
             );
+
+            // Filtrar kits de herramientas por la categoría del servicio
+            if (assign.nombre_equipo && assign.nombre_equipo.toLowerCase().includes('kit de herramientas')) {
+                const categoria = (s.categoria_nombre || '').toLowerCase();
+                if (categoria) {
+                    units = units.filter(u => {
+                        const modelo = (u.modelo || '').toLowerCase();
+                        const desc = (u.descripcion || '').toLowerCase();
+                        return modelo.includes(categoria) || desc.includes(categoria) || u.id_equipo === assign.id_unidad_equipo;
+                    });
+                }
+            }
 
             return html`
                         <tr>

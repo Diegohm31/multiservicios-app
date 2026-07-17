@@ -332,6 +332,9 @@ export class ViewServiciosOrdenListado extends LitElement {
     .btn-purple { background-color: #f3e8ff; color: #6b21a8; }
     .btn-purple:hover { background-color: #6b21a8; color: white; }
     
+    .btn-orange { background-color: #ffedd5; color: #ea580c; }
+    .btn-orange:hover { background-color: #ea580c; color: white; }
+    
     .btn-primary { background-color: var(--primary); color: white; }
     .btn-primary:hover { background-color: var(--primary-hover); }
     
@@ -1006,7 +1009,8 @@ export class ViewServiciosOrdenListado extends LitElement {
                       ${orden.pdf_peritaje ? html`
                         <button class="btn btn-purple" @click=${() => this.realizarPresupuesto(orden.id_orden)}>Presupuestar</button>
                       ` : html`
-                        <button class="btn" style="background-color: #cbd5e1; color: #64748b; cursor: not-allowed;" @click=${() => popupService.warning('Peritaje Requerido', 'No se puede elaborar el presupuesto porque esta orden aún no cuenta con un archivo de peritaje subido.')} title="Requiere archivo de peritaje">Presupuestar</button>
+                        <button class="btn btn-orange" @click=${() => navigator.goto('/servicios/orden/peritaje/' + orden.id_orden)}>Realizar Peritaje</button>
+                        <button class="btn" style="background-color: #cbd5e1; color: #64748b; cursor: not-allowed;" @click=${() => popupService.warning('Peritaje Requerido', 'No se puede elaborar el presupuesto porque esta orden aún no cuenta con un archivo de peritaje.')} title="Requiere archivo de peritaje">Presupuestar</button>
                       `}
                     ` : ''}
                     ${this.id_rol === '00001' && orden.estado?.toLowerCase().includes('pagar') ? html`

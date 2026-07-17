@@ -13,8 +13,10 @@ export class ViewDashboard extends LitElement {
     recentOrders: { type: Array },
     shortcuts: { type: Array },
     loading: { type: Boolean },
-    currentMonth: { type: Number },
-    currentYear: { type: Number },
+    currentMonthOrders: { type: Number },
+    currentYearOrders: { type: Number },
+    currentMonthPeritajes: { type: Number },
+    currentYearPeritajes: { type: Number },
     waitOrders: { type: Array }
   };
 
@@ -298,20 +300,45 @@ export class ViewDashboard extends LitElement {
       margin: 0;
       font-size: 1.1rem;
       font-weight: 700;
+    }
+
+    .calendar-header-peritaje {
+      background: #fed7aa;
+      color: #9a3412;
+    }
+    
+    .highlight-peritaje {
+      background: #fff7ed;
+      border-color: #fdba74;
+    }
+    
+    .highlight-peritaje:hover {
+      background: #ffedd5;
+      transform: scale(1.05);
+      z-index: 10;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .badge-peritaje {
+      background: #f97316;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
     
     .calendar-nav-btn {
-      background: transparent;
-      border: none;
-      color: #0c4a6e;
+      background: none !important;
+      background-color: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      outline: none !important;
+      color: white !important;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: transform 0.2s;
       padding: 0;
+      margin: 0;
     }
     
     .calendar-nav-btn:hover {
@@ -469,9 +496,12 @@ export class ViewDashboard extends LitElement {
     this.barStats = { mean: 0, max: { val: 0, label: '' }, min: { val: 0, label: '' } };
 
     const today = new Date();
-    this.currentMonth = today.getMonth();
-    this.currentYear = today.getFullYear();
+    this.currentMonthOrders = today.getMonth();
+    this.currentYearOrders = today.getFullYear();
+    this.currentMonthPeritajes = today.getMonth();
+    this.currentYearPeritajes = today.getFullYear();
     this.waitOrders = [];
+    this.peritajesProgramados = [];
   }
 
   async connectedCallback() {
@@ -496,6 +526,7 @@ export class ViewDashboard extends LitElement {
       const allOrders = ordenesData?.ordenes || [];
       this.recentOrders = [...allOrders].sort((a, b) => b.id_orden - a.id_orden).slice(0, 5);
       this.waitOrders = allOrders.filter(o => o.estado === 'En espera' && o.fecha_inicio);
+      this.peritajesProgramados = allOrders.filter(o => o.fecha_peritaje && (o.estado.toLowerCase() === 'pendiente' || o.estado.toLowerCase() === 'aceptada'));
 
       this.calculateMetrics(allOrders, clientsData);
       this.loadShortcuts();
@@ -707,23 +738,37 @@ export class ViewDashboard extends LitElement {
     return { bg: '#dcfce7', color: '#166534', icon: '🛡️', label: 'Membresía al día' };
   }
 
-  changeMonth(offset) {
-    let newMonth = this.currentMonth + offset;
-    let newYear = this.currentYear;
-    if (newMonth > 11) {
-      newMonth = 0;
-      newYear++;
-    } else if (newMonth < 0) {
-      newMonth = 11;
-      newYear--;
+  changeMonth(type, offset) {
+    if (type === 'orders') {
+      let newMonth = this.currentMonthOrders + offset;
+      let newYear = this.currentYearOrders;
+      if (newMonth > 11) {
+        newMonth = 0;
+        newYear++;
+      } else if (newMonth < 0) {
+        newMonth = 11;
+        newYear--;
+      }
+      this.currentMonthOrders = newMonth;
+      this.currentYearOrders = newYear;
+    } else {
+      let newMonth = this.currentMonthPeritajes + offset;
+      let newYear = this.currentYearPeritajes;
+      if (newMonth > 11) {
+        newMonth = 0;
+        newYear++;
+      } else if (newMonth < 0) {
+        newMonth = 11;
+        newYear--;
+      }
+      this.currentMonthPeritajes = newMonth;
+      this.currentYearPeritajes = newYear;
     }
-    this.currentMonth = newMonth;
-    this.currentYear = newYear;
   }
 
   renderCalendar() {
-    const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-    const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+    const daysInMonth = new Date(this.currentYearOrders, this.currentMonthOrders + 1, 0).getDate();
+    const firstDay = new Date(this.currentYearOrders, this.currentMonthOrders, 1).getDay();
     const startingDay = firstDay === 0 ? 6 : firstDay - 1; // Adjust so Monday is 0
     const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
@@ -734,7 +779,7 @@ export class ViewDashboard extends LitElement {
 
     for (let i = 1; i <= daysInMonth; i++) {
       // Create local date string YYYY-MM-DD
-      const dateStr = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      const dateStr = `${this.currentYearOrders}-${String(this.currentMonthOrders + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
       const ordersOnThisDay = this.waitOrders.filter(o => o.fecha_inicio && o.fecha_inicio.startsWith(dateStr));
       const hasOrders = ordersOnThisDay.length > 0;
@@ -751,11 +796,63 @@ export class ViewDashboard extends LitElement {
     return html`
       <div class="calendar-container">
         <div class="calendar-header">
-          <button class="calendar-nav-btn" @click=${() => this.changeMonth(-1)}>
+          <button class="calendar-nav-btn" @click=${() => this.changeMonth('orders', -1)}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
           </button>
-          <h2>${monthNames[this.currentMonth]} ${this.currentYear}</h2>
-          <button class="calendar-nav-btn" @click=${() => this.changeMonth(1)}>
+          <h2>${monthNames[this.currentMonthOrders]} ${this.currentYearOrders}</h2>
+          <button class="calendar-nav-btn" @click=${() => this.changeMonth('orders', 1)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div class="calendar-grid">
+          <div class="calendar-day-header">L</div>
+          <div class="calendar-day-header">M</div>
+          <div class="calendar-day-header">M</div>
+          <div class="calendar-day-header">J</div>
+          <div class="calendar-day-header">V</div>
+          <div class="calendar-day-header">S</div>
+          <div class="calendar-day-header">D</div>
+          ${days}
+        </div>
+      </div>
+    `;
+  }
+
+  renderPeritajesCalendar() {
+    const daysInMonth = new Date(this.currentYearPeritajes, this.currentMonthPeritajes + 1, 0).getDate();
+    const firstDay = new Date(this.currentYearPeritajes, this.currentMonthPeritajes, 1).getDay();
+    const startingDay = firstDay === 0 ? 6 : firstDay - 1; // Adjust so Monday is 0
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    let days = [];
+    for (let i = 0; i < startingDay; i++) {
+      days.push(html`<div class="calendar-day empty"></div>`);
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      // Create local date string YYYY-MM-DD
+      const dateStr = `${this.currentYearPeritajes}-${String(this.currentMonthPeritajes + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+
+      const ordersOnThisDay = this.peritajesProgramados.filter(o => o.fecha_peritaje && o.fecha_peritaje.startsWith(dateStr));
+      const hasOrders = ordersOnThisDay.length > 0;
+      const tooltipText = hasOrders ? `Peritajes Programados: ${ordersOnThisDay.map(o => '#' + o.id_orden).join(', ')}` : '';
+
+      days.push(html`
+        <div class="calendar-day ${hasOrders ? 'highlight highlight-peritaje' : ''}" title="${tooltipText}">
+          <span>${i}</span>
+          ${hasOrders ? html`<span class="order-badge badge-peritaje">${ordersOnThisDay.length}</span>` : ''}
+        </div>
+      `);
+    }
+
+    return html`
+      <div class="calendar-container">
+        <div class="calendar-header calendar-header-peritaje">
+          <button class="calendar-nav-btn" @click=${() => this.changeMonth('peritajes', -1)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <h2>${monthNames[this.currentMonthPeritajes]} ${this.currentYearPeritajes}</h2>
+          <button class="calendar-nav-btn" @click=${() => this.changeMonth('peritajes', 1)}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
           </button>
         </div>
@@ -890,9 +987,15 @@ export class ViewDashboard extends LitElement {
             </div>
 
             ${this.user?.id_rol === '00003' ? html`
-            <div style="margin-bottom: 2.5rem; animation: fadeInUp 0.8s ease-out;">
-                <h2 style="font-size: 1.1rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; color: var(--text);">Calendario de Órdenes en Espera de Ejecución</h2>
-                ${this.renderCalendar()}
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem; animation: fadeInUp 0.8s ease-out;">
+                <div>
+                    <h2 style="font-size: 1.1rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; color: var(--text);">Calendario de Órdenes en Espera</h2>
+                    ${this.renderCalendar()}
+                </div>
+                <div>
+                    <h2 style="font-size: 1.1rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1rem; color: var(--text);">Calendario de Peritajes Programados</h2>
+                    ${this.renderPeritajesCalendar()}
+                </div>
             </div>
             ` : ''}
 
